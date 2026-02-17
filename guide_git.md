@@ -15,3 +15,15 @@ Dans le dossier robotique_front/ → tu pousses/pull sur le repo robotique_front
 git clone https://github.com/fouuuadi/robotique_back.git    
 
 Dans le dossier robotique_back/ → tu pousses/pull sur le repo robotique_back.
+
+
+
+## Gestion des branches
+
+- Toujours créer une branche avec un nom clair pour chaque fonctionnalité (ex : git checkout -b feature/ajout-backglass
+)
+- **Ne jamais travailler directement sur la branche principale** `main`
+- **Créer une Pull Request** sur GitHub quand la branche est terminée pour demander une relecture avant fusion.
+
+
+
