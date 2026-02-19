@@ -28,4 +28,4 @@ jobs:
           git commit -m "Auto update front from ${GITHUB_REPOSITORY}@${GITHUB_SHA}" || echo "No changes"
 
           git pull --rebase
-          git push
+          git push https://x-access-token:${{ secrets.CENTER_TOKEN }}@github.com/fouuuadi/Flipper_Center.git main
