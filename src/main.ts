@@ -1,24 +1,15 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import "./style.css";
+import { env } from "@config/env";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+function bootstrap(): void {
+  if (env.isDev) {
+    console.log(`[Flipper] ${env.mode} mode — API: ${env.apiBaseUrl}`);
+  }
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+  const app = document.querySelector<HTMLDivElement>("#app");
+  if (!app) throw new Error("#app element not found");
+
+  app.innerHTML = `<h1>${env.appTitle}</h1>`;
+}
+
+bootstrap();

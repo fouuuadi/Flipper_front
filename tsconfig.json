@@ -3,7 +3,10 @@
     "baseUrl": ".",
     "paths": {
       "@core/*": ["src/core/*"],
-      "@playfield/*": ["src/playfield/*"],
+      "@engine/*": ["src/engine/*"],
+      "@config/*": ["src/config/*"],
+      "@modules/*": ["src/modules/*"],
+      "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"]
     },
     
@@ -14,14 +17,12 @@
     "types": ["vite/client"],
     "skipLibCheck": true,
 
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
