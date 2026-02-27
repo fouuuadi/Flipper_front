@@ -15,6 +15,9 @@ export class SceneManager {
   private stats: Stats | null = null;
   private animationFrameId: number | null = null;
   private readonly container: HTMLElement;
+  private readonly updateCallbacks: Set<(deltaTime: number) => void> = new Set();
+  private lastFrameTime: number = 0;
+  private isRunning: boolean = false;
 
   constructor(options: SceneManagerOptions = {}) {
     const {
@@ -46,13 +49,48 @@ export class SceneManager {
   }
 
   start(): void {
-    const loop = (): void => {
+    if (this.isRunning) return;
+    this.isRunning = true;
+    this.lastFrameTime = performance.now() / 1000; // initialiser en secondes
+
+    const loop = (currentTime: number): void => {
       this.stats?.begin();
-      this.animationFrameId = requestAnimationFrame(loop);
+
+      // Ici on calcule le deltaTime
+      const currentTimeInSeconds = currentTime / 1000;
+      const deltaTime = currentTimeInSeconds - this.lastFrameTime;
+      this.lastFrameTime = currentTimeInSeconds;
+
+      // Ici on exécute les callbacks
+      this.updateCallbacks.forEach((callback) => callback(deltaTime));
+
       this.renderer.render(this.scene, this.camera);
+
       this.stats?.end();
+
+      // Ici on verifie le prochain frame si la boucle est toujours active
+      if (this.isRunning) {
+        this.animationFrameId = requestAnimationFrame(loop);
+      }
     };
-    loop();
+
+    this.animationFrameId = requestAnimationFrame(loop);
+  }
+
+  stop(): void {
+    this.isRunning = false;
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  onUpdate(callback: (deltaTime: number) => void): void {
+    this.updateCallbacks.add(callback);
+  }
+
+  offUpdate(callback: (deltaTime: number) => void): void {
+    this.updateCallbacks.delete(callback);
   }
 
   dispose(): void {
