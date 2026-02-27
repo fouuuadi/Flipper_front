@@ -1,1 +1,1 @@
-declare module 'stats.js';
+declare module "stats.js";
