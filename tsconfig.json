@@ -1,15 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@core/*": ["src/core/*"],
-      "@engine/*": ["src/engine/*"],
-      "@config/*": ["src/config/*"],
-      "@modules/*": ["src/modules/*"],
-      "@services/*": ["src/services/*"],
-      "@utils/*": ["src/utils/*"]
-    },
-    
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
@@ -17,12 +7,14 @@
     "types": ["vite/client"],
     "skipLibCheck": true,
 
+    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
