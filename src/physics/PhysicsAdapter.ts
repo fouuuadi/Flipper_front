@@ -1,15 +1,18 @@
-export type BodyId = string
+export type BodyId = string;
 
-export type BodyOptions = {
-  id?: BodyId
-  x?: number
-  y?: number
-  angle?: number
-  mass?: number
+export interface BodyOptions {
+  id?: BodyId;
+  x?: number;
+  y?: number;
+  angle?: number;
+  mass?: number;
+  isStatic?: boolean;
 }
 
 export interface PhysicsAdapter {
-  init(): void | Promise<void>
-  addBody(options: BodyOptions): BodyId
-  step(deltaMs: number): void
+  init(): void | Promise<void>;
+  addBody(options: BodyOptions): BodyId;
+  removeBody(id: BodyId): void;
+  step(delta: number): void;
+  dispose(): void;
 }

@@ -8,6 +8,7 @@ export default defineConfig({
       '@engine': fileURLToPath(new URL('./src/engine', import.meta.url)),
       '@config': fileURLToPath(new URL('./src/config', import.meta.url)),
       '@modules': fileURLToPath(new URL('./src/modules', import.meta.url)),
+      '@physics': fileURLToPath(new URL('./src/physics', import.meta.url)),
       '@services': fileURLToPath(new URL('./src/services', import.meta.url)),
       '@utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
     },
