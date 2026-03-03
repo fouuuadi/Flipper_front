@@ -6,6 +6,7 @@
       "@engine/*": ["src/engine/*"],
       "@config/*": ["src/config/*"],
       "@modules/*": ["src/modules/*"],
+      "@physics/*": ["src/physics/*"],
       "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"]
     },
