@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
 import { Playfield } from "@modules/playfield/Playfield";
+import { gameStateStore, GameState } from "@core/index";
+
+// Ici j'ai mis une var temp pour le template HTML
+const viteLogo = "/vite.svg";
+const typescriptLogo = "/typescript.svg";
+
+const sceneManager = new SceneManager();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -34,3 +41,11 @@ sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
 sceneManager.start();
+
+// Ici je test GameStateStore (Issue 9)
+gameStateStore.subscribe((state: GameState) => {
+  console.log("GameState changed:", state);
+});
+
+gameStateStore.setState(GameState.READY);
+gameStateStore.setState(GameState.PLAYING);
