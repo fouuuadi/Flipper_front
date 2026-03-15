@@ -1,5 +1,5 @@
 import * as RAPIER from "@dimforge/rapier3d-compat";
-import type { BodyId, BodyOptions, PhysicsAdapter } from "./PhysicsAdapter";
+import type { BodyId, BodyOptions, PhysicsAdapter, Vec3 } from "./PhysicsAdapter";
 import { Quaternion as ThreeQuaternion, Euler } from "three";
 
 type BodyHandle = {
@@ -18,7 +18,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     await RAPIER.init();
 
-    // force gravitationnelle vectorielle sur l'axe y
+    // Constante gravitationnelle vectorielle sur l'axe y
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   }
 
@@ -49,10 +49,35 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     const body = world.createRigidBody(bodyDesc);
 
+    // Collider
+    const shape = options.shape ?? "sphere";
+    const friction = options.friction ?? 0.7;
+    const restitution = options.restitution ?? 0.5;
+
+    let colliderDesc: RAPIER.ColliderDesc;
+    if (shape === "box") {
+      const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
+      colliderDesc = RAPIER.ColliderDesc.cuboid(ext.x, ext.y, ext.z);
+    } else {
+      const radius = options.radius ?? 1;
+      colliderDesc = RAPIER.ColliderDesc.ball(radius);
+    } 
+
+    // réaction de support : plus le frottement est élevé, moins la balle glisse sur la surface.
+    // rebond : plus la restitution est élevé, plus la balle rebondit après une collision.
+    colliderDesc = colliderDesc.setFriction(friction).setRestitution(restitution);
+
+    if (typeof options.mass === "number") {
+      colliderDesc = colliderDesc.setMass(options.mass);
+    }
+
+    const collider = world.createCollider(colliderDesc, body);
+
+    // pertes de vitesse : plus la résistance est élevé, plus la balle ralentit au fil du temps.
     if (typeof options.linearDamping === "number") body.setLinearDamping(options.linearDamping);
     if (typeof options.angularDamping === "number") body.setAngularDamping(options.angularDamping);
 
-    this.handles.set(id, { body });
+    this.handles.set(id, { body, collider });
     return id;
   }
 
@@ -78,6 +103,59 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     for (const [id] of this.handles) this.removeBody(id);
     this.world = null;
     this.nextId = 0;
+  }
+
+  // Helpers pour créer le monde de test
+
+  /**
+   * Crée le playfield statique : une large box plate, inclinée de 6° autour de X.
+   * Dimensions approximatives : 1 m × 0.2 m × 2.5 m (largeur × épaisseur × longueur).
+   */
+  createPlayfield(options?: { y?: number; friction?: number; restitution?: number }): BodyId {
+    const y = options?.y ?? 0;
+    const degree6 = Math.PI / 30;
+
+    return this.addBody({
+      id: "playfield",
+      position: { x: 0, y, z: 0 },
+      rotation: { x: degree6, y: 0, z: 0 },
+      shape: "box",
+      halfExtents: { x: 0.5, y: 0.1, z: 1.25 }, 
+      friction: options?.friction ?? 0.7,
+      restitution: options?.restitution ?? 0.3,
+      isStatic: true,
+    });
+  }
+
+  /**
+   * Crée une balle de test : sphère dynamique au-dessus du playfield.
+   * Masse : 0.08 kg (80 g, réaliste pour une bille de pinball).
+   * Rayon : 0.014 m (14 mm).
+   */
+
+  createTestBall(options?: {
+    position?: Vec3;
+    radius?: number;
+    mass?: number;
+    linearDamping?: number;
+  }): BodyId {
+    const pos = options?.position ?? { x: 0, y: 1, z: 0 };
+    const radius = options?.radius ?? 0.014;
+    const mass = options?.mass ?? 0.08;
+    const linearDamping = options?.linearDamping ?? 0.1;
+
+    return this.addBody({
+      id: "test-ball",
+      position: pos,
+      shape: "sphere",
+      radius,
+      mass,
+      linearDamping,
+      angularDamping: 0.1,
+      friction: 0.3,
+      restitution: 0.85,
+      isStatic: false,
+    });
   }
 
   private getWorld(): RAPIER.World {
