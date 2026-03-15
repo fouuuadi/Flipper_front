@@ -17,6 +17,13 @@ export interface BodyOptions {
   
   mass?: number;
   isStatic?: boolean;
+
+  // géométrie et métériau
+  shape?: 'sphere' | 'box';
+  radius?: number;
+  halfExtents?: Vec3;
+  friction?: number;
+  restitution?: number;
 }
 
 export interface PhysicsAdapter {
