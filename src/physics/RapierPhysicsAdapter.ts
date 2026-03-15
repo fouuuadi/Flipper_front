@@ -173,7 +173,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     });
   }
 
-  
+  // Méthode publique pour accéder à un body (debug)
+  getBody(id: BodyId): RAPIER.RigidBody | null {
+    const handle = this.handles.get(id);
+    return handle?.body ?? null;
+  }
 
   private getWorld(): RAPIER.World {
     if (!this.world) throw new Error("RapierPhysicsAdapter: init() doit être appelé avant usage");
