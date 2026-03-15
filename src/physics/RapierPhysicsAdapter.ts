@@ -13,6 +13,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private world: RAPIER.World | null = null;
   private handles = new Map<BodyId, BodyHandle>();
 
+  // Fréquence de mise à jour du moteur physique
+  private readonly fixedDt = 1 / 60; 
+  private accumulator = 0;
+
   async init(): Promise<void> {
     if (this.world) return;
 
@@ -20,6 +24,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     // Constante gravitationnelle vectorielle sur l'axe y
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    this.accumulator = 0;
   }
 
   addBody(options: BodyOptions): BodyId {
@@ -92,9 +97,18 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.handles.delete(id);
   }
 
-  step(_delta: number): void {
+  step(deltaTime: number): void {
     const world = this.getWorld();
-    world.step();
+
+    const clampedDelta = Math.min(deltaTime, 0.1);
+    
+    this.accumulator += clampedDelta;
+
+    // Boucle fixed timestep
+    while (this.accumulator >= this.fixedDt) {
+      world.step();
+      this.accumulator -= this.fixedDt;
+    }
   }
 
   dispose(): void {
@@ -103,6 +117,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     for (const [id] of this.handles) this.removeBody(id);
     this.world = null;
     this.nextId = 0;
+    this.accumulator = 0;
   }
 
   // Helpers pour créer le monde de test
@@ -157,6 +172,8 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       isStatic: false,
     });
   }
+
+  
 
   private getWorld(): RAPIER.World {
     if (!this.world) throw new Error("RapierPhysicsAdapter: init() doit être appelé avant usage");
