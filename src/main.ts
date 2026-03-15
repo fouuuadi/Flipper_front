@@ -49,6 +49,19 @@ async function initPhysics() {
   physics.createPlayfield({ y: 0 });
   physics.createTestBall({ position: { x: 0, y: 1, z: 0 } });
 
+  // Debug : afficher la position de la bille
+  let frameCount = 0;
+  sceneManager.onUpdate(() => {
+    frameCount++;
+    // Afficher tous les 60 frames (1 fois par seconde)
+    if (frameCount % 60 === 0) {
+      const ballBody = physics.getBody("test-ball");
+      if (ballBody) {
+        const pos = ballBody.translation();
+        console.log(`Ball: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)}, z=${pos.z.toFixed(2)}`);
+      }
+    }
+  });
   
   // Enregistrer le callback de simulation physique
   sceneManager.onUpdate((deltaTime) => {
