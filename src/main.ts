@@ -53,12 +53,12 @@ async function initPhysics() {
   let frameCount = 0;
   sceneManager.onUpdate(() => {
     frameCount++;
-    // Afficher tous les 60 frames (1 fois par seconde)
     if (frameCount % 60 === 0) {
       const ballBody = physics.getBody("test-ball");
       if (ballBody) {
         const pos = ballBody.translation();
-        console.log(`Ball: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)}, z=${pos.z.toFixed(2)}`);
+        const vel = ballBody.linvel();
+        console.log(`Ball: pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel=(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
       }
     }
   });
@@ -72,7 +72,12 @@ async function initPhysics() {
   sceneManager.start();
 }
 
-// Lancer l'initialisation
+window.addEventListener("beforeunload", () => {
+  physics.dispose();
+  sceneManager.dispose();
+});
+
+// Lancement de l'initialisation
 initPhysics().catch((err) => {
   console.error("Erreur lors de l'initialisation de la physique :", err);
 });
