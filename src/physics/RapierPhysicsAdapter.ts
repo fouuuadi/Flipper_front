@@ -22,14 +22,17 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     await RAPIER.init();
 
-    // Constante gravitationnelle vectorielle sur l'axe y
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    
+    const degree6 = Math.PI / 30;
+    // Constante gravitationnelle vectorielle sur les axes x et y
+    const gx = -9.81 * Math.sin(degree6); 
+    const gy = -9.81 * Math.cos(degree6); 
+    this.world = new RAPIER.World({ x: gx, y: gy, z: 0 });
     this.accumulator = 0;
   }
 
   addBody(options: BodyOptions): BodyId {
     const world = this.getWorld();
-
     const id = options.id ?? this.newId();
 
     const position = options.position ?? {
@@ -50,7 +53,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     const bodyDesc = (options.isStatic ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic())
     .setTranslation(position.x, position.y, position.z)
-    .setRotation(rapierQuat);
+    // .setRotation(rapierQuat);
 
     const body = world.createRigidBody(bodyDesc);
 
@@ -70,13 +73,19 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     // réaction de support : plus le frottement est élevé, moins la balle glisse sur la surface.
     // rebond : plus la restitution est élevé, plus la balle rebondit après une collision.
-    colliderDesc = colliderDesc.setFriction(friction).setRestitution(restitution);
+    colliderDesc = colliderDesc
+      // .setRotation(rapierQuat)
+      .setFriction(friction)
+      .setRestitution(restitution);
 
     if (typeof options.mass === "number") {
       colliderDesc = colliderDesc.setMass(options.mass);
     }
 
+    colliderDesc = colliderDesc.setCollisionGroups(0xffffffff);
+
     const collider = world.createCollider(colliderDesc, body);
+
 
     // pertes de vitesse : plus la résistance est élevé, plus la balle ralentit au fil du temps.
     if (typeof options.linearDamping === "number") body.setLinearDamping(options.linearDamping);
@@ -114,10 +123,17 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   dispose(): void {
     if (!this.world) return;
 
-    for (const [id] of this.handles) this.removeBody(id);
+    for (const [id] of this.handles) {
+      this.removeBody(id);
+    }
+
+    this.handles.clear();
+
     this.world = null;
     this.nextId = 0;
     this.accumulator = 0;
+
+    console.debug("RapierPhysicsAdapter disposed");
   }
 
   // Helpers pour créer le monde de test
@@ -128,12 +144,12 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
    */
   createPlayfield(options?: { y?: number; friction?: number; restitution?: number }): BodyId {
     const y = options?.y ?? 0;
-    const degree6 = Math.PI / 30;
+    // const degree6 = Math.PI / 30;
 
     return this.addBody({
       id: "playfield",
       position: { x: 0, y, z: 0 },
-      rotation: { x: degree6, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
       shape: "box",
       halfExtents: { x: 0.5, y: 0.1, z: 1.25 }, 
       friction: options?.friction ?? 0.7,
@@ -141,6 +157,8 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       isStatic: true,
     });
   }
+
+  
 
   /**
    * Crée une balle de test : sphère dynamique au-dessus du playfield.
