@@ -46,7 +46,7 @@ async function initPhysics() {
   await physics.init();
 
   // Créer le monde physique
-  physics.createPlayfield({ y: 0 });
+  physics.createBounds({ y: 0, length: 50 });
   physics.createTestBall({ position: { x: 0, y: 1, z: 0 } });
 
   // Debug : afficher la position de la bille

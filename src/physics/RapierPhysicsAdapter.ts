@@ -181,6 +181,76 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   }
 
   /**
+   * Crée 
+   */
+  createBounds(options?: {
+    y?: number;
+    length?: number;   
+    width?: number;   
+    wallHeight?: number;
+    wallThickness?: number;
+    friction?: number;
+    restitution?: number;
+  }): void {
+    const y = options?.y ?? 0;
+    const length = options?.length ?? 50;     
+    const width = options?.width ?? 0.6;     
+    const wallHeight = options?.wallHeight ?? 0.2;
+    const t = options?.wallThickness ?? 0.05;
+
+    const friction = options?.friction ?? 0.7;
+    const restitution = options?.restitution ?? 0.1;
+
+    // Playfield (sol)
+    this.addBody({
+      id: "playfield",
+      position: { x: 0, y, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      isStatic: true,
+      shape: "box",
+      halfExtents: { x: 0.5, y: 0.2, z: length },
+      friction,
+      restitution: 0.0,
+    });
+
+    // Mur gauche
+    this.addBody({
+      id: "wall-left",
+      position: { x: -(width + t), y: y + wallHeight, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      isStatic: true,
+      shape: "box",
+      halfExtents: { x: t, y: wallHeight, z: length },
+      friction,
+      restitution,
+    });
+
+    // Mur droit
+    this.addBody({
+      id: "wall-right",
+      position: { x: width + t, y: y + wallHeight, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      isStatic: true,
+      shape: "box",
+      halfExtents: { x: t, y: wallHeight, z: length },
+      friction,
+      restitution,
+    });
+
+    // Mur “haut” (backstop) à l’extrémité -Z
+    this.addBody({
+      id: "wall-top",
+      position: { x: 0, y: y + wallHeight, z: -(length + t) },
+      rotation: { x: 0, y: 0, z: 0 },
+      isStatic: true,
+      shape: "box",
+      halfExtents: { x: width + t, y: wallHeight, z: t },
+      friction,
+      restitution,
+    });
+  }
+
+  /**
    * Crée une balle de test : sphère dynamique au-dessus du playfield.
    * Masse : 0.08 kg (80 g, réaliste pour une bille de pinball).
    * Rayon : 0.014 m (14 mm).
