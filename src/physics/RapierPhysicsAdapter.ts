@@ -22,12 +22,17 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     await RAPIER.init();
 
-    
-    const degree6 = Math.PI / 30;
-    // Constante gravitationnelle vectorielle sur les axes x et y
-    const gx = -9.81 * Math.sin(degree6); 
-    const gy = -9.81 * Math.cos(degree6); 
-    this.world = new RAPIER.World({ x: gx, y: gy, z: 0 });
+    // inclinaison de la table
+    const tilt = Math.PI / 30;
+    // constante gravitationnelle (m/s²)
+    const g = 9.81;
+
+    this.world = new RAPIER.World({
+      x: 0,
+      y: -g * Math.cos(tilt),
+      z: -g * Math.sin(tilt),
+    });
+
     this.accumulator = 0;
   }
 
@@ -53,9 +58,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     const bodyDesc = (options.isStatic ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic())
     .setTranslation(position.x, position.y, position.z)
-    // .setRotation(rapierQuat);
+    .setRotation(rapierQuat);
 
     const body = world.createRigidBody(bodyDesc);
+
+    if (!options.isStatic) {
+      body.enableCcd(true);
+    }
 
     // Collider
     const shape = options.shape ?? "sphere";
@@ -71,21 +80,27 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       colliderDesc = RAPIER.ColliderDesc.ball(radius);
     } 
 
-    // réaction de support : plus le frottement est élevé, moins la balle glisse sur la surface.
-    // rebond : plus la restitution est élevé, plus la balle rebondit après une collision.
-    colliderDesc = colliderDesc
-      // .setRotation(rapierQuat)
-      .setFriction(friction)
-      .setRestitution(restitution);
+    let density = 1.0; 
 
     if (typeof options.mass === "number") {
-      colliderDesc = colliderDesc.setMass(options.mass);
+      if (shape === "sphere") {
+        const radius = options.radius ?? 1;
+        const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
+        density = options.mass / volume;
+      } else if (shape === "box") {
+        const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
+        const volume = (2 * ext.x) * (2 * ext.y) * (2 * ext.z);
+        density = options.mass / volume;
+      }
     }
 
-    colliderDesc = colliderDesc.setCollisionGroups(0xffffffff);
+    colliderDesc = colliderDesc
+      .setFriction(friction)
+      .setRestitution(restitution)
+      // .setDensity(density)
+      .setSensor(false);
 
     const collider = world.createCollider(colliderDesc, body);
-
 
     // pertes de vitesse : plus la résistance est élevé, plus la balle ralentit au fil du temps.
     if (typeof options.linearDamping === "number") body.setLinearDamping(options.linearDamping);
@@ -110,13 +125,19 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     const world = this.getWorld();
 
     const clampedDelta = Math.min(deltaTime, 0.1);
-    
     this.accumulator += clampedDelta;
 
-    // Boucle fixed timestep
-    while (this.accumulator >= this.fixedDt) {
+    const maxSubSteps = 5;
+    let subSteps = 0;
+
+    while (this.accumulator >= this.fixedDt && subSteps < maxSubSteps) {
       world.step();
       this.accumulator -= this.fixedDt;
+      subSteps++;
+    }
+
+    if (subSteps === maxSubSteps) {
+      this.accumulator = 0;
     }
   }
 
@@ -150,15 +171,14 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       id: "playfield",
       position: { x: 0, y, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
-      shape: "box",
-      halfExtents: { x: 0.5, y: 0.1, z: 1.25 }, 
-      friction: options?.friction ?? 0.7,
-      restitution: options?.restitution ?? 0.3,
       isStatic: true,
+      shape: "box",
+      halfExtents: { x: 0.5, y: 0.2, z: 50 }, 
+      friction: options?.friction ?? 0.7,
+      restitution: options?.restitution ?? 0.2,
+      
     });
   }
-
-  
 
   /**
    * Crée une balle de test : sphère dynamique au-dessus du playfield.
@@ -185,8 +205,8 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       mass,
       linearDamping,
       angularDamping: 0.1,
-      friction: 0.3,
-      restitution: 0.85,
+      friction: 0.2,
+      restitution: 0.0,
       isStatic: false,
     });
   }
