@@ -1,13 +1,9 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
 import { Playfield } from "@modules/playfield/Playfield";
-import { gameStateStore, GameState } from "@core/index";
-
-// Ici j'ai mis une var temp pour le template HTML
-const viteLogo = "/vite.svg";
-const typescriptLogo = "/typescript.svg";
-
-const sceneManager = new SceneManager();
+import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
+import viteLogo from "../public/vite.svg";
+import typescriptLogo from "./typescript.svg";
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -27,6 +23,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
+const sceneManager = new SceneManager();
+
 // Eclairage temporaire — sera remplace par le module lighting (Issue 12)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
@@ -43,12 +41,46 @@ playfield.addTo(sceneManager.scene);
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
-sceneManager.start();
+// Monde physique
+const physics = new RapierPhysicsAdapter();
 
-// Ici je test GameStateStore (Issue 9)
-gameStateStore.subscribe((state: GameState) => {
-  console.log("GameState changed:", state);
+async function initPhysics() {
+  // Initialiser Rapier (attend le WASM)
+  await physics.init();
+
+  // Créer le monde physique
+  physics.createBounds({ y: 0, length: 50 });
+  physics.createTestBall({ position: { x: 0, y: 1, z: 0 } });
+
+  // Debug : afficher la position de la bille
+  let frameCount = 0;
+  sceneManager.onUpdate(() => {
+    frameCount++;
+    if (frameCount % 60 === 0) {
+      const ballBody = physics.getBody("test-ball");
+      if (ballBody) {
+        const pos = ballBody.translation();
+        const vel = ballBody.linvel();
+        console.log(`Ball: pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel=(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
+      }
+    }
+  });
+  
+  // Enregistrer le callback de simulation physique
+  sceneManager.onUpdate((deltaTime) => {
+    physics.step(deltaTime);
+  });
+
+  // Démarrer la render loop
+  sceneManager.start();
+}
+
+window.addEventListener("beforeunload", () => {
+  physics.dispose();
+  sceneManager.dispose();
 });
 
-gameStateStore.setState(GameState.READY);
-gameStateStore.setState(GameState.PLAYING);
+// Lancement de l'initialisation
+initPhysics().catch((err) => {
+  console.error("Erreur lors de l'initialisation de la physique :", err);
+});
