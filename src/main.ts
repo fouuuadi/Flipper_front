@@ -1,11 +1,17 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
-import { Playfield } from "@modules/playfield/Playfield";
+import {
+  Playfield,
+  PLAYFIELD_HEIGHT,
+  PLAYFIELD_TILT_DEG,
+  PLAYFIELD_WIDTH,
+} from "@modules/playfield/Playfield";
+import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <a href="https://vite.dev" target="_blank">
       <img src="${viteLogo}" class="logo" alt="Vite logo" />
@@ -21,7 +27,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       Click on the Vite and TypeScript logos to learn more
     </p>
   </div>
-`
+`;
 
 const sceneManager = new SceneManager();
 
@@ -36,6 +42,7 @@ sceneManager.scene.add(directionalLight);
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
+let ball: Ball | null = null;
 
 // Positionner la camera pour voir la table en perspective
 sceneManager.camera.position.set(0, 8, 10);
@@ -49,26 +56,26 @@ async function initPhysics() {
   await physics.init();
 
   // Créer le monde physique
-  physics.createBounds({ y: 0, length: 50 });
-  physics.createTestBall({ position: { x: 0, y: 1, z: 0 } });
-
-  // Debug : afficher la position de la bille
-  let frameCount = 0;
-  sceneManager.onUpdate(() => {
-    frameCount++;
-    if (frameCount % 60 === 0) {
-      const ballBody = physics.getBody("test-ball");
-      if (ballBody) {
-        const pos = ballBody.translation();
-        const vel = ballBody.linvel();
-        console.log(`Ball: pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel=(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
-      }
-    }
+  physics.createBounds({
+    y: 0,
+    length: PLAYFIELD_HEIGHT,
+    width: PLAYFIELD_WIDTH,
+    tiltDeg: PLAYFIELD_TILT_DEG,
   });
-  
+  ball = new Ball(physics, {
+    id: "main-ball",
+    initialPosition: { x: 0, y: 1.5, z: 3 },
+    radius: 0.12,
+    mass: 0.08,
+    friction: 0.12,
+    restitution: 0.55,
+  });
+  ball.addTo(sceneManager.scene);
+
   // Enregistrer le callback de simulation physique
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
+    ball?.updateFromPhysics();
   });
 
   // Démarrer la render loop
@@ -76,6 +83,13 @@ async function initPhysics() {
 }
 
 window.addEventListener("beforeunload", () => {
+  ball?.dispose();
+  ball?.removeFrom(sceneManager.scene);
+  ball = null;
+
+  playfield.dispose();
+  playfield.removeFrom(sceneManager.scene);
+
   physics.dispose();
   sceneManager.dispose();
 });
