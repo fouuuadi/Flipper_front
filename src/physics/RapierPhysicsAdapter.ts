@@ -14,7 +14,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private handles = new Map<BodyId, BodyHandle>();
 
   // Fréquence de mise à jour du moteur physique
-  private readonly fixedDt = 1 / 60; 
+  private readonly fixedDt = 1 / 60;
   private accumulator = 0;
 
   async init(): Promise<void> {
@@ -56,9 +56,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     const threeQuat = new ThreeQuaternion().setFromEuler(euler);
     const rapierQuat = new RAPIER.Quaternion(threeQuat.x, threeQuat.y, threeQuat.z, threeQuat.w);
 
-    const bodyDesc = (options.isStatic ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic())
-    .setTranslation(position.x, position.y, position.z)
-    .setRotation(rapierQuat);
+    const bodyDesc = (
+      options.isStatic ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic()
+    )
+      .setTranslation(position.x, position.y, position.z)
+      .setRotation(rapierQuat);
 
     const body = world.createRigidBody(bodyDesc);
 
@@ -78,20 +80,6 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     } else {
       const radius = options.radius ?? 1;
       colliderDesc = RAPIER.ColliderDesc.ball(radius);
-    } 
-
-    let density = 1.0; 
-
-    if (typeof options.mass === "number") {
-      if (shape === "sphere") {
-        const radius = options.radius ?? 1;
-        const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
-        density = options.mass / volume;
-      } else if (shape === "box") {
-        const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
-        const volume = (2 * ext.x) * (2 * ext.y) * (2 * ext.z);
-        density = options.mass / volume;
-      }
     }
 
     colliderDesc = colliderDesc
@@ -173,28 +161,27 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       rotation: { x: 0, y: 0, z: 0 },
       isStatic: true,
       shape: "box",
-      halfExtents: { x: 0.5, y: 0.2, z: 50 }, 
+      halfExtents: { x: 0.5, y: 0.2, z: 50 },
       friction: options?.friction ?? 0.7,
       restitution: options?.restitution ?? 0.2,
-      
     });
   }
 
   /**
-   * Crée 
+   * Crée
    */
   createBounds(options?: {
     y?: number;
-    length?: number;   
-    width?: number;   
+    length?: number;
+    width?: number;
     wallHeight?: number;
     wallThickness?: number;
     friction?: number;
     restitution?: number;
   }): void {
     const y = options?.y ?? 0;
-    const length = options?.length ?? 50;     
-    const width = options?.width ?? 0.6;     
+    const length = options?.length ?? 50;
+    const width = options?.width ?? 0.6;
     const wallHeight = options?.wallHeight ?? 0.2;
     const t = options?.wallThickness ?? 0.05;
 
