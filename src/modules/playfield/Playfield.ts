@@ -20,6 +20,9 @@ export class Playfield {
 
     // Orienter le plan a l'horizontale (face vers le haut) puis incliner comme un vrai pinball
     this.mesh.rotation.x = -Math.PI / 2 + THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
+
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
   }
 
   addTo(scene: THREE.Scene): void {
