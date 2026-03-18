@@ -22,16 +22,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     await RAPIER.init();
 
-    // inclinaison de la table
-    const tilt = Math.PI / 30;
-    // constante gravitationnelle (m/s²)
-    const g = 9.81;
-
-    this.world = new RAPIER.World({
-      x: 0,
-      y: -g * Math.cos(tilt),
-      z: -g * Math.sin(tilt),
-    });
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 
     this.accumulator = 0;
   }
@@ -174,16 +165,20 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     y?: number;
     length?: number;
     width?: number;
+    tiltDeg?: number;
     wallHeight?: number;
     wallThickness?: number;
     friction?: number;
     restitution?: number;
   }): void {
     const y = options?.y ?? 0;
-    const length = options?.length ?? 50;
-    const width = options?.width ?? 0.6;
-    const wallHeight = options?.wallHeight ?? 0.2;
+    const length = options?.length ?? 10;
+    const width = options?.width ?? 5;
+    const tiltRad = ((options?.tiltDeg ?? 6.5) * Math.PI) / 180;
+    const wallHeight = options?.wallHeight ?? 0.25;
     const t = options?.wallThickness ?? 0.05;
+    const halfLength = length / 2;
+    const halfWidth = width / 2;
 
     const friction = options?.friction ?? 0.7;
     const restitution = options?.restitution ?? 0.1;
@@ -192,10 +187,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.addBody({
       id: "playfield",
       position: { x: 0, y, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: { x: tiltRad, y: 0, z: 0 },
       isStatic: true,
       shape: "box",
-      halfExtents: { x: 0.5, y: 0.2, z: length },
+      halfExtents: { x: halfWidth, y: 0.12, z: halfLength },
       friction,
       restitution: 0.0,
     });
@@ -203,11 +198,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     // Mur gauche
     this.addBody({
       id: "wall-left",
-      position: { x: -(width + t), y: y + wallHeight, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
+      position: { x: -(halfWidth + t), y: y + wallHeight, z: 0 },
+      rotation: { x: tiltRad, y: 0, z: 0 },
       isStatic: true,
       shape: "box",
-      halfExtents: { x: t, y: wallHeight, z: length },
+      halfExtents: { x: t, y: wallHeight, z: halfLength + t },
       friction,
       restitution,
     });
@@ -215,11 +210,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     // Mur droit
     this.addBody({
       id: "wall-right",
-      position: { x: width + t, y: y + wallHeight, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
+      position: { x: halfWidth + t, y: y + wallHeight, z: 0 },
+      rotation: { x: tiltRad, y: 0, z: 0 },
       isStatic: true,
       shape: "box",
-      halfExtents: { x: t, y: wallHeight, z: length },
+      halfExtents: { x: t, y: wallHeight, z: halfLength + t },
       friction,
       restitution,
     });
@@ -227,11 +222,22 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     // Mur “haut” (backstop) à l’extrémité -Z
     this.addBody({
       id: "wall-top",
-      position: { x: 0, y: y + wallHeight, z: -(length + t) },
-      rotation: { x: 0, y: 0, z: 0 },
+      position: { x: 0, y: y + wallHeight, z: -(halfLength + t) },
+      rotation: { x: tiltRad, y: 0, z: 0 },
       isStatic: true,
       shape: "box",
-      halfExtents: { x: width + t, y: wallHeight, z: t },
+      halfExtents: { x: halfWidth + t, y: wallHeight, z: t },
+      friction,
+      restitution,
+    });
+
+    this.addBody({
+      id: "wall-bottom",
+      position: { x: 0, y: y + wallHeight, z: halfLength + t },
+      rotation: { x: tiltRad, y: 0, z: 0 },
+      isStatic: true,
+      shape: "box",
+      halfExtents: { x: halfWidth + t, y: wallHeight, z: t },
       friction,
       restitution,
     });

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
-const PLAYFIELD_WIDTH = 5;
-const PLAYFIELD_HEIGHT = 10;
-const PLAYFIELD_TILT_DEG = 6.5;
+export const PLAYFIELD_WIDTH = 5;
+export const PLAYFIELD_HEIGHT = 10;
+export const PLAYFIELD_TILT_DEG = 6.5;
 
 export class Playfield {
   readonly mesh: THREE.Mesh;

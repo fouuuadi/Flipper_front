@@ -1,6 +1,11 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
-import { Playfield } from "@modules/playfield/Playfield";
+import {
+  Playfield,
+  PLAYFIELD_HEIGHT,
+  PLAYFIELD_TILT_DEG,
+  PLAYFIELD_WIDTH,
+} from "@modules/playfield/Playfield";
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
@@ -51,7 +56,12 @@ async function initPhysics() {
   await physics.init();
 
   // Créer le monde physique
-  physics.createBounds({ y: 0, length: 50 });
+  physics.createBounds({
+    y: 0,
+    length: PLAYFIELD_HEIGHT,
+    width: PLAYFIELD_WIDTH,
+    tiltDeg: PLAYFIELD_TILT_DEG,
+  });
   ball = new Ball(physics, {
     id: "main-ball",
     initialPosition: { x: 0, y: 1.5, z: 3 },
