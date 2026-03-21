@@ -11,6 +11,9 @@ import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
+// Import
+import { Flipper } from "@modules/flipper/Flipper";
+
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <a href="https://vite.dev" target="_blank">
@@ -34,6 +37,7 @@ const sceneManager = new SceneManager();
 // Eclairage temporaire — sera remplace par le module lighting (Issue 12)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
+
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
@@ -41,6 +45,10 @@ sceneManager.scene.add(directionalLight);
 
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
+
+// Ici on ajoute le flipper mais pour un test visuel
+const flipper = new Flipper();
+flipper.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 
@@ -62,6 +70,7 @@ async function initPhysics() {
     width: PLAYFIELD_WIDTH,
     tiltDeg: PLAYFIELD_TILT_DEG,
   });
+
   ball = new Ball(physics, {
     id: "main-ball",
     initialPosition: { x: 0, y: 1.5, z: 3 },
@@ -70,6 +79,7 @@ async function initPhysics() {
     friction: 0.12,
     restitution: 0.55,
   });
+
   ball.addTo(sceneManager.scene);
 
   // Enregistrer le callback de simulation physique
