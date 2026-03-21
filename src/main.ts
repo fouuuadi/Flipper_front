@@ -34,7 +34,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 const sceneManager = new SceneManager();
 
-// Eclairage temporaire — sera remplace par le module lighting (Issue 12)
+// Eclairage temporaire — sera remplacé par le module lighting (Issue 12)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
 
@@ -43,16 +43,13 @@ directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
+// Playfield
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
-// Ici on ajoute le flipper mais pour un test visuel
-const flipper = new Flipper();
-flipper.addTo(sceneManager.scene);
-
 let ball: Ball | null = null;
 
-// Positionner la camera pour voir la table en perspective
+// Positionner la caméra pour voir la table en perspective
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
@@ -71,6 +68,7 @@ async function initPhysics() {
     tiltDeg: PLAYFIELD_TILT_DEG,
   });
 
+  // Balle
   ball = new Ball(physics, {
     id: "main-ball",
     initialPosition: { x: 0, y: 1.5, z: 3 },
@@ -79,19 +77,22 @@ async function initPhysics() {
     friction: 0.12,
     restitution: 0.55,
   });
-
   ball.addTo(sceneManager.scene);
 
-  // Enregistrer le callback de simulation physique
+  const flipper = new Flipper((physics as any).world); // On passe le world Rapier
+  flipper.addTo(sceneManager.scene);
+
+  // Callback simulation physique
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
   });
 
-  // Démarrer la render loop
+  // Ici on démarrer la render loop
   sceneManager.start();
 }
 
+// Nettoyage à la fermeture
 window.addEventListener("beforeunload", () => {
   ball?.dispose();
   ball?.removeFrom(sceneManager.scene);
