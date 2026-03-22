@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
+import { EventBus } from "@core";
+
+type FlipperSide = "left" | "right";
 
 export class Flipper {
   mesh: THREE.Mesh;
@@ -8,14 +11,19 @@ export class Flipper {
 
   private isActive: boolean = false;
   private angle: number = 0;
+  private side: FlipperSide;
 
-  constructor(world: RAPIER.World) {
+  constructor(world: RAPIER.World, side: FlipperSide) {
+    this.side = side;
 
     const geometry = new THREE.BoxGeometry(2, 0.3, 0.5);
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 
     this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.position.set(0, 0.5, 0);
+
+    // Position différente gauche / droite
+    const xOffset = side === "left" ? -1.5 : 1.5;
+    this.mesh.position.set(xOffset, 0.5, 0);
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
@@ -24,7 +32,7 @@ export class Flipper {
 
     const rigidBodyDesc = RAPIER.RigidBodyDesc
       .kinematicPositionBased()
-      .setTranslation(0, 0.5, 0);
+      .setTranslation(xOffset, 0.5, 0);
 
     this.rigidBody = world.createRigidBody(rigidBodyDesc);
 
@@ -33,7 +41,7 @@ export class Flipper {
 
     const pivotDesc = RAPIER.RigidBodyDesc
       .fixed()
-      .setTranslation(0, 0.5, 0);
+      .setTranslation(xOffset, 0.5, 0);
 
     const pivot = world.createRigidBody(pivotDesc);
 
@@ -51,13 +59,23 @@ export class Flipper {
     // Ici on gére l'input clavier
 
     window.addEventListener("keydown", (event) => {
-      if (event.code === "ShiftLeft") {
+      if (this.side === "left" && event.code === "ShiftLeft") {
         this.isActive = true;
+        EventBus.emit("flipper_activate", { side: this.side });
+      }
+
+      if (this.side === "right" && event.code === "ShiftRight") {
+        this.isActive = true;
+        EventBus.emit("flipper_activate", { side: this.side });
       }
     });
 
     window.addEventListener("keyup", (event) => {
-      if (event.code === "ShiftLeft") {
+      if (this.side === "left" && event.code === "ShiftLeft") {
+        this.isActive = false;
+      }
+
+      if (this.side === "right" && event.code === "ShiftRight") {
         this.isActive = false;
       }
     });
@@ -66,25 +84,29 @@ export class Flipper {
   update(deltaTime: number) {
     const speed = 10;
 
+    const direction = this.side === "left" ? 1 : -1;
+
     if (this.isActive) {
-      this.angle += speed * deltaTime;
+      this.angle += direction * speed * deltaTime;
     } else {
-      this.angle -= speed * deltaTime;
+      this.angle -= direction * speed * deltaTime;
     }
 
-    // clamp angle
+    // clamp
     this.angle = Math.max(-0.5, Math.min(0.5, this.angle));
 
-    // Ici on gére larotation physique
+    // Ici on gére la rotation
     const threeQuat = new THREE.Quaternion().setFromEuler(
       new THREE.Euler(0, this.angle, 0, "XYZ")
     );
+
     const rotation = new RAPIER.Quaternion(
       threeQuat.x,
       threeQuat.y,
       threeQuat.z,
       threeQuat.w
     );
+
     this.rigidBody.setNextKinematicRotation(rotation);
 
     this.mesh.rotation.y = this.angle;

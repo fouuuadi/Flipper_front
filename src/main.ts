@@ -58,6 +58,8 @@ const physics = new RapierPhysicsAdapter();
 async function initPhysics() {
   await physics.init();
 
+  const world = (physics as any).world;
+
   physics.createBounds({
     y: 0,
     length: PLAYFIELD_HEIGHT,
@@ -76,14 +78,18 @@ async function initPhysics() {
 
   ball.addTo(sceneManager.scene);
 
-  const flipper = new Flipper((physics as any).world);
-  flipper.addTo(sceneManager.scene);
+  const leftFlipper = new Flipper(world, "left");
+  leftFlipper.addTo(sceneManager.scene);
+
+  const rightFlipper = new Flipper(world, "right");
+  rightFlipper.addTo(sceneManager.scene);
 
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
 
-    flipper.update(deltaTime);
+    leftFlipper.update(deltaTime);
+    rightFlipper.update(deltaTime);
   });
 
   sceneManager.start();
@@ -104,3 +110,4 @@ window.addEventListener("beforeunload", () => {
 initPhysics().catch((err) => {
   console.error("Erreur lors de l'initialisation de la physique :", err);
 });
+
