@@ -7,6 +7,7 @@ export class Flipper {
   collider: RAPIER.Collider;
 
   private isActive: boolean = false;
+  private angle: number = 0;
 
   constructor(world: RAPIER.World) {
 
@@ -19,7 +20,7 @@ export class Flipper {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    // Ici je gére la physique
+    // Ici on gére la physique
 
     const rigidBodyDesc = RAPIER.RigidBodyDesc
       .kinematicPositionBased()
@@ -47,7 +48,7 @@ export class Flipper {
 
     world.createImpulseJoint(jointData, pivot, this.rigidBody, true);
 
-    // Ici je gere les input du clavier
+    // Ici on gére l'input clavier
 
     window.addEventListener("keydown", (event) => {
       if (event.code === "ShiftLeft") {
@@ -63,9 +64,30 @@ export class Flipper {
   }
 
   update(deltaTime: number) {
-    if (this.isActive) {
+    const speed = 10;
 
+    if (this.isActive) {
+      this.angle += speed * deltaTime;
+    } else {
+      this.angle -= speed * deltaTime;
     }
+
+    // clamp angle
+    this.angle = Math.max(-0.5, Math.min(0.5, this.angle));
+
+    // Ici on gére larotation physique
+    const threeQuat = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(0, this.angle, 0, "XYZ")
+    );
+    const rotation = new RAPIER.Quaternion(
+      threeQuat.x,
+      threeQuat.y,
+      threeQuat.z,
+      threeQuat.w
+    );
+    this.rigidBody.setNextKinematicRotation(rotation);
+
+    this.mesh.rotation.y = this.angle;
   }
 
   addTo(scene: THREE.Scene) {
