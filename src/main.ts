@@ -11,7 +11,6 @@ import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
-// Import
 import { Flipper } from "@modules/flipper/Flipper";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
@@ -34,7 +33,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 const sceneManager = new SceneManager();
 
-// Eclairage temporaire — sera remplacé par le module lighting (Issue 12)
+// Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
 
@@ -49,18 +48,16 @@ playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 
-// Positionner la caméra pour voir la table en perspective
+// Camera
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
-// Monde physique
+// Physics
 const physics = new RapierPhysicsAdapter();
 
 async function initPhysics() {
-  // Initialiser Rapier (attend le WASM)
   await physics.init();
 
-  // Créer le monde physique
   physics.createBounds({
     y: 0,
     length: PLAYFIELD_HEIGHT,
@@ -68,7 +65,6 @@ async function initPhysics() {
     tiltDeg: PLAYFIELD_TILT_DEG,
   });
 
-  // Balle
   ball = new Ball(physics, {
     id: "main-ball",
     initialPosition: { x: 0, y: 1.5, z: 3 },
@@ -77,22 +73,22 @@ async function initPhysics() {
     friction: 0.12,
     restitution: 0.55,
   });
+
   ball.addTo(sceneManager.scene);
 
-  const flipper = new Flipper((physics as any).world); // On passe le world Rapier
+  const flipper = new Flipper((physics as any).world);
   flipper.addTo(sceneManager.scene);
 
-  // Callback simulation physique
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
+
+    flipper.update(deltaTime);
   });
 
-  // Ici on démarrer la render loop
   sceneManager.start();
 }
 
-// Nettoyage à la fermeture
 window.addEventListener("beforeunload", () => {
   ball?.dispose();
   ball?.removeFrom(sceneManager.scene);
@@ -105,7 +101,6 @@ window.addEventListener("beforeunload", () => {
   sceneManager.dispose();
 });
 
-// Lancement de l'initialisation
 initPhysics().catch((err) => {
   console.error("Erreur lors de l'initialisation de la physique :", err);
 });
