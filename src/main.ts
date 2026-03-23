@@ -42,13 +42,13 @@ directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
-// Playfield
+// Le Playfield
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 
-// Camera
+// Ici on gére la camera
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 

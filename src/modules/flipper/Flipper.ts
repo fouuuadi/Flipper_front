@@ -23,7 +23,7 @@ export class Flipper {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position différente gauche / droite
+    // Position différente gauche et droite
     const xOffset = side === "left" ? -1.5 : 1.5;
     this.mesh.position.set(xOffset, 0.5, 0);
 
