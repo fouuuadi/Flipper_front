@@ -11,6 +11,8 @@ import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
+import { Flipper } from "@modules/flipper/Flipper";
+
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <a href="https://vite.dev" target="_blank">
@@ -31,37 +33,40 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 const sceneManager = new SceneManager();
 
-// Eclairage temporaire — sera remplace par le module lighting (Issue 12)
+// Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
+
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
+// Le Playfield
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 
-// Positionner la camera pour voir la table en perspective
+// Ici on gére la camera
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
-// Monde physique
+// Physics
 const physics = new RapierPhysicsAdapter();
 
 async function initPhysics() {
-  // Initialiser Rapier (attend le WASM)
   await physics.init();
 
-  // Créer le monde physique
+  const world = (physics as any).world;
+
   physics.createBounds({
     y: 0,
     length: PLAYFIELD_HEIGHT,
     width: PLAYFIELD_WIDTH,
     tiltDeg: PLAYFIELD_TILT_DEG,
   });
+
   ball = new Ball(physics, {
     id: "main-ball",
     initialPosition: { x: 0, y: 1.5, z: 3 },
@@ -70,15 +75,23 @@ async function initPhysics() {
     friction: 0.12,
     restitution: 0.55,
   });
+
   ball.addTo(sceneManager.scene);
 
-  // Enregistrer le callback de simulation physique
+  const leftFlipper = new Flipper(world, "left");
+  leftFlipper.addTo(sceneManager.scene);
+
+  const rightFlipper = new Flipper(world, "right");
+  rightFlipper.addTo(sceneManager.scene);
+
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
+
+    leftFlipper.update(deltaTime);
+    rightFlipper.update(deltaTime);
   });
 
-  // Démarrer la render loop
   sceneManager.start();
 }
 
@@ -94,7 +107,7 @@ window.addEventListener("beforeunload", () => {
   sceneManager.dispose();
 });
 
-// Lancement de l'initialisation
 initPhysics().catch((err) => {
   console.error("Erreur lors de l'initialisation de la physique :", err);
 });
+
