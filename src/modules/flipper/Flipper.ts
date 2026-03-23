@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { EventBus } from "@core";
+import { EventBus } from "@core/EventBus";
 
 type FlipperSide = "left" | "right";
 
@@ -12,9 +12,11 @@ export class Flipper {
   private isActive: boolean = false;
   private angle: number = 0;
   private side: FlipperSide;
+  private eventBus: EventBus<any>;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
     this.side = side;
+    this.eventBus = EventBus.getInstance();
 
     const geometry = new THREE.BoxGeometry(2, 0.3, 0.5);
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
@@ -61,12 +63,12 @@ export class Flipper {
     window.addEventListener("keydown", (event) => {
       if (this.side === "left" && event.code === "ShiftLeft") {
         this.isActive = true;
-        EventBus.emit("flipper_activate", { side: this.side });
+        this.eventBus.emit("flipper_activate", { side: this.side });
       }
 
       if (this.side === "right" && event.code === "ShiftRight") {
         this.isActive = true;
-        EventBus.emit("flipper_activate", { side: this.side });
+        this.eventBus.emit("flipper_activate", { side: this.side });
       }
     });
 
