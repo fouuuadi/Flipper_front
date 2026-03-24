@@ -5,13 +5,13 @@ import {
   PLAYFIELD_HEIGHT,
   PLAYFIELD_TILT_DEG,
   PLAYFIELD_WIDTH,
-} from "@modules/playfield/Playfield";
+} from "@modules/playfield";
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
-import { Flipper } from "@modules/flipper/Flipper";
+import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
