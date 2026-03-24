@@ -152,3 +152,4 @@ console.log(env.apiBaseUrl, env.isDev);
 | Moteur physique | *(à venir)* | Cannon.js, Ammo.js ou Rapier  |
 | ESLint      | 10.x         | Lint                             |
 | Prettier    | 3.x          | Formatage                        |
+# flipper-
