@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { EventBus } from "@core/EventBus";
+import { PLAYFIELD_TILT_DEG } from "@modules/playfield/Playfield";
 
 type FlipperSide = "left" | "right";
 
@@ -9,52 +10,83 @@ export class Flipper {
   rigidBody: RAPIER.RigidBody;
   collider: RAPIER.Collider;
 
-  private isActive: boolean = false;
-  private angle: number = 0;
-  private side: FlipperSide;
-  private eventBus: EventBus<any>;
+  private isActive = false;
+  private angle = 0;
+  private readonly side: FlipperSide;
+  private readonly activeAngle: number;
+  private readonly restAngle: number;
+  private readonly minLimit: number;
+  private readonly maxLimit: number;
+  private readonly playfieldPitch: number;
+  private eventBus: EventBus<{ flipper_activate: { side: FlipperSide } }>;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
     this.side = side;
-    this.eventBus = EventBus.getInstance();
+    this.eventBus = EventBus.getInstance<{ flipper_activate: { side: FlipperSide } }>();
 
-    const geometry = new THREE.BoxGeometry(2, 0.3, 0.5);
+    const flipperLength = 0.86;
+    const flipperHeight = 0.18;
+    const flipperDepth = 0.28;
+    const hingeInset = 0.08;
+    const localOffsetX =
+      side === "left" ? flipperLength / 2 - hingeInset : -(flipperLength / 2 - hingeInset);
+
+    const geometry = new THREE.BoxGeometry(flipperLength, flipperHeight, flipperDepth);
+    geometry.translate(localOffsetX, 0, 0);
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position différente gauche et droite
-    const xOffset = side === "left" ? -1.5 : 1.5;
-    this.mesh.position.set(xOffset, 0.5, 0);
+    // Position des pivots en bas de table, côté drain
+    const xOffset = side === "left" ? -1.02 : 1.02;
+    const zPosition = 4.2;
+    this.playfieldPitch = THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
+    const yPosition = 0.14 - Math.tan(this.playfieldPitch) * zPosition;
+
+    this.restAngle = side === "left" ? 0.18 : -0.18;
+    this.activeAngle = side === "left" ? 0.78 : -0.78;
+    this.minLimit = side === "left" ? -0.28 : -0.92;
+    this.maxLimit = side === "left" ? 0.92 : 0.28;
+    this.angle = this.restAngle;
+
+    this.mesh.position.set(xOffset, yPosition, zPosition);
+    this.mesh.rotation.set(this.playfieldPitch, this.angle, 0, "XYZ");
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
     // Ici on gére la physique
 
-    const rigidBodyDesc = RAPIER.RigidBodyDesc
-      .kinematicPositionBased()
-      .setTranslation(xOffset, 0.5, 0);
+    const rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
+      xOffset,
+      yPosition,
+      zPosition,
+    );
 
     this.rigidBody = world.createRigidBody(rigidBodyDesc);
 
-    const colliderDesc = RAPIER.ColliderDesc.cuboid(1, 0.15, 0.25);
+    const colliderDesc = RAPIER.ColliderDesc.cuboid(
+      flipperLength / 2,
+      flipperHeight / 2,
+      flipperDepth / 2,
+    )
+      .setTranslation(localOffsetX, 0, 0)
+      .setFriction(0.55)
+      .setRestitution(0.2);
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
 
-    const pivotDesc = RAPIER.RigidBodyDesc
-      .fixed()
-      .setTranslation(xOffset, 0.5, 0);
+    const pivotDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(xOffset, yPosition, zPosition);
 
     const pivot = world.createRigidBody(pivotDesc);
 
     const jointData = RAPIER.JointData.revolute(
       { x: 0, y: 0, z: 0 },
       { x: 0, y: 0, z: 0 },
-      { x: 0, y: 1, z: 0 }
+      { x: 0, y: 1, z: 0 },
     );
 
     jointData.limitsEnabled = true;
-    jointData.limits = [-0.5, 0.5];
+    jointData.limits = [this.minLimit, this.maxLimit];
 
     world.createImpulseJoint(jointData, pivot, this.rigidBody, true);
 
@@ -84,34 +116,24 @@ export class Flipper {
   }
 
   update(deltaTime: number) {
-    const speed = 10;
+    const speed = 16;
+    const target = this.isActive ? this.activeAngle : this.restAngle;
+    const delta = target - this.angle;
+    const step = Math.sign(delta) * Math.min(Math.abs(delta), speed * deltaTime);
 
-    const direction = this.side === "left" ? 1 : -1;
-
-    if (this.isActive) {
-      this.angle += direction * speed * deltaTime;
-    } else {
-      this.angle -= direction * speed * deltaTime;
-    }
-
-    // clamp
-    this.angle = Math.max(-0.5, Math.min(0.5, this.angle));
+    this.angle += step;
+    this.angle = Math.max(this.minLimit, Math.min(this.maxLimit, this.angle));
 
     // Ici on gére la rotation
     const threeQuat = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0, this.angle, 0, "XYZ")
+      new THREE.Euler(this.playfieldPitch, this.angle, 0, "XYZ"),
     );
 
-    const rotation = new RAPIER.Quaternion(
-      threeQuat.x,
-      threeQuat.y,
-      threeQuat.z,
-      threeQuat.w
-    );
+    const rotation = new RAPIER.Quaternion(threeQuat.x, threeQuat.y, threeQuat.z, threeQuat.w);
 
     this.rigidBody.setNextKinematicRotation(rotation);
 
-    this.mesh.rotation.y = this.angle;
+    this.mesh.rotation.set(this.playfieldPitch, this.angle, 0, "XYZ");
   }
 
   addTo(scene: THREE.Scene) {

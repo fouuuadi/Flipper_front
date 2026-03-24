@@ -21,7 +21,7 @@ export class WebSocketService {
     this.socket.addEventListener("close", () => {
       console.log(`[WebSocket] Déconnecté de ${this.url}`);
       this.socket = null;
-      
+
       this.reconnectTimeout = setTimeout(() => {
         console.log(`[WebSocket] Tentative de reconnexion...`);
         this.connect();
