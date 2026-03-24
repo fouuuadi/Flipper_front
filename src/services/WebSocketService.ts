@@ -15,11 +15,17 @@ export class WebSocketService {
     this.socket.addEventListener("open", () => {
       console.log(`[WebSocket] Connecté à ${this.url}`);
     });
+
+    this.socket.addEventListener("close", () => {
+      console.log(`[WebSocket] Déconnecté de ${this.url}`);
+      this.socket = null;
+    });
   }
 
   disconnect(): void {
     if (!this.socket) return;
     this.socket.close();
     this.socket = null;
+    
   }
 }
