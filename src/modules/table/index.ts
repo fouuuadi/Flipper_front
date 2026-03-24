@@ -1,1 +1,1 @@
-export { TableBoundaries } from "./TableBoundaries";
+export { TableBoundaries } from "./TableBoundaries.ts";

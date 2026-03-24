@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const PLAYFIELD_WIDTH = 5;
+export const PLAYFIELD_WIDTH = 6.2;
 export const PLAYFIELD_HEIGHT = 10;
 export const PLAYFIELD_TILT_DEG = 6.5;
 
