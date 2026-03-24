@@ -20,6 +20,10 @@ export class WebSocketService {
       console.log(`[WebSocket] Déconnecté de ${this.url}`);
       this.socket = null;
     });
+
+    this.socket.addEventListener("message", (event) => {
+      console.log(`[WebSocket] Message reçu :`, event.data);
+    });
   }
 
   disconnect(): void {
