@@ -280,7 +280,8 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     return handle?.body ?? null;
   }
 
-  private getWorld(): RAPIER.World {
+  // Exposer le monde Rapier pour les interactions directes
+  getWorld(): RAPIER.World {
     if (!this.world) throw new Error("RapierPhysicsAdapter: init() doit être appelé avant usage");
     return this.world;
   }

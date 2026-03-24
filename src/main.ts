@@ -12,6 +12,7 @@ import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
 import { Flipper } from "@modules/flipper/Flipper";
+import { TableBoundaries } from "@modules/table";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
@@ -47,6 +48,7 @@ const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
+let tableBoundaries: TableBoundaries | null = null;
 
 // Ici on gére la camera
 sceneManager.camera.position.set(0, 8, 10);
@@ -58,7 +60,7 @@ const physics = new RapierPhysicsAdapter();
 async function initPhysics() {
   await physics.init();
 
-  const world = (physics as any).world;
+  const world = physics.getWorld();
 
   physics.createBounds({
     y: 0,
@@ -84,6 +86,9 @@ async function initPhysics() {
   const rightFlipper = new Flipper(world, "right");
   rightFlipper.addTo(sceneManager.scene);
 
+  tableBoundaries = new TableBoundaries(world);
+  tableBoundaries.addTo(sceneManager.scene);
+
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
@@ -103,6 +108,10 @@ window.addEventListener("beforeunload", () => {
   playfield.dispose();
   playfield.removeFrom(sceneManager.scene);
 
+  tableBoundaries?.dispose();
+  tableBoundaries?.removeFrom(sceneManager.scene);
+  tableBoundaries = null;
+
   physics.dispose();
   sceneManager.dispose();
 });
@@ -110,4 +119,3 @@ window.addEventListener("beforeunload", () => {
 initPhysics().catch((err) => {
   console.error("Erreur lors de l'initialisation de la physique :", err);
 });
-

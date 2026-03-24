@@ -3,11 +3,11 @@ type Listener<T> = (payload: T) => void;
 export class EventBus<EventMap extends Record<string, unknown>> {
   private listeners = new Map<keyof EventMap, Set<Listener<never>>>();
 
-  private static instance: EventBus<any>;
+  private static instance: EventBus<Record<string, unknown>>;
 
   static getInstance<EventMap extends Record<string, unknown>>(): EventBus<EventMap> {
     if (!EventBus.instance) {
-      EventBus.instance = new EventBus<EventMap>();
+      EventBus.instance = new EventBus<Record<string, unknown>>();
     }
     return EventBus.instance as EventBus<EventMap>;
   }

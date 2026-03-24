@@ -12,45 +12,46 @@ export class Flipper {
   private isActive: boolean = false;
   private angle: number = 0;
   private side: FlipperSide;
-  private eventBus: EventBus<any>;
+  private eventBus: EventBus<{ flipper_activate: { side: FlipperSide } }>;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
     this.side = side;
-    this.eventBus = EventBus.getInstance();
+    this.eventBus = EventBus.getInstance<{ flipper_activate: { side: FlipperSide } }>();
 
     const geometry = new THREE.BoxGeometry(2, 0.3, 0.5);
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position différente gauche et droite
-    const xOffset = side === "left" ? -1.5 : 1.5;
-    this.mesh.position.set(xOffset, 0.5, 0);
+    // Position au bas de la table (z négatif) et espacées
+    const xOffset = side === "left" ? -1.8 : 1.8;
+    const zPosition = -4.5;
+    this.mesh.position.set(xOffset, 0.5, zPosition);
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
     // Ici on gére la physique
 
-    const rigidBodyDesc = RAPIER.RigidBodyDesc
-      .kinematicPositionBased()
-      .setTranslation(xOffset, 0.5, 0);
+    const rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
+      xOffset,
+      0.5,
+      zPosition,
+    );
 
     this.rigidBody = world.createRigidBody(rigidBodyDesc);
 
     const colliderDesc = RAPIER.ColliderDesc.cuboid(1, 0.15, 0.25);
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
 
-    const pivotDesc = RAPIER.RigidBodyDesc
-      .fixed()
-      .setTranslation(xOffset, 0.5, 0);
+    const pivotDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(xOffset, 0.5, zPosition);
 
     const pivot = world.createRigidBody(pivotDesc);
 
     const jointData = RAPIER.JointData.revolute(
       { x: 0, y: 0, z: 0 },
       { x: 0, y: 0, z: 0 },
-      { x: 0, y: 1, z: 0 }
+      { x: 0, y: 1, z: 0 },
     );
 
     jointData.limitsEnabled = true;
@@ -98,16 +99,9 @@ export class Flipper {
     this.angle = Math.max(-0.5, Math.min(0.5, this.angle));
 
     // Ici on gére la rotation
-    const threeQuat = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0, this.angle, 0, "XYZ")
-    );
+    const threeQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, this.angle, 0, "XYZ"));
 
-    const rotation = new RAPIER.Quaternion(
-      threeQuat.x,
-      threeQuat.y,
-      threeQuat.z,
-      threeQuat.w
-    );
+    const rotation = new RAPIER.Quaternion(threeQuat.x, threeQuat.y, threeQuat.z, threeQuat.w);
 
     this.rigidBody.setNextKinematicRotation(rotation);
 
