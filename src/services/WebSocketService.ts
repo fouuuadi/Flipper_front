@@ -11,6 +11,10 @@ export class WebSocketService {
   connect(): void {
     if (this.socket) return;
     this.socket = new WebSocket(this.url);
+
+    this.socket.addEventListener("open", () => {
+      console.log(`[WebSocket] Connecté à ${this.url}`);
+    });
   }
 
   disconnect(): void {
