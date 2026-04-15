@@ -1,0 +1,35 @@
+name: IaC PR Checkov
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - deploy/k8s/**
+      - deploy/terraform/**
+      - .github/workflows/iac-pr-checkov.yml
+  workflow_dispatch:
+
+concurrency:
+  group: iac-pr-checkov-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checkov:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov on IaC
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: deploy
+          framework: terraform,kubernetes
+          quiet: true
+          soft_fail: false
