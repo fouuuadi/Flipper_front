@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars (kept out of git) and adjust if needed.
+
+kubeconfig_path         = "~/.kube/config"
+kubeconfig_context      = "your-cluster-context"
+create_staging_namespace = true
+create_prod_namespace    = true
+extra_labels = {
+  owner = "flipper-team"
+}
