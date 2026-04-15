@@ -1,13 +1,13 @@
 # Terraform Front
 
-This Terraform stack manages the baseline Kubernetes infrastructure for the frontend scope.
+Cette stack Terraform gère l'infrastructure Kubernetes de base pour le périmètre frontend.
 
-## Managed resources
+## Ressources gérées
 
-- Staging namespace (`flipper-staging` by default)
-- Production namespace (`flipper-prod` by default)
+- Namespace de staging (`flipper-staging` par défaut)
+- Namespace de production (`flipper-prod` par défaut)
 
-## Commands
+## Commandes
 
 ```bash
 terraform init -backend=false
@@ -15,4 +15,4 @@ terraform fmt -check -recursive
 terraform validate
 ```
 
-For a real plan/apply, use a valid kubeconfig context with cluster access.
+Pour exécuter un vrai `plan/apply`, utilisez un contexte kubeconfig valide avec accès au cluster.
