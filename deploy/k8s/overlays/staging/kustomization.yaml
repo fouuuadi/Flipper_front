@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flipper-staging
+
+resources:
+  - ../../base
+
+images:
+  - name: ghcr.io/fouuuadi/flipper-front
+    newTag: main-latest
+
+patches:
+  - target:
+      kind: Deployment
+      name: flipper-front
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: flipper-front
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: front
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 300m
+                    memory: 256Mi
+  - target:
+      kind: Ingress
+      name: flipper-front
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: flipper-front
+      spec:
+        rules:
+          - host: staging.front.local
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: flipper-front
+                      port:
+                        number: 80
