@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 RUN apk --no-cache upgrade \
-	; npm ci
+	&& npm ci
 
 COPY . .
 RUN npm run build
