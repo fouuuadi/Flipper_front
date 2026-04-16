@@ -15,4 +15,3 @@ labels:
 
 images:
   - name: ghcr.io/fouuuadi/flipper-front
-    newTag: main-latest
