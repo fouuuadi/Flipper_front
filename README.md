@@ -144,16 +144,16 @@ console.log(env.wsUrl, env.isDev);
 Le pipeline frontend est maintenant découpé en plusieurs workflows GitHub Actions complémentaires.
 
 - Qualité PR:
-	- `.github/workflows/front-pr-quality.yml` (format, lint, type-check, build)
-	- `.github/workflows/front-pr-security.yml` (Gitleaks + Trivy fs)
-	- `.github/workflows/terraform-pr-check.yml` (Terraform fmt/init/validate)
-	- `.github/workflows/iac-pr-checkov.yml` (scan IaC Terraform + Kubernetes)
+  - `.github/workflows/front-pr-quality.yml` (format, lint, type-check, build)
+  - `.github/workflows/front-pr-security.yml` (Gitleaks + Trivy fs)
+  - `.github/workflows/terraform-pr-check.yml` (Terraform fmt/init/validate)
+  - `.github/workflows/iac-pr-checkov.yml` (scan IaC Terraform + Kubernetes)
 - Release main:
-	- `.github/workflows/front-main-release.yml` (build image, scan Trivy, push GHCR)
-	- `.github/workflows/terraform-main-plan.yml` (qualité Terraform + plan conditionnel)
+  - `.github/workflows/front-main-release.yml` (build image, scan Trivy, push GHCR)
+  - `.github/workflows/terraform-main-plan.yml` (qualité Terraform + plan conditionnel)
 - GitOps:
-	- `.github/workflows/front-gitops-update-staging.yml` (mise à jour auto du tag staging)
-	- `.github/workflows/front-gitops-promote-prod.yml` (promotion manuelle en prod)
+  - `.github/workflows/front-gitops-update-staging.yml` (mise à jour auto du tag staging)
+  - `.github/workflows/front-gitops-promote-prod.yml` (promotion manuelle en prod)
 
 ### Secret GitHub à prévoir
 
