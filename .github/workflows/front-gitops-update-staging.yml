@@ -51,5 +51,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add "$FILE"
-          git commit -m "ci(gitops): mettre a jour le tag staging front vers ${TAG}"
+          git commit -m "ci(gitops): mettre à jour le tag staging front vers ${TAG}"
           git push
