@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: front-gitops-update-staging
+  cancel-in-progress: false
+
 jobs:
   update-staging-tag:
     runs-on: ubuntu-latest
