@@ -37,10 +37,36 @@ jobs:
       - name: Terraform format check
         run: terraform fmt -check -recursive
 
+      - name: Write kubeconfig placeholder
+        shell: bash
+        run: |
+          cat > /tmp/kubeconfig <<'EOF'
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: local
+              cluster:
+                server: https://127.0.0.1:6443
+          contexts:
+            - name: local
+              context:
+                cluster: local
+                user: local
+          current-context: local
+          users:
+            - name: local
+              user:
+                token: placeholder
+          EOF
+
       - name: Terraform init (no backend)
+        env:
+          TF_VAR_kubeconfig_path: /tmp/kubeconfig
         run: terraform init -backend=false
 
       - name: Terraform validate
+        env:
+          TF_VAR_kubeconfig_path: /tmp/kubeconfig
         run: terraform validate
 
   terraform-plan:
