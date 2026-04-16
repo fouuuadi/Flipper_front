@@ -1,47 +1,43 @@
 type Listener<T> = (payload: T) => void;
 
 export class EventBus<EventMap extends Record<string, unknown>> {
-  private listeners = new Map<keyof EventMap, Set<Listener<never>>>();
-
-  private static instance: EventBus<Record<string, unknown>>;
-
-  static getInstance<EventMap extends Record<string, unknown>>(): EventBus<EventMap> {
-    if (!EventBus.instance) {
-      EventBus.instance = new EventBus<Record<string, unknown>>();
-    }
-    return EventBus.instance as EventBus<EventMap>;
-  }
+  private listeners: {
+    [K in keyof EventMap]?: Set<Listener<EventMap[K]>>;
+  } = {};
 
   on<K extends keyof EventMap>(event: K, listener: Listener<EventMap[K]>): void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
+    const listenerSet = this.listeners[event];
+    if (!listenerSet) {
+      this.listeners[event] = new Set([listener]);
+      return;
     }
-    this.listeners.get(event)!.add(listener as Listener<never>);
+
+    listenerSet.add(listener);
   }
 
   off<K extends keyof EventMap>(event: K, listener: Listener<EventMap[K]>): void {
-    this.listeners.get(event)?.delete(listener as Listener<never>);
+    this.listeners[event]?.delete(listener);
   }
 
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
-    const set = this.listeners.get(event);
-    if (!set) return;
-    set.forEach((listener) => (listener as Listener<EventMap[K]>)(payload));
+    this.listeners[event]?.forEach((listener) => listener(payload));
   }
 
   once<K extends keyof EventMap>(event: K, listener: Listener<EventMap[K]>): void {
-    const wrapper = ((payload: EventMap[K]): void => {
+    const wrapper: Listener<EventMap[K]> = (payload) => {
       this.off(event, wrapper);
       listener(payload);
-    }) as Listener<EventMap[K]>;
+    };
+
     this.on(event, wrapper);
   }
 
   clear(event?: keyof EventMap): void {
     if (event) {
-      this.listeners.delete(event);
-    } else {
-      this.listeners.clear();
+      delete this.listeners[event];
+      return;
     }
+
+    this.listeners = {};
   }
 }
