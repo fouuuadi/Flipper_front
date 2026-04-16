@@ -139,3 +139,32 @@ console.log(env.wsUrl, env.isDev);
 
 ---
 
+## CI/CD et déploiement
+
+Le pipeline frontend est maintenant découpé en plusieurs workflows GitHub Actions complémentaires.
+
+- Qualité PR:
+  - `.github/workflows/front-pr-quality.yml` (format, lint, type-check, build)
+  - `.github/workflows/front-pr-security.yml` (Gitleaks + Trivy fs)
+  - `.github/workflows/terraform-pr-check.yml` (Terraform fmt/init/validate)
+  - `.github/workflows/iac-pr-checkov.yml` (scan IaC Terraform + Kubernetes)
+- Release main:
+  - `.github/workflows/front-main-release.yml` (build image, scan Trivy, push GHCR)
+  - `.github/workflows/terraform-main-plan.yml` (qualité Terraform + plan conditionnel)
+- GitOps:
+  - `.github/workflows/front-gitops-update-staging.yml` (mise à jour auto du tag staging)
+  - `.github/workflows/front-gitops-promote-prod.yml` (promotion manuelle en prod)
+
+### Secret GitHub à prévoir
+
+- `TF_FRONT_KUBECONFIG_B64` (optionnel mais recommandé): kubeconfig encodé en base64 pour activer le `terraform plan` dans le workflow main Terraform.
+
+### Manifests de déploiement
+
+- Kubernetes: `deploy/k8s/base` + `deploy/k8s/overlays/{staging,prod}`
+- ArgoCD: `deploy/argocd/front-staging-application.yaml` et `deploy/argocd/front-prod-application.yaml`
+
+En pratique, la chaîne est la suivante: merge sur `main` → image frontend publiée sur GHCR → tag staging mis à jour dans les manifests GitOps → ArgoCD synchronise l’environnement staging. La promotion production reste une action volontaire via workflow manuel.
+
+---
+

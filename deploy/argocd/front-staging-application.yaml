@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flipper-front-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/fouuuadi/Flipper_front.git
+    targetRevision: main
+    path: deploy/k8s/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: flipper-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true

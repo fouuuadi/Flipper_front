@@ -1,0 +1,75 @@
+name: Terraform Main Plan (Front)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - deploy/terraform/front/**
+      - .github/workflows/terraform-main-plan.yml
+  workflow_dispatch:
+
+concurrency:
+  group: terraform-main-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: deploy/terraform/front
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+  terraform-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: terraform-quality
+    if: ${{ secrets.TF_FRONT_KUBECONFIG_B64 != '' }}
+
+    defaults:
+      run:
+        working-directory: deploy/terraform/front
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Write kubeconfig from secret
+        shell: bash
+        run: |
+          echo "${{ secrets.TF_FRONT_KUBECONFIG_B64 }}" | base64 --decode > /tmp/kubeconfig
+          chmod 600 /tmp/kubeconfig
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform plan
+        run: terraform plan -input=false -lock=false -var="kubeconfig_path=/tmp/kubeconfig"

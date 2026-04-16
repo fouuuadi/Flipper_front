@@ -1,0 +1,42 @@
+name: Front GitOps Promote Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag image a promouvoir (ex: sha-abcdef... ou main-latest)"
+        required: true
+        default: main-latest
+
+permissions:
+  contents: write
+
+jobs:
+  promote-prod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Update production kustomize image tag
+        shell: bash
+        run: |
+          FILE="deploy/k8s/overlays/prod/kustomization.yaml"
+          TAG="${{ github.event.inputs.image_tag }}"
+
+          sed -i "s|newTag: .*|newTag: ${TAG}|g" "$FILE"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "No change required for production tag."
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "$FILE"
+          git commit -m "ci(gitops): promouvoir le front en production avec ${TAG}"
+          git push

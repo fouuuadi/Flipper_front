@@ -1,0 +1,59 @@
+name: Front GitOps Update Staging
+
+on:
+  workflow_run:
+    workflows:
+      - Front Main Release
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: front-gitops-update-staging
+  cancel-in-progress: false
+
+jobs:
+  update-staging-tag:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve tag to promote
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=main-latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=sha-${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update staging kustomize image tag
+        shell: bash
+        run: |
+          FILE="deploy/k8s/overlays/staging/kustomization.yaml"
+          TAG="${{ steps.tag.outputs.value }}"
+
+          sed -i "s|newTag: .*|newTag: ${TAG}|g" "$FILE"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "No change required for staging tag."
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "$FILE"
+          git commit -m "ci(gitops): mettre à jour le tag staging front vers ${TAG}"
+          git push
