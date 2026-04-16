@@ -2,6 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: flipper-front
+  namespace: flipper
+  annotations:
+    checkov.io/skip1: CKV_K8S_21=Namespace is overridden by kustomize overlays in each environment
 spec:
   ingressClassName: nginx
   rules:

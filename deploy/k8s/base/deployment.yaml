@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: flipper-front
+  namespace: flipper
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Image tag is managed by GitOps promotion workflow
 spec:
   replicas: 2
   selector:
@@ -12,8 +15,12 @@ spec:
       labels:
         app: flipper-front
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -43,7 +50,23 @@ spec:
               cpu: 500m
               memory: 512Mi
           securityContext:
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}

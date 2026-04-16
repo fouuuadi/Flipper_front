@@ -63,7 +63,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trivy report (HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ${{ steps.vars.outputs.image_name }}:sha-${{ github.sha }}
           format: table
@@ -73,7 +73,7 @@ jobs:
           exit-code: 0
 
       - name: Trivy gate (CRITICAL only)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ${{ steps.vars.outputs.image_name }}:sha-${{ github.sha }}
           format: table
