@@ -1,15 +1,19 @@
 import * as THREE from "three";
 import { Ball } from "@modules/ball";
+import { EventBus } from "@core";
 
 export class Launcher {
   mesh: THREE.Mesh;
 
   private isCharging: boolean = false;
   private chargeTime: number = 0;
-  private maxCharge: number = 2; // secondes
+  private maxCharge: number = 2;
   private power: number = 0;
 
   private ball: Ball;
+
+  // animation
+  private initialZ: number;
 
   constructor(ball: Ball) {
     this.ball = ball;
@@ -19,13 +23,14 @@ export class Launcher {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position sur le côté (lane)
     this.mesh.position.set(3, 1, 4);
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    // === INPUT CLAVIER ===
+    this.initialZ = this.mesh.position.z;
+
+    // === INPUT ===
     window.addEventListener("keydown", (event) => {
       if (event.code === "Space") {
         this.isCharging = true;
@@ -36,24 +41,25 @@ export class Launcher {
       if (event.code === "Space") {
         this.isCharging = false;
 
-        // puissance normalisée (0 → 1)
+        // puissance normalisée
         const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
         this.power = normalized;
 
-        // reset charge
         this.chargeTime = 0;
 
         // === IMPULSION ===
-        const force = this.power * 10; // ajuste si besoin
+        const force = this.power * 10;
 
         const rigidBody = (this.ball as any).rigidBody;
 
         if (rigidBody) {
-          rigidBody.applyImpulse(
-            { x: 0, y: 0, z: -force },
-            true
-          );
+          rigidBody.applyImpulse({ x: 0, y: 0, z: -force }, true);
         }
+
+        // === EVENT ===
+        EventBus.emit("ball_launched", {
+          power: this.power,
+        });
 
         console.log("Ball launched with power:", this.power);
       }
@@ -65,6 +71,9 @@ export class Launcher {
       this.chargeTime += deltaTime;
       this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
     }
+
+    const compression = this.chargeTime / this.maxCharge;
+    this.mesh.position.z = this.initialZ + compression * 1;
   }
 
   addTo(scene: THREE.Scene) {
