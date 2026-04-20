@@ -90,8 +90,8 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
-  // === LAUNCHER ===
-  const launcher = new Launcher();
+  // ✅ launcher avec la balle
+  const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
 
   sceneManager.onUpdate((deltaTime) => {
