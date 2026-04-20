@@ -14,7 +14,7 @@ export class Launcher {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position sur le côté (lane de lancement)
+    // Position sur le côté (lane)
     this.mesh.position.set(3, 1, 4);
 
     this.mesh.castShadow = true;
@@ -31,10 +31,15 @@ export class Launcher {
       if (event.code === "Space") {
         this.isCharging = false;
 
-        this.power = Math.min(this.chargeTime, this.maxCharge);
-        this.chargeTime = 0;
+        // 👉 calcul de la puissance normalisée (0 → 1)
+        const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
 
-        console.log("Launcher power:", this.power);
+        this.power = normalized;
+
+        console.log("Launcher power (0-1):", this.power);
+
+        // reset
+        this.chargeTime = 0;
       }
     });
   }
