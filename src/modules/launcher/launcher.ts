@@ -12,7 +12,6 @@ export class Launcher {
 
   private ball: Ball;
 
-  // animation
   private initialZ: number;
 
   constructor(ball: Ball) {
@@ -23,14 +22,20 @@ export class Launcher {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    this.mesh.position.set(3, 1, 4);
+    // Position
+    this.mesh.position.set(3, -0.5, 5);
+
+    // Inclinaison
+    // léger angle vers la table
+    this.mesh.rotation.x = -Math.PI / 3; // ~ -30°
+    this.mesh.rotation.z = 0.15; // léger décalage esthétique
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
     this.initialZ = this.mesh.position.z;
 
-    // === INPUT ===
+    // Input
     window.addEventListener("keydown", (event) => {
       if (event.code === "Space") {
         this.isCharging = true;
@@ -41,22 +46,24 @@ export class Launcher {
       if (event.code === "Space") {
         this.isCharging = false;
 
-        // puissance normalisée
         const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
         this.power = normalized;
 
         this.chargeTime = 0;
 
-        // === IMPULSION ===
+        // Impulsion
         const force = this.power * 10;
 
         const rigidBody = (this.ball as any).rigidBody;
 
         if (rigidBody) {
-          rigidBody.applyImpulse({ x: 0, y: 0, z: -force }, true);
+          rigidBody.applyImpulse(
+            { x: 0, y: 0, z: -force },
+            true
+          );
         }
 
-        // === EVENT ===
+        // Event
         EventBus.emit("ball_launched", {
           power: this.power,
         });
@@ -72,6 +79,7 @@ export class Launcher {
       this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
     }
 
+    // animation compression
     const compression = this.chargeTime / this.maxCharge;
     this.mesh.position.z = this.initialZ + compression * 1;
   }
