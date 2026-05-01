@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
+import { Launcher } from "@modules/launcher/Launcher";
 import {
   Playfield,
   PLAYFIELD_HEIGHT,
@@ -43,14 +44,14 @@ directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
-// Le Playfield
+// Playfield
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
 
-// Ici on gére la camera
+// Camera
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
@@ -89,12 +90,18 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
+  // Ici on gere le laucher avec la balle
+  const launcher = new Launcher(ball);
+  launcher.addTo(sceneManager.scene);
+
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
 
     leftFlipper.update(deltaTime);
     rightFlipper.update(deltaTime);
+
+    launcher.update(deltaTime);
   });
 
   sceneManager.start();
