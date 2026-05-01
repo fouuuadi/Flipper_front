@@ -4,7 +4,7 @@ import { EventBus } from "@core";
 
 export class Launcher {
   mesh: THREE.Mesh;
-
+  // State
   private isCharging: boolean = false;
   private chargeTime: number = 0;
   private maxCharge: number = 2;
@@ -13,7 +13,7 @@ export class Launcher {
   private ball: Ball;
 
   private initialZ: number;
-
+  // Constructor
   constructor(ball: Ball) {
     this.ball = ball;
 
@@ -79,7 +79,7 @@ export class Launcher {
       this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
     }
 
-    // animation compression
+    // animation 
     const compression = this.chargeTime / this.maxCharge;
     this.mesh.position.z = this.initialZ + compression * 1;
   }
