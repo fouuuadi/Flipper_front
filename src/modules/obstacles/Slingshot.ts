@@ -95,9 +95,19 @@ export class Slingshot {
 
       // Effect
       this.hitTimer = 0.1; // 100ms
-      this.material.color.set(0xffff00); // jaune flash
+      this.material.color.set(0xffff00);
     }
-    
+
+    // Color
+    if (this.hitTimer > 0) {
+      this.hitTimer -= deltaTime;
+
+      if (this.hitTimer <= 0) {
+        this.material.color.set(0x00ff00);
+      }
+    }
+  }
+
   addTo(scene: THREE.Scene) {
     scene.add(this.mesh);
   }
