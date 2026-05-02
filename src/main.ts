@@ -112,10 +112,10 @@ async function initPhysics() {
 
     launcher.update(deltaTime);
 
-    // ✅ DETECTION COLLISION
+    // Slingshot update
     if (ball) {
-      leftSlingshot.update(ball);
-      rightSlingshot.update(ball);
+      leftSlingshot.update(ball, deltaTime);
+      rightSlingshot.update(ball, deltaTime);
     }
   });
 
