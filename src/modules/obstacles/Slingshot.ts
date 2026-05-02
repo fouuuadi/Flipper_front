@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import RAPIER from "@dimforge/rapier3d-compat";
 
 type SlingshotSide = "left" | "right";
 
@@ -6,16 +7,19 @@ export class Slingshot {
   mesh: THREE.Mesh;
   private side: SlingshotSide;
 
-  constructor(side: SlingshotSide) {
+  rigidBody!: RAPIER.RigidBody;
+  collider!: RAPIER.Collider;
+
+  constructor(world: RAPIER.World, side: SlingshotSide) {
     this.side = side;
 
-    // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
+    // // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
       0, 0, 0,
       1, 0, 0,
-      0, 0, 1 
+      0, 0, 1
     ]);
 
     geometry.setAttribute(
@@ -32,16 +36,28 @@ export class Slingshot {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Ici on gere le positionnement du slingshot
-    if (this.side === "left") {
-      this.mesh.position.set(-2, 0.5, 1);
-    } else {
-      this.mesh.position.set(2, 0.5, 1);
-      this.mesh.rotation.y = Math.PI; // miroir
+    // // Ici on gere le positionnement du slingshot
+    const x = this.side === "left" ? -2 : 2;
+
+    this.mesh.position.set(x, 0.5, 1);
+
+    if (this.side === "right") {
+      this.mesh.rotation.y = Math.PI;
     }
 
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
+
+    // ici on gere la physique du slingshot
+    const rigidBodyDesc = RAPIER.RigidBodyDesc
+      .fixed()
+      .setTranslation(x, 0.5, 1);
+
+    this.rigidBody = world.createRigidBody(rigidBodyDesc);
+
+    const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.1, 0.5);
+
+    this.collider = world.createCollider(colliderDesc, this.rigidBody);
   }
 
   addTo(scene: THREE.Scene) {
