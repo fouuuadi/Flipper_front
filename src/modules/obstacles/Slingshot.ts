@@ -37,7 +37,7 @@ export class Slingshot {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // === POSITION ===
+    // Ici on gere le positionnement du slingshot
     const x = this.side === "left" ? -2 : 2;
 
     this.mesh.position.set(x, 0.5, 1);
@@ -49,7 +49,7 @@ export class Slingshot {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    // === PHYSIQUE ===
+    // Ici on gere la physique du slingshot
     const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
       x,
       0.5,

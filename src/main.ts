@@ -111,6 +111,12 @@ async function initPhysics() {
     rightFlipper.update(deltaTime);
 
     launcher.update(deltaTime);
+
+    // ✅ DETECTION COLLISION
+    if (ball) {
+      leftSlingshot.update(ball);
+      rightSlingshot.update(ball);
+    }
   });
 
   sceneManager.start();
