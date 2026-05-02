@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
 import { Launcher } from "@modules/launcher/Launcher";
+import { Slingshot } from "@modules/obstacles/Slingshot";
 import {
   Playfield,
   PLAYFIELD_HEIGHT,
