@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Ball } from "@modules/ball";
+import { EventBus } from "@core";
 
 type SlingshotSide = "left" | "right";
 
@@ -11,10 +12,13 @@ export class Slingshot {
   rigidBody!: RAPIER.RigidBody;
   collider!: RAPIER.Collider;
 
+  // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
+  private material: THREE.MeshStandardMaterial;
+  private hitTimer: number = 0;
+
   constructor(world: RAPIER.World, side: SlingshotSide) {
     this.side = side;
 
-    // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
@@ -30,12 +34,12 @@ export class Slingshot {
 
     geometry.computeVertexNormals();
 
-    const material = new THREE.MeshStandardMaterial({
+    this.material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
       side: THREE.DoubleSide,
     });
 
-    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh = new THREE.Mesh(geometry, this.material);
 
     const x = this.side === "left" ? -2 : 2;
 
@@ -48,7 +52,7 @@ export class Slingshot {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    // Ici on gere la physique du slingshot
+    // Ici on gere le positionnement du slingshot
     const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
       x,
       0.5,
@@ -62,34 +66,32 @@ export class Slingshot {
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
   }
 
-  update(ball: Ball) {
+  update(ball: Ball, deltaTime: number) {
     const world = (ball as any).physics.getWorld();
     const ballBody = (ball as any).rigidBody;
 
     if (!ballBody) return;
 
-    // Contact
-    const contact = world.contactPair(this.collider, ballBody.collider || ballBody);
+    const contact = world.contactPair(this.collider, ballBody);
 
-    if (!contact) return;
+    if (contact) {
+      // Impulsion
+      const force = 2;
+      const direction = this.side === "left" ? 1 : -1;
 
-    console.log("Slingshot hit!", this.side);
+      ballBody.applyImpulse(
+        {
+          x: force * direction,
+          y: 0,
+          z: -force,
+        },
+        true
+      );
 
-    // Impulsion
-    const force = 3;
-
-    const direction = this.side === "left" ? 1 : -1;
-
-    // Rapier impulse avec petit rebond
-    ballBody.applyImpulse(
-      {
-        x: force * direction,
-        y: 0.5,
-        z: -force,
-      },
-      true
-    );
-  }
+      // Event
+      EventBus.emit("slingshot_hit", {
+        side: this.side,
+      });
 
   addTo(scene: THREE.Scene) {
     scene.add(this.mesh);
