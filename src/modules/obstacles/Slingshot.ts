@@ -68,7 +68,7 @@ export class Slingshot {
 
     if (!ballBody) return;
 
-    // contact
+    // Contact
     const contact = world.contactPair(this.collider, ballBody.collider || ballBody);
 
     if (!contact) return;
@@ -79,6 +79,17 @@ export class Slingshot {
     const force = 3;
 
     const direction = this.side === "left" ? 1 : -1;
+
+    // Rapier impulse avec petit rebond
+    ballBody.applyImpulse(
+      {
+        x: force * direction,
+        y: 0.5,
+        z: -force,
+      },
+      true
+    );
+  }
 
   addTo(scene: THREE.Scene) {
     scene.add(this.mesh);
