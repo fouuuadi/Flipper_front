@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
 import { Launcher } from "@modules/launcher/Launcher";
 import { Slingshot } from "@modules/obstacles/Slingshot";
+
 import {
   Playfield,
   PLAYFIELD_HEIGHT,
@@ -91,9 +92,16 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
-  // Ici on gere le laucher avec la balle
+  // Launcher
   const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
+
+  // ✅ SLINGSHOTS (ETAPE 1 — VISUEL)
+  const leftSlingshot = new Slingshot("left");
+  leftSlingshot.addTo(sceneManager.scene);
+
+  const rightSlingshot = new Slingshot("right");
+  rightSlingshot.addTo(sceneManager.scene);
 
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);

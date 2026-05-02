@@ -9,13 +9,13 @@ export class Slingshot {
   constructor(side: SlingshotSide) {
     this.side = side;
 
-    // === GEOMETRIE TRIANGLE ===
+    // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
-      0, 0, 0,   // point 1
-      1, 0, 0,   // point 2
-      0, 0, 1    // point 3
+      0, 0, 0,
+      1, 0, 0,
+      0, 0, 1 
     ]);
 
     geometry.setAttribute(
@@ -32,7 +32,7 @@ export class Slingshot {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // === POSITION ===
+    // Ici on gere le positionnement du slingshot
     if (this.side === "left") {
       this.mesh.position.set(-2, 0.5, 1);
     } else {
