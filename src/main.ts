@@ -96,11 +96,11 @@ async function initPhysics() {
   const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
 
-  // ✅ SLINGSHOTS (ETAPE 1 — VISUEL)
-  const leftSlingshot = new Slingshot("left");
+  // Slingshots
+  const leftSlingshot = new Slingshot(world, "left");
   leftSlingshot.addTo(sceneManager.scene);
 
-  const rightSlingshot = new Slingshot("right");
+  const rightSlingshot = new Slingshot(world, "right");
   rightSlingshot.addTo(sceneManager.scene);
 
   sceneManager.onUpdate((deltaTime) => {
