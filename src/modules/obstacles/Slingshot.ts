@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
+import { Ball } from "@modules/ball";
 
 type SlingshotSide = "left" | "right";
 
@@ -13,13 +14,13 @@ export class Slingshot {
   constructor(world: RAPIER.World, side: SlingshotSide) {
     this.side = side;
 
-    // // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
+    // Ici, on crée une simple géométrie de triangle pour représenter le slingshot
     const geometry = new THREE.BufferGeometry();
 
     const vertices = new Float32Array([
       0, 0, 0,
       1, 0, 0,
-      0, 0, 1
+      0, 0, 1,
     ]);
 
     geometry.setAttribute(
@@ -31,12 +32,12 @@ export class Slingshot {
 
     const material = new THREE.MeshStandardMaterial({
       color: 0x00ff00,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // // Ici on gere le positionnement du slingshot
+    // === POSITION ===
     const x = this.side === "left" ? -2 : 2;
 
     this.mesh.position.set(x, 0.5, 1);
@@ -48,16 +49,31 @@ export class Slingshot {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
 
-    // ici on gere la physique du slingshot
-    const rigidBodyDesc = RAPIER.RigidBodyDesc
-      .fixed()
-      .setTranslation(x, 0.5, 1);
+    // === PHYSIQUE ===
+    const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
+      x,
+      0.5,
+      1
+    );
 
     this.rigidBody = world.createRigidBody(rigidBodyDesc);
 
     const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.1, 0.5);
 
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
+  }
+
+  update(ball: Ball) {
+    const world = (ball as any).physics.getWorld();
+    const ballBody = (ball as any).rigidBody;
+
+    if (!ballBody) return;
+
+    const contact = world.contactPair(this.collider, ballBody);
+
+    if (contact) {
+      console.log("Slingshot hit!", this.side);
+    }
   }
 
   addTo(scene: THREE.Scene) {
