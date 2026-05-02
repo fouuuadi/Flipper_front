@@ -37,7 +37,6 @@ export class Slingshot {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Ici on gere le positionnement du slingshot
     const x = this.side === "left" ? -2 : 2;
 
     this.mesh.position.set(x, 0.5, 1);
@@ -69,12 +68,17 @@ export class Slingshot {
 
     if (!ballBody) return;
 
-    const contact = world.contactPair(this.collider, ballBody);
+    // contact
+    const contact = world.contactPair(this.collider, ballBody.collider || ballBody);
 
-    if (contact) {
-      console.log("Slingshot hit!", this.side);
-    }
-  }
+    if (!contact) return;
+
+    console.log("Slingshot hit!", this.side);
+
+    // Impulsion
+    const force = 3;
+
+    const direction = this.side === "left" ? 1 : -1;
 
   addTo(scene: THREE.Scene) {
     scene.add(this.mesh);
