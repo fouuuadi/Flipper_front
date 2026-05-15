@@ -21,6 +21,10 @@ import typescriptLogo from "./typescript.svg";
 import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
 
+// Event Bus
+import { EventBus } from "@core/EventBus";
+import type { SlingshotHitPayload } from "@modules/obstacles/Slingshot";
+
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div>
     <a href="https://vite.dev" target="_blank">
