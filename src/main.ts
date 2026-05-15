@@ -112,6 +112,15 @@ async function initPhysics() {
     rightSlingshot.setBallBody(ballRigidBody);
   }
 
+  // Consol log de chaque slingshot_hit émis sur l'EventBus
+  const slingshotEventBus = EventBus.getInstance<{ slingshot_hit: SlingshotHitPayload }>();
+  slingshotEventBus.on("slingshot_hit", (payload) => {
+    console.log(
+      `🎯 slingshot_hit reçu — côté: ${payload.side}, impulse:`,
+      payload.impulse,
+    );
+  });
+
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime, eventQueue);
 
