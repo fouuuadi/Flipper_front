@@ -132,3 +132,15 @@ export class Slingshot {
       this.kickBall();
     }
   }
+  
+  // Ici on gere les slingshots pour pousser la balle
+  private kickBall(): void {
+    if (!this.ballBody) return;
+
+    const dirX = this.side === "left" ? 1 : -1;
+
+    const impulse = {
+      x: dirX * this.kickStrength,
+      y: this.kickVerticalBoost,
+      z: this.kickInwardBoost,
+    };
