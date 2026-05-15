@@ -144,3 +144,88 @@ export class Slingshot {
       y: this.kickVerticalBoost,
       z: this.kickInwardBoost,
     };
+
+      // Ici on gere la vitesse
+    const currentLin = this.ballBody.linvel();
+    this.ballBody.setLinvel(
+      {
+        x: currentLin.x * 0.35,
+        y: currentLin.y,
+        z: currentLin.z * 0.6,
+      },
+      true,
+    );
+
+    this.ballBody.applyImpulse(impulse, true);
+
+    const linAfterImpulse = this.ballBody.linvel();
+    const towardCenterX = -Math.sign(this.center.x);
+    const biasedX =
+      linAfterImpulse.x * (1 - this.inwardBias) +
+      Math.abs(linAfterImpulse.x) * towardCenterX * this.inwardBias;
+    this.ballBody.setLinvel(
+      { x: biasedX, y: linAfterImpulse.y, z: linAfterImpulse.z },
+      true,
+    );
+
+    const linH = this.ballBody.linvel();
+    const horizSq = linH.x * linH.x + linH.z * linH.z;
+    if (horizSq > this.maxHorizontalSpeed * this.maxHorizontalSpeed) {
+      const horiz = Math.sqrt(horizSq);
+      const k = this.maxHorizontalSpeed / horiz;
+      this.ballBody.setLinvel(
+        { x: linH.x * k, y: linH.y, z: linH.z * k },
+        true,
+      );
+    }
+
+    const linFinal = this.ballBody.linvel();
+    const speedSq =
+      linFinal.x * linFinal.x +
+      linFinal.y * linFinal.y +
+      linFinal.z * linFinal.z;
+    if (speedSq > this.maxLinearSpeed * this.maxLinearSpeed) {
+      const speed = Math.sqrt(speedSq);
+      const k = this.maxLinearSpeed / speed;
+      this.ballBody.setLinvel(
+        { x: linFinal.x * k, y: linFinal.y * k, z: linFinal.z * k },
+        true,
+      );
+    }
+
+    // ✨ FIX — On coupe aussi tout spin angulaire excessif (peut faire fuser la balle)
+    const ang = this.ballBody.angvel();
+    const angCap = 18; // rad/s
+    const angSq = ang.x * ang.x + ang.y * ang.y + ang.z * ang.z;
+    if (angSq > angCap * angCap) {
+      const a = Math.sqrt(angSq);
+      const k = angCap / a;
+      this.ballBody.setAngvel(
+        { x: ang.x * k, y: ang.y * k, z: ang.z * k },
+        true,
+      );
+    }
+
+    // Anti-spam (la balle peut rester proche plusieurs frames)
+    this.cooldownTimer = this.cooldownDuration;
+
+    // Flash visuel
+    this.material.color.setHex(this.hitColor);
+    this.material.emissive.setHex(0x554400);
+    this.material.needsUpdate = true;
+    this.hitTimer = this.hitFlashDuration;
+
+    // Emit EventBus pour le reste du jeu (score, audio, FX, etc.)
+    this.eventBus.emit("slingshot_hit", {
+      side: this.side,
+      position: { ...this.center },
+      impulse,
+    });
+
+    console.log(`💥 Slingshot ${this.side} HIT — impulse:`, impulse);
+  }
+
+  addTo(scene: THREE.Scene) {
+    scene.add(this.mesh);
+  }
+}
