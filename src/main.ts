@@ -105,6 +105,13 @@ async function initPhysics() {
   const rightSlingshot = new Slingshot(world, "right");
   rightSlingshot.addTo(sceneManager.scene);
 
+  // Ici on gere le RigidBody de la balle aux slingshots
+  const ballRigidBody = physics.getBody("main-ball");
+  if (ballRigidBody) {
+    leftSlingshot.setBallBody(ballRigidBody);
+    rightSlingshot.setBallBody(ballRigidBody);
+  }
+
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime, eventQueue);
 
