@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import RAPIER from "@dimforge/rapier3d-compat";
+
 import { SceneManager } from "@engine/SceneManager";
 import { Launcher } from "@modules/launcher/Launcher";
 import { Slingshot } from "@modules/obstacles/Slingshot";
@@ -9,8 +11,10 @@ import {
   PLAYFIELD_TILT_DEG,
   PLAYFIELD_WIDTH,
 } from "@modules/playfield";
+
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
+
 import viteLogo from "../public/vite.svg";
 import typescriptLogo from "./typescript.svg";
 
@@ -26,12 +30,6 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
     </a>
     <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
   </div>
 `;
 
@@ -65,6 +63,8 @@ async function initPhysics() {
 
   const world = physics.getWorld();
 
+  const eventQueue = new RAPIER.EventQueue(true);
+
   physics.createBounds({
     y: 0,
     length: PLAYFIELD_HEIGHT,
@@ -74,7 +74,7 @@ async function initPhysics() {
 
   ball = new Ball(physics, {
     id: "main-ball",
-    initialPosition: { x: 0, y: 1.5, z: 3 },
+    initialPosition: { x: 0.5, y: 1.5, z: 2 },
     radius: 0.12,
     mass: 0.08,
     friction: 0.12,
@@ -92,11 +92,9 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
-  // Launcher
   const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
 
-  // Slingshots
   const leftSlingshot = new Slingshot(world, "left");
   leftSlingshot.addTo(sceneManager.scene);
 
@@ -104,7 +102,15 @@ async function initPhysics() {
   rightSlingshot.addTo(sceneManager.scene);
 
   sceneManager.onUpdate((deltaTime) => {
-    physics.step(deltaTime);
+    physics.step(deltaTime, eventQueue);
+
+    // Ici on gere les collision
+    eventQueue.drainCollisionEvents((h1, h2, started) => {
+      if (!started) return;
+
+      console.log("COLLISION DETECTED", h1, h2);
+    });
+
     ball?.updateFromPhysics();
 
     leftFlipper.update(deltaTime);
@@ -112,7 +118,6 @@ async function initPhysics() {
 
     launcher.update(deltaTime);
 
-    // Slingshot update
     if (ball) {
       leftSlingshot.update(ball, deltaTime);
       rightSlingshot.update(ball, deltaTime);
@@ -122,22 +127,4 @@ async function initPhysics() {
   sceneManager.start();
 }
 
-window.addEventListener("beforeunload", () => {
-  ball?.dispose();
-  ball?.removeFrom(sceneManager.scene);
-  ball = null;
-
-  playfield.dispose();
-  playfield.removeFrom(sceneManager.scene);
-
-  tableBoundaries?.dispose();
-  tableBoundaries?.removeFrom(sceneManager.scene);
-  tableBoundaries = null;
-
-  physics.dispose();
-  sceneManager.dispose();
-});
-
-initPhysics().catch((err) => {
-  console.error("Erreur lors de l'initialisation de la physique :", err);
-});
+initPhysics();
