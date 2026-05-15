@@ -124,7 +124,7 @@ async function initPhysics() {
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime, eventQueue);
 
-    // Ici on gere les collision
+    // ici on gere les collision
     eventQueue.drainCollisionEvents((h1, h2, started) => {
       if (!started) return;
 
