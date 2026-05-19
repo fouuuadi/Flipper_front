@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
-import { Launcher } from "@modules/launcher/Launcher";
+import { Launcher } from "@modules/launcher/launcher";
 import {
   Playfield,
   PLAYFIELD_HEIGHT,
