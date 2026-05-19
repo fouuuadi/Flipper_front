@@ -1,13 +1,42 @@
+x-healthcheck: &healthcheck
+  test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+  interval: 30s
+  timeout: 3s
+  retries: 3
+
 services:
-  front:
-    build: .
-    image: flipper-front:dev
-    container_name: flipper-front
+  playfield:
+    build:
+      context: .
+      args:
+        APP: playfield
+    image: flipper-front-playfield:dev
+    container_name: flipper-front-playfield
     ports:
-      - "8080:8080"
+      - "8081:8080"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
+    healthcheck: *healthcheck
+
+  backglass:
+    build:
+      context: .
+      args:
+        APP: backglass
+    image: flipper-front-backglass:dev
+    container_name: flipper-front-backglass
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
+    healthcheck: *healthcheck
+
+  dmd:
+    build:
+      context: .
+      args:
+        APP: dmd
+    image: flipper-front-dmd:dev
+    container_name: flipper-front-dmd
+    ports:
+      - "8083:8080"
+    restart: unless-stopped
+    healthcheck: *healthcheck

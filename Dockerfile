@@ -16,8 +16,10 @@ WORKDIR /usr/share/nginx/html
 USER root
 RUN apk --no-cache upgrade
 
+ARG APP=playfield
+
 COPY --from=build /app/dist ./
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx/${APP}.conf /etc/nginx/conf.d/default.conf
 
 USER 101
 EXPOSE 8080
