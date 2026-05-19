@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Ball } from "@modules/ball";
-import { EventBus } from "@core";
+import type { Ball } from "@modules/ball";
+import { EventBus } from "@core/EventBus";
 
 export class Launcher {
   mesh: THREE.Mesh;
@@ -57,14 +57,11 @@ export class Launcher {
         const rigidBody = (this.ball as any).rigidBody;
 
         if (rigidBody) {
-          rigidBody.applyImpulse(
-            { x: 0, y: 0, z: -force },
-            true
-          );
+          rigidBody.applyImpulse({ x: 0, y: 0, z: -force }, true);
         }
 
         // Event
-        EventBus.emit("ball_launched", {
+        EventBus.getInstance<{ ball_launched: { power: number } }>().emit("ball_launched", {
           power: this.power,
         });
 
@@ -79,7 +76,7 @@ export class Launcher {
       this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
     }
 
-    // animation 
+    // animation
     const compression = this.chargeTime / this.maxCharge;
     this.mesh.position.z = this.initialZ + compression * 1;
   }

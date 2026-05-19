@@ -13,4 +13,13 @@ export default defineConfig({
       '@utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        playfield: fileURLToPath(new URL('./playfield.html', import.meta.url)),
+        backglass: fileURLToPath(new URL('./backglass.html', import.meta.url)),
+        dmd: fileURLToPath(new URL('./dmd.html', import.meta.url)),
+      },
+    },
+  },
 })
