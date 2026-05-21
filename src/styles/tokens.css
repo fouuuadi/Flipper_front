@@ -1,0 +1,50 @@
+/**
+ * Mario Galaxy Pinball — Design tokens
+ * Référence : docs/DESIGN.md
+ * Toute valeur visuelle (couleur, espacement) doit utiliser ces variables.
+ */
+
+:root {
+  /* ─── Couleurs de fond ─── */
+  --color-deep-space: #0a0520;
+  --color-galaxy-purple: #1a0b3d;
+
+  /* ─── Couleurs néon (glow) ─── */
+  --color-neon-red: #ff4757;
+  --color-neon-orange: #ffa502;
+  --color-neon-yellow: #ffd93d;
+  --color-neon-green: #6bcf7f;
+  --color-neon-lime: #00ff41;
+  --color-neon-blue: #4d9fff;
+  --color-neon-cyan: #00d4ff;
+  --color-neon-pink: #ff3366;
+
+  /* ─── Neutres ─── */
+  --color-white: #ffffff;
+
+  /* ─── Alias historiques (compat HTML/CSS prototype) ─── */
+  --bg: var(--color-deep-space);
+  --white: var(--color-white);
+  --glow-red: var(--color-neon-red);
+  --glow-orange: var(--color-neon-orange);
+  --glow-yellow: var(--color-neon-yellow);
+  --glow-green: var(--color-neon-green);
+  --glow-lime: var(--color-neon-lime);
+  --glow-blue: var(--color-neon-blue);
+  --glow-cyan: var(--color-neon-cyan);
+  --glow-pink: var(--color-neon-pink);
+
+  /* ─── Typographie ─── */
+  --font-display: "Bungee", sans-serif;
+  --font-ui: "Orbitron", sans-serif;
+
+  /* ─── Espacement (scale 4px) ─── */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+}
