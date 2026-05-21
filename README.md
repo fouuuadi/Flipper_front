@@ -38,11 +38,11 @@ Le front est packagé en **trois images nginx indépendantes** — une par écra
 docker compose up --build
 ```
 
-| Service     | URL                     | Page servie      |
-| ----------- | ----------------------- | ---------------- |
-| `playfield` | http://localhost:8081   | `playfield.html` |
-| `backglass` | http://localhost:8082   | `backglass.html` |
-| `dmd`       | http://localhost:8083   | `dmd.html`       |
+| Service     | URL                     | Entrée                       |
+| ----------- | ----------------------- | ---------------------------- |
+| `playfield` | http://localhost:8081   | `apps/playfield/index.html`  |
+| `backglass` | http://localhost:8082   | `apps/backglass/index.html`  |
+| `dmd`       | http://localhost:8083   | `apps/dmd/index.html`        |
 
 Sous le capot, chaque service construit la même image à partir du `Dockerfile` paramétré par l'argument `APP` (cf. `docker-compose.yml`).
 

@@ -6,15 +6,15 @@ on:
       - main
     paths:
       - src/**
+      - apps/**
       - public/**
-      - index.html
       - package.json
       - package-lock.json
       - vite.config.ts
       - tsconfig.json
       - tsconfig.node.json
       - Dockerfile
-      - nginx.conf
+      - nginx/**
       - .github/workflows/front-main-release.yml
   workflow_dispatch:
 

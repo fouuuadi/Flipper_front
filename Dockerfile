@@ -18,7 +18,13 @@ RUN apk --no-cache upgrade
 
 ARG APP=playfield
 
+# Copie tout le dist (assets partagés + index.html des 3 apps)
 COPY --from=build /app/dist ./
+
+# Remonte l'index.html de l'app demandée à la racine, retire les autres apps
+RUN mv ./apps/${APP}/index.html ./index.html \
+	&& rm -rf ./apps
+
 COPY nginx/${APP}.conf /etc/nginx/conf.d/default.conf
 
 USER 101
