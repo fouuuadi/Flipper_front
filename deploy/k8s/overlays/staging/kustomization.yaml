@@ -8,7 +8,7 @@ resources:
 
 images:
   - name: ghcr.io/fouuuadi/flipper-front
-    newTag: sha-920f21ca3eef1efe97966da7d1fe51f688a168f4
+    newTag: sha-4ac19f39567988f408e85313e1037aa1b05819b1
 
 patches:
   - target:
