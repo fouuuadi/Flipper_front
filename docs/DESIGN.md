@@ -35,6 +35,7 @@ L'objectif est d'obtenir une interface :
 | Neon Orange    | `#FFA502` | Mario / boutons             |
 | Neon Yellow    | `#FFD93D` | Highlights                  |
 | Neon Green     | `#6BCF7F` | Effets bonus                |
+| Neon Lime      | `#00FF41` | Glow lettres GALAXY         |
 | Neon Blue      | `#4D9FFF` | Effets Galaxy               |
 | Neon Cyan      | `#00D4FF` | Glow principal              |
 | Neon Pink      | `#FF3366` | Effets visuels              |

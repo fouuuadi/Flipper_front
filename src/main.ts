@@ -1,3 +1,5 @@
+import "./styles/global.css";
+
 import * as THREE from "three";
 import { SceneManager } from "@engine/SceneManager";
 import { Launcher } from "@modules/launcher/launcher";
@@ -9,33 +11,12 @@ import {
 } from "@modules/playfield";
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
-import viteLogo from "../public/vite.svg";
-import typescriptLogo from "./typescript.svg";
-
 import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
-
-document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`;
+import { Splash } from "@modules/splash";
 
 const sceneManager = new SceneManager();
 
-// Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 sceneManager.scene.add(ambientLight);
 
@@ -44,18 +25,15 @@ directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
-// Playfield
 const playfield = new Playfield();
 playfield.addTo(sceneManager.scene);
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
 
-// Camera
 sceneManager.camera.position.set(0, 8, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
-// Physics
 const physics = new RapierPhysicsAdapter();
 
 async function initPhysics() {
@@ -90,7 +68,7 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
-  // Ici on gere le laucher avec la balle
+  // Ici on gere le launcher avec la balle
   const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
 
@@ -123,6 +101,16 @@ window.addEventListener("beforeunload", () => {
   sceneManager.dispose();
 });
 
-initPhysics().catch((err) => {
-  console.error("Erreur lors de l'initialisation de la physique :", err);
+async function bootstrap() {
+  // 1. Écran d'accueil — bloque jusqu'à l'appui sur A/Enter/Space
+  // TODO: remplacer par un event PRESS_A → state machine (cf issue #80)
+  const splash = new Splash();
+  await splash.start();
+
+  // 2. Démarrage de la 3D et de la physique
+  await initPhysics();
+}
+
+bootstrap().catch((err) => {
+  console.error("Erreur au démarrage :", err);
 });
