@@ -1,4 +1,8 @@
-const app = document.querySelector<HTMLDivElement>("#app");
-if (app) {
-  app.innerHTML = `<h1>DMD</h1><p>Stub — coming soon.</p>`;
+import "../styles/global.css";
+import { DmdApp } from "@modules/dmd";
+
+const host = document.querySelector<HTMLDivElement>("#app");
+if (host) {
+  const app = new DmdApp(host);
+  app.start();
 }
