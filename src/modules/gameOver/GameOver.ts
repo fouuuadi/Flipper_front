@@ -1,6 +1,7 @@
 import { Button } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
 import type { MachineSnapshot, Player } from "@core/gameMachine.types";
+import { matchSync } from "@services/matchSync";
 import { LocalStorageLeaderboardStore, type LeaderboardStore } from "@services/leaderboardStore";
 import { ApiError, finishScore, type FinishSessionResponse } from "./api";
 import { pickWinner } from "./winner";
@@ -69,17 +70,17 @@ export class GameOver {
     this.replayButton = new Button({
       label: "Rejouer",
       variant: "primary",
-      onClick: () => gameStore.send({ type: "REPLAY" }),
+      onClick: () => this.leaveGameSession({ type: "REPLAY" }),
     });
     this.leaderboardButton = new Button({
       label: "Leaderboard",
       variant: "ghost",
-      onClick: () => gameStore.send({ type: "OPEN_LEADERBOARD" }),
+      onClick: () => this.leaveGameSession({ type: "OPEN_LEADERBOARD" }),
     });
     this.menuButton = new Button({
       label: "Menu",
       variant: "ghost",
-      onClick: () => gameStore.send({ type: "BACK_TO_MENU" }),
+      onClick: () => this.leaveGameSession({ type: "BACK_TO_MENU" }),
     });
     this.replayButton.mount(actions);
     this.leaderboardButton.mount(actions);
@@ -99,6 +100,16 @@ export class GameOver {
     this.leaderboardButton.unmount();
     this.menuButton.unmount();
     this.root.remove();
+  }
+
+  /**
+   * Coupe la WS de la partie qui vient de finir, puis transitionne la SM.
+   * La session backend est déjà côté `OVER` (cmd:abandon ou natural game over)
+   * et son score sera déjà flushé par `POST /scores` via `persist()`.
+   */
+  private leaveGameSession(event: { type: "REPLAY" | "OPEN_LEADERBOARD" | "BACK_TO_MENU" }): void {
+    matchSync.disconnect();
+    gameStore.send(event);
   }
 
   private renderSummary(snapshot: MachineSnapshot): void {

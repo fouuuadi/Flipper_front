@@ -1,16 +1,21 @@
 import { Button } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
+import { matchSync } from "@services/matchSync";
 import "./pause.css";
 
 /**
  * Overlay de pause monté pendant l'état `paused` de la SM.
  *
- * UI-only — aucun endpoint back côté pause (cf. commentaire d'intégration #77).
- * Attention : la session backend reste vivante côté Redis avec TTL sliding
- * 30 min. Au-delà, la reprise échouera côté `POST /scores` avec 404.
+ * En **mode solo** (sessionId présent), les actions sont des **intentions**
+ * envoyées au back via `cmd:resume` / `cmd:abandon`. L'écran ne bascule pas
+ * lui-même — il attend que le back broadcast `match:state` et que le bind
+ * helper applique la transition à la SM (cf. `bindToGameStore`).
+ *
+ * En **mode 1v1 mock** (pas de sessionId, matchmaking back pas dispo),
+ * fallback à `gameStore.send` direct.
  *
  * Le raccourci clavier "ESC → PAUSE" pendant l'état `playing` est de la
- * responsabilité du routeur (cf. follow-up sur main.ts), pas de ce composant.
+ * responsabilité du routeur (futur `src/main.ts`), pas de ce composant.
  */
 export class Pause {
   private readonly root: HTMLElement;
@@ -45,12 +50,12 @@ export class Pause {
     this.resumeButton = new Button({
       label: "Reprendre",
       variant: "primary",
-      onClick: () => gameStore.send({ type: "RESUME" }),
+      onClick: () => this.requestResume(),
     });
     this.abandonButton = new Button({
       label: "Abandonner",
       variant: "ghost",
-      onClick: () => gameStore.send({ type: "ABANDON" }),
+      onClick: () => this.requestAbandon(),
     });
     this.resumeButton.mount(actions);
     this.abandonButton.mount(actions);
@@ -62,7 +67,7 @@ export class Pause {
     this.keyHandler = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        gameStore.send({ type: "RESUME" });
+        this.requestResume();
       }
     };
     window.addEventListener("keydown", this.keyHandler);
@@ -76,5 +81,21 @@ export class Pause {
     this.resumeButton.unmount();
     this.abandonButton.unmount();
     this.root.remove();
+  }
+
+  private requestResume(): void {
+    if (gameStore.getState().context.sessionId) {
+      matchSync.dispatch({ type: "cmd:resume" });
+    } else {
+      gameStore.send({ type: "RESUME" });
+    }
+  }
+
+  private requestAbandon(): void {
+    if (gameStore.getState().context.sessionId) {
+      matchSync.dispatch({ type: "cmd:abandon" });
+    } else {
+      gameStore.send({ type: "ABANDON" });
+    }
   }
 }

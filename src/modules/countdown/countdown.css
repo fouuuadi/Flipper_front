@@ -1,0 +1,40 @@
+.countdown-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: rgba(10, 5, 32, 0.45);
+  backdrop-filter: blur(2px);
+  font-family: var(--font-display);
+  color: var(--color-white);
+}
+
+.countdown-scene .countdown-value {
+  font-size: clamp(8rem, 24vw, 16rem);
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 0 12px var(--color-neon-cyan),
+    0 0 28px var(--color-neon-cyan),
+    0 0 60px var(--color-neon-blue);
+}
+
+.countdown-scene .countdown-value--pulse {
+  animation: countdown-pulse 700ms ease-out forwards;
+}
+
+@keyframes countdown-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

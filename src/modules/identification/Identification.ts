@@ -1,6 +1,7 @@
 import { Button, Input } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
+import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { ApiError, createSession, readySession } from "./api";
 import { validatePseudo } from "./validation";
 import "./identification.css";
@@ -182,7 +183,12 @@ export class Identification {
           room_code: null,
         });
         await readySession(session.session_id);
-        // Le serveur normalise — on remplace par sa valeur de vérité.
+        // Ouvre le WS et branche les events match:state sur la SM avant la
+        // transition, pour qu'un pause/abandon arrivant dans la milliseconde
+        // qui suit ne soit pas perdu.
+        bindMatchSyncToGameStore(matchSync, gameStore);
+        matchSync.connect(session.session_id);
+        // Le serveur normalise le pseudo — on remplace par sa valeur de vérité.
         gameStore.send({
           type: "PLAYERS_VALIDATED",
           mode: "solo",
@@ -191,7 +197,7 @@ export class Identification {
         });
       } else {
         // 1v1 : matchmaking back pas dispo (issue #59 back). Mock front,
-        // pas de session backend → sessionId null.
+        // pas de session backend → pas de WS à ouvrir, sessionId null.
         gameStore.send({
           type: "PLAYERS_VALIDATED",
           mode: "1v1",
