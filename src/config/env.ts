@@ -13,7 +13,7 @@ export const env: EnvConfig = {
   mode: import.meta.env.MODE,
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
-  apiBaseUrl: (import.meta.env.VITE_API_BASE_URL as string) ?? "http://localhost:3000",
-  wsUrl: (import.meta.env.VITE_WS_URL as string) ?? "ws://localhost:3000/ws",
+  apiBaseUrl: (import.meta.env.VITE_API_BASE_URL as string) ?? "http://localhost:8080",
+  wsUrl: (import.meta.env.VITE_WS_URL as string) ?? "ws://localhost:8080/ws",
   appTitle: (import.meta.env.VITE_APP_TITLE as string) ?? "Flipper",
 };
