@@ -1,0 +1,91 @@
+.identification-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(
+      900px 600px at 20% 10%,
+      var(--color-galaxy-purple) 0%,
+      rgba(10, 5, 32, 0.6) 60%
+    ),
+    var(--color-deep-space);
+  font-family: var(--font-ui);
+  color: var(--color-white);
+}
+
+.identification-scene .identification-card {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-12) var(--space-8);
+  background: linear-gradient(160deg, rgba(26, 11, 61, 0.95) 0%, rgba(10, 5, 32, 0.95) 100%);
+  border: 2px solid var(--color-neon-cyan);
+  border-radius: var(--space-4);
+  box-shadow:
+    0 0 24px rgba(0, 212, 255, 0.5),
+    0 0 60px rgba(77, 159, 255, 0.3),
+    inset 0 0 24px rgba(0, 212, 255, 0.08);
+}
+
+.identification-scene .identification-title {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 8px var(--color-neon-cyan),
+    0 0 16px rgba(0, 212, 255, 0.5);
+}
+
+.identification-scene .identification-subtitle {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.identification-scene .identification-modes {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.identification-scene .identification-players {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.identification-scene .identification-player-slot {
+  display: flex;
+  flex-direction: column;
+}
+
+.identification-scene .identification-global-error {
+  margin: 0;
+  min-height: 1.4em;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-neon-red);
+  text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.identification-scene .identification-global-error--visible {
+  opacity: 1;
+}
+
+.identification-scene .identification-actions {
+  display: flex;
+  justify-content: center;
+}
