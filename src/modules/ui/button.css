@@ -1,0 +1,83 @@
+.ui-button {
+  font-family: var(--font-ui);
+  font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: var(--space-3) var(--space-8);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    filter 120ms ease-out,
+    box-shadow 120ms ease-out;
+  user-select: none;
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
+
+.ui-button:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.ui-button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.ui-button:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 4px;
+}
+
+/* ─── Primary : néon cyan ─── */
+.ui-button--primary {
+  color: var(--color-white);
+  background: linear-gradient(180deg, var(--color-neon-cyan) 0%, var(--color-neon-blue) 100%);
+  border-color: var(--color-neon-cyan);
+  box-shadow:
+    0 0 12px rgba(0, 212, 255, 0.6),
+    0 0 24px rgba(77, 159, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.ui-button--primary:not(:disabled):hover {
+  box-shadow:
+    0 0 20px rgba(0, 212, 255, 0.9),
+    0 0 40px rgba(77, 159, 255, 0.6),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Secondary : néon pink ─── */
+.ui-button--secondary {
+  color: var(--color-white);
+  background: linear-gradient(180deg, var(--color-neon-pink) 0%, var(--color-neon-red) 100%);
+  border-color: var(--color-neon-pink);
+  box-shadow:
+    0 0 12px rgba(255, 51, 102, 0.6),
+    0 0 24px rgba(255, 71, 87, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.ui-button--secondary:not(:disabled):hover {
+  box-shadow:
+    0 0 20px rgba(255, 51, 102, 0.9),
+    0 0 40px rgba(255, 71, 87, 0.6),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Ghost : outline transparent ─── */
+.ui-button--ghost {
+  color: var(--color-white);
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ui-button--ghost:not(:disabled):hover {
+  border-color: var(--color-white);
+  background: rgba(255, 255, 255, 0.08);
+}
