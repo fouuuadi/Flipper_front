@@ -1,0 +1,57 @@
+.ui-neon-text {
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-white);
+  display: inline-block;
+}
+
+/* ─── Tailles ─── */
+.ui-neon-text--sm {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+.ui-neon-text--md {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+}
+.ui-neon-text--lg {
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+}
+.ui-neon-text--xl {
+  font-size: clamp(3.6rem, 10vw, 6rem);
+}
+
+/* ─── Couleurs de glow (mappées sur les tokens néon) ─── */
+.ui-neon-text--red {
+  --ui-neon-glow: var(--color-neon-red);
+}
+.ui-neon-text--orange {
+  --ui-neon-glow: var(--color-neon-orange);
+}
+.ui-neon-text--yellow {
+  --ui-neon-glow: var(--color-neon-yellow);
+}
+.ui-neon-text--green {
+  --ui-neon-glow: var(--color-neon-green);
+}
+.ui-neon-text--lime {
+  --ui-neon-glow: var(--color-neon-lime);
+}
+.ui-neon-text--blue {
+  --ui-neon-glow: var(--color-neon-blue);
+}
+.ui-neon-text--cyan {
+  --ui-neon-glow: var(--color-neon-cyan);
+}
+.ui-neon-text--pink {
+  --ui-neon-glow: var(--color-neon-pink);
+}
+.ui-neon-text--white {
+  --ui-neon-glow: var(--color-white);
+}
+
+.ui-neon-text {
+  text-shadow:
+    0 0 6px var(--ui-neon-glow, var(--color-neon-cyan)),
+    0 0 14px var(--ui-neon-glow, var(--color-neon-cyan)),
+    0 0 24px var(--ui-neon-glow, var(--color-neon-cyan));
+}
