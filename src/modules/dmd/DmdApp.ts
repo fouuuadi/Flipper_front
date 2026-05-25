@@ -94,10 +94,12 @@ export class DmdApp {
       }
     }
     if (event.type === "countdown:tick") {
+      // 1100 ms > l'intervalle back (1 s) pour qu'un tick reste affiché
+      // jusqu'au suivant — sinon le persistent (`READY`) flashe entre 2 ticks.
       this.pushTransient({
         text: event.value === 0 ? "GO!" : String(event.value),
         priority: 50,
-        durationMs: 900,
+        durationMs: 1100,
       });
       return;
     }
