@@ -18,6 +18,7 @@ describe("gameMachine — initial state", () => {
       players: [],
       currentBall: 1,
       startedAt: null,
+      sessionId: null,
     });
   });
 });
@@ -52,11 +53,12 @@ describe("gameMachine — menu transitions", () => {
 });
 
 describe("gameMachine — identification transitions", () => {
-  it("identification + PLAYERS_VALIDATED (solo) → playing + context with players", () => {
+  it("identification + PLAYERS_VALIDATED (solo) → playing + context with players + sessionId", () => {
     const next = transition(snapshotAt("identification"), {
       type: "PLAYERS_VALIDATED",
       mode: "solo",
       players: ["fouad#1234" as PlayerTag],
+      sessionId: "abc-123",
     });
 
     expect(next?.value).toBe("playing");
@@ -69,18 +71,21 @@ describe("gameMachine — identification transitions", () => {
     });
     expect(next?.context.currentBall).toBe(1);
     expect(next?.context.startedAt).toBeGreaterThan(0);
+    expect(next?.context.sessionId).toBe("abc-123");
   });
 
-  it("identification + PLAYERS_VALIDATED (1v1) → playing with 2 players", () => {
+  it("identification + PLAYERS_VALIDATED (1v1) → playing with 2 players, null sessionId", () => {
     const next = transition(snapshotAt("identification"), {
       type: "PLAYERS_VALIDATED",
       mode: "1v1",
       players: ["a#0001" as PlayerTag, "b#0002" as PlayerTag],
+      sessionId: null,
     });
 
     expect(next?.value).toBe("playing");
     expect(next?.context.mode).toBe("1v1");
     expect(next?.context.players).toHaveLength(2);
+    expect(next?.context.sessionId).toBeNull();
   });
 
   it("identification + BACK_TO_MENU → menu + context reset", () => {
@@ -123,6 +128,7 @@ describe("gameMachine — paused transitions", () => {
         players: [{ tag: "x#0001" as PlayerTag, score: 9000, ballsRemaining: 1 }],
         currentBall: 3,
         startedAt: 1234,
+        sessionId: "session-x",
       },
     };
     const next = transition(playingSnapshot, { type: "ABANDON" });
@@ -132,7 +138,7 @@ describe("gameMachine — paused transitions", () => {
 });
 
 describe("gameMachine — gameOver transitions", () => {
-  it("gameOver + REPLAY → identification + same players, scores reset", () => {
+  it("gameOver + REPLAY → identification + same players, scores reset, sessionId cleared", () => {
     const ended: MachineSnapshot = {
       value: "gameOver",
       context: {
@@ -143,6 +149,7 @@ describe("gameMachine — gameOver transitions", () => {
         ],
         currentBall: 3,
         startedAt: 1234,
+        sessionId: "old-session",
       },
     };
     const next = transition(ended, { type: "REPLAY" });
@@ -153,6 +160,7 @@ describe("gameMachine — gameOver transitions", () => {
     expect(next?.context.players.every((p) => p.score === 0)).toBe(true);
     expect(next?.context.players.every((p) => p.ballsRemaining === 3)).toBe(true);
     expect(next?.context.currentBall).toBe(1);
+    expect(next?.context.sessionId).toBeNull();
   });
 
   it("gameOver + OPEN_LEADERBOARD → leaderboard", () => {

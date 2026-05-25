@@ -19,6 +19,7 @@ export const initialContext: GameContext = {
   players: [],
   currentBall: 1,
   startedAt: null,
+  sessionId: null,
 };
 
 export const initialState: GameStateValue = "splash";
@@ -56,6 +57,7 @@ const transitions: TransitionTable = {
           players: event.players.map(freshPlayer),
           currentBall: 1,
           startedAt: Date.now(),
+          sessionId: event.sessionId,
         },
       };
     },
@@ -77,13 +79,16 @@ const transitions: TransitionTable = {
   },
   gameOver: {
     REPLAY: (ctx) => ({
-      // Rejoue avec les mêmes joueurs, scores et balles remis à zéro
+      // Rejoue avec les mêmes joueurs, scores et balles remis à zéro.
+      // La sessionId est reset : l'écran identification recréera une nouvelle
+      // session via POST /sessions.
       value: "identification",
       context: {
         mode: ctx.mode,
         players: ctx.players.map((p) => freshPlayer(p.tag)),
         currentBall: 1,
         startedAt: null,
+        sessionId: null,
       },
     }),
     BACK_TO_MENU: () => ({

@@ -32,12 +32,23 @@ export interface GameContext {
   players: Player[];
   currentBall: number;
   startedAt: number | null;
+  /**
+   * Session backend (POST /sessions). Null en 1v1 tant que le matchmaking
+   * back n'est pas livré (cf. Flipper_back issue #59), ou avant qu'une
+   * partie n'ait été identifiée.
+   */
+  sessionId: string | null;
 }
 
 export type GameEvent =
   | { type: "PRESS_A" }
   | { type: "START_GAME" }
-  | { type: "PLAYERS_VALIDATED"; mode: GameMode; players: PlayerTag[] }
+  | {
+      type: "PLAYERS_VALIDATED";
+      mode: GameMode;
+      players: PlayerTag[];
+      sessionId: string | null;
+    }
   | { type: "PAUSE" }
   | { type: "RESUME" }
   | { type: "ABANDON" }

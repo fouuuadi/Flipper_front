@@ -187,10 +187,17 @@ export class Identification {
           type: "PLAYERS_VALIDATED",
           mode: "solo",
           players: [session.pseudo as PlayerTag],
+          sessionId: session.session_id,
         });
       } else {
-        // 1v1 : matchmaking back pas dispo (issue #59 back). Mock front.
-        gameStore.send({ type: "PLAYERS_VALIDATED", mode: "1v1", players: tags });
+        // 1v1 : matchmaking back pas dispo (issue #59 back). Mock front,
+        // pas de session backend → sessionId null.
+        gameStore.send({
+          type: "PLAYERS_VALIDATED",
+          mode: "1v1",
+          players: tags,
+          sessionId: null,
+        });
       }
     } catch (err) {
       this.setGlobalError(this.formatError(err));
