@@ -76,6 +76,10 @@ const transitions: TransitionTable = {
       value: "menu",
       context: { ...initialContext },
     }),
+    // Cas où le back broadcast match:state: over en réponse à cmd:abandon
+    // (cf. MATCH_SYNC) : on atterrit sur gameOver pour persister le score
+    // courant via POST /scores, plutôt que de rentrer au menu silencieusement.
+    GAME_OVER: () => ({ value: "gameOver" }),
   },
   gameOver: {
     REPLAY: (ctx) => ({

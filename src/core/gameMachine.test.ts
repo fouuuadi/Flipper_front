@@ -120,6 +120,11 @@ describe("gameMachine — paused transitions", () => {
     expect(next?.value).toBe("playing");
   });
 
+  it("paused + GAME_OVER → gameOver (cmd:abandon broadcasted back as match:state: over)", () => {
+    const next = transition(snapshotAt("paused"), { type: "GAME_OVER" });
+    expect(next?.value).toBe("gameOver");
+  });
+
   it("paused + ABANDON → menu + context reset", () => {
     const playingSnapshot: MachineSnapshot = {
       value: "paused",
