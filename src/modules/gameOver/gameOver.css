@@ -1,0 +1,139 @@
+.gameover-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(
+      900px 600px at 20% 10%,
+      var(--color-galaxy-purple) 0%,
+      rgba(10, 5, 32, 0.6) 60%
+    ),
+    var(--color-deep-space);
+  font-family: var(--font-ui);
+  color: var(--color-white);
+}
+
+.gameover-scene .gameover-card {
+  width: min(640px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-12) var(--space-8);
+  background: linear-gradient(160deg, rgba(26, 11, 61, 0.95) 0%, rgba(10, 5, 32, 0.95) 100%);
+  border: 2px solid var(--color-neon-pink);
+  border-radius: var(--space-4);
+  box-shadow:
+    0 0 24px rgba(255, 51, 102, 0.5),
+    0 0 60px rgba(255, 71, 87, 0.3),
+    inset 0 0 24px rgba(255, 51, 102, 0.08);
+}
+
+.gameover-scene .gameover-title {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 8px var(--color-neon-pink),
+    0 0 16px rgba(255, 51, 102, 0.5);
+}
+
+.gameover-scene .gameover-status {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  min-height: 1.2em;
+}
+
+.gameover-scene .gameover-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.gameover-scene .gameover-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--space-2);
+  background: rgba(10, 5, 32, 0.5);
+  transition: border-color 200ms ease-out;
+}
+
+.gameover-scene .gameover-player--winner {
+  border-color: var(--color-neon-yellow);
+  box-shadow:
+    0 0 16px rgba(255, 217, 61, 0.5),
+    inset 0 0 12px rgba(255, 217, 61, 0.15);
+}
+
+.gameover-scene .gameover-player-tag {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  letter-spacing: 0.1em;
+}
+
+.gameover-scene .gameover-player--winner .gameover-player-tag {
+  color: var(--color-neon-yellow);
+  text-shadow: 0 0 8px var(--color-neon-yellow);
+}
+
+.gameover-scene .gameover-player-score {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.08em;
+  color: var(--color-neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+}
+
+.gameover-scene .gameover-verdict {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: var(--color-neon-orange);
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 165, 2, 0.5);
+}
+
+.gameover-scene .gameover-record {
+  margin: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+  min-height: 1.4em;
+}
+
+.gameover-scene .gameover-record--highlight {
+  color: var(--color-neon-yellow);
+  text-shadow: 0 0 8px var(--color-neon-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.gameover-scene .gameover-error {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-neon-red);
+  text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+  min-height: 1.2em;
+}
+
+.gameover-scene .gameover-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
