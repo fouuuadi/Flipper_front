@@ -1,4 +1,8 @@
-const app = document.querySelector<HTMLDivElement>("#app");
-if (app) {
-  app.innerHTML = `<h1>Backglass</h1><p>Stub — coming soon.</p>`;
+import "../styles/global.css";
+import { BackglassApp } from "@modules/backglass";
+
+const host = document.querySelector<HTMLDivElement>("#app");
+if (host) {
+  const app = new BackglassApp(host);
+  app.start();
 }
