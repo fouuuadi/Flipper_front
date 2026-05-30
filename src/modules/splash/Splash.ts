@@ -35,71 +35,34 @@ const SPLASH_TEMPLATE = `
   </div>
 `;
 
-const TRIGGER_KEYS = new Set(["a", "A", "Enter", " "]);
 const EXIT_TRANSITION_MS = 400;
 
 /**
  * Écran d'accueil "PRESS A".
- * À remplacer par un event `PRESS_A` émis vers la state machine quand l'issue #80 sera implémentée.
+ *
+ * Passif : pas de keyHandler local, pas de Promise — le `KeyboardDispatcher`
+ * global dispatch `PRESS_A` sur n'importe quelle touche en état `splash`
+ * (cf. `core/keyboardDispatcher/bindings.ts`), le `ScreenRouter` démonte
+ * ensuite via `unmount()`.
  */
 export class Splash {
-  private readonly host: HTMLElement;
   private root: HTMLElement | null = null;
-  private keyHandler: ((event: KeyboardEvent) => void) | null = null;
-  private resolveStart: (() => void) | null = null;
 
-  constructor(host: HTMLElement = document.body) {
-    this.host = host;
-  }
-
-  /**
-   * Monte l'écran et attend le premier appui sur A/Enter/Space.
-   * La Promise se résout après l'animation de sortie (le splash est démonté à ce moment).
-   */
-  start(): Promise<void> {
-    if (this.root) {
-      throw new Error("Splash already mounted");
-    }
-
+  mount(host: HTMLElement = document.body): void {
+    if (this.root) return;
     this.root = document.createElement("main");
     this.root.className = "splash-scene";
     this.root.innerHTML = SPLASH_TEMPLATE;
-    this.host.appendChild(this.root);
-
-    return new Promise((resolve) => {
-      this.resolveStart = resolve;
-      this.keyHandler = (event) => {
-        if (TRIGGER_KEYS.has(event.key)) {
-          event.preventDefault();
-          this.dismiss();
-        }
-      };
-      window.addEventListener("keydown", this.keyHandler);
-    });
+    host.appendChild(this.root);
   }
 
-  /**
-   * Démonte le splash manuellement (sans attendre l'input utilisateur).
-   * Utile pour les tests ou un cleanup d'urgence.
-   */
-  dismiss(): void {
-    if (!this.root || !this.keyHandler) {
-      return;
-    }
-
-    window.removeEventListener("keydown", this.keyHandler);
-    this.keyHandler = null;
-
-    this.root.classList.add("splash-scene--exiting");
-
+  unmount(): void {
+    if (!this.root) return;
     const root = this.root;
-    const resolve = this.resolveStart;
     this.root = null;
-    this.resolveStart = null;
-
-    window.setTimeout(() => {
-      root.remove();
-      resolve?.();
-    }, EXIT_TRANSITION_MS);
+    // Animation de sortie 400 ms, puis remove (gardé pour préserver le
+    // fondu visuel — l'écran suivant se monte par-dessus pendant la transition).
+    root.classList.add("splash-scene--exiting");
+    window.setTimeout(() => root.remove(), EXIT_TRANSITION_MS);
   }
 }

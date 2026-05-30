@@ -13,7 +13,24 @@ import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
+
+import { gameStore } from "@core/gameStore";
+import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
+import { KeyboardDispatcher } from "@core/keyboardDispatcher";
+import { KeybindingsHelp } from "@modules/ui";
+import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
+
 import { Splash } from "@modules/splash";
+import { Menu } from "@modules/menu";
+import { Identification } from "@modules/identification";
+import { Pause } from "@modules/pause";
+import { GameOver } from "@modules/gameOver";
+import { Leaderboard } from "@modules/leaderboard";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3D — initialisée en arrière-plan, tourne en parallèle des écrans UI.
+// Le splash, le menu, etc. sont des overlays mounted par le `ScreenRouter`.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const sceneManager = new SceneManager();
 
@@ -68,7 +85,6 @@ async function initPhysics() {
   tableBoundaries = new TableBoundaries(world);
   tableBoundaries.addTo(sceneManager.scene);
 
-  // Ici on gere le launcher avec la balle
   const launcher = new Launcher(ball);
   launcher.addTo(sceneManager.scene);
 
@@ -101,13 +117,61 @@ window.addEventListener("beforeunload", () => {
   sceneManager.dispose();
 });
 
-async function bootstrap() {
-  // 1. Écran d'accueil — bloque jusqu'à l'appui sur A/Enter/Space
-  // TODO: remplacer par un event PRESS_A → state machine (cf issue #80)
-  const splash = new Splash();
-  await splash.start();
+// ─────────────────────────────────────────────────────────────────────────────
+// UI — ScreenRouter pilote le cycle de vie de chaque écran selon la SM.
+// L'état `playing` n'a pas de factory : seule la 3D reste à l'écran.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // 2. Démarrage de la 3D et de la physique
+const factories: ScreenFactoryMap = {
+  splash: (host) => {
+    const splash = new Splash();
+    splash.mount(host);
+    return { stop: () => splash.unmount() };
+  },
+  menu: (host) => {
+    const menu = new Menu();
+    menu.mount(host);
+    return { stop: () => menu.unmount() };
+  },
+  identification: (host) => {
+    const id = new Identification();
+    id.mount(host);
+    return { stop: () => id.unmount() };
+  },
+  paused: (host) => {
+    const pause = new Pause();
+    pause.mount(host);
+    return { stop: () => pause.unmount() };
+  },
+  gameOver: (host) => {
+    const go = new GameOver();
+    go.mount(host);
+    return { stop: () => go.unmount() };
+  },
+  leaderboard: (host) => {
+    const lb = new Leaderboard();
+    lb.mount(host);
+    return { stop: () => lb.unmount() };
+  },
+};
+
+async function bootstrap() {
+  // 1. Câbler les events serveur (match:state) sur la SM. Idempotent : peut
+  //    s'abonner sans WS ouverte ; l'écran identification déclenchera le
+  //    `matchSync.connect()` une fois la session créée.
+  bindMatchSyncToGameStore(matchSync, gameStore);
+
+  // 2. Dispatcher clavier global (Échap → PAUSE/RESUME, A → ABANDON, etc.)
+  new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();
+
+  // 3. Modal d'aide raccourcis (touche `?` n'importe où dans l'app)
+  new KeybindingsHelp({ store: gameStore }).start();
+
+  // 4. Routeur d'écrans — l'état initial de la SM (`splash`) est monté
+  //    immédiatement par le `subscribe` initial.
+  new ScreenRouter(document.body, gameStore, factories).start();
+
+  // 5. 3D en arrière-plan (le canvas est sous tous les overlays UI)
   await initPhysics();
 }
 

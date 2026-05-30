@@ -9,3 +9,6 @@ export type { ModalOptions } from "./Modal";
 
 export { NeonText } from "./NeonText";
 export type { NeonTextOptions, NeonGlow, NeonSize } from "./NeonText";
+
+export { KeybindingsHelp } from "./KeybindingsHelp";
+export type { KeybindingsHelpOptions } from "./KeybindingsHelp";

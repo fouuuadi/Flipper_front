@@ -21,7 +21,6 @@ export class Pause {
   private readonly root: HTMLElement;
   private readonly resumeButton: Button;
   private readonly abandonButton: Button;
-  private keyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   constructor() {
     this.root = document.createElement("section");
@@ -64,20 +63,11 @@ export class Pause {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
-    this.keyHandler = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        this.requestResume();
-      }
-    };
-    window.addEventListener("keydown", this.keyHandler);
+    // Le raccourci ÉCHAP → RESUME est désormais routé par le
+    // `KeyboardDispatcher` global (cf. `core/keyboardDispatcher/bindings.ts`).
   }
 
   unmount(): void {
-    if (this.keyHandler) {
-      window.removeEventListener("keydown", this.keyHandler);
-      this.keyHandler = null;
-    }
     this.resumeButton.unmount();
     this.abandonButton.unmount();
     this.root.remove();
