@@ -7,6 +7,20 @@ import {
 import type { GameStore } from "@core/gameStore";
 import type { GameStateValue } from "@core/gameMachine.types";
 
+/**
+ * Ordre d'affichage des sections dans la modal — suit le flow naturel
+ * d'une partie (accueil → menu → identification → en partie → fin).
+ * `identification` est sauté car il n'a aucun binding global (Input local).
+ */
+const SECTION_ORDER: readonly GameStateValue[] = [
+  "splash",
+  "menu",
+  "playing",
+  "paused",
+  "gameOver",
+  "leaderboard",
+];
+
 import "./keybindings-help.css";
 
 export interface KeybindingsHelpOptions {
@@ -116,8 +130,8 @@ export class KeybindingsHelp {
     card.appendChild(title);
     this.titleEl = title;
 
-    const list = document.createElement("dl");
-    list.className = "keybindings-help-list";
+    const list = document.createElement("div");
+    list.className = "keybindings-help-sections";
     card.appendChild(list);
     this.listEl = list;
 
@@ -133,23 +147,42 @@ export class KeybindingsHelp {
 
   private render(): void {
     if (!this.listEl || !this.titleEl) return;
-    const state = this.store.getState().value;
-    this.titleEl.textContent = `Raccourcis · ${stateLabel(state)}`;
+    const currentState = this.store.getState().value;
+    this.titleEl.textContent = "Raccourcis clavier";
 
     this.listEl.innerHTML = "";
-    const bindings = bindingsForState(state);
-    if (bindings.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "keybindings-help-empty";
-      empty.textContent = "Aucun raccourci disponible dans cet écran.";
-      this.listEl.appendChild(empty);
-      return;
-    }
 
-    for (const b of bindings) {
-      this.listEl.appendChild(buildRow(b));
+    for (const state of SECTION_ORDER) {
+      const bindings = bindingsForState(state);
+      if (bindings.length === 0) continue;
+      this.listEl.appendChild(buildSection(state, bindings, state === currentState));
     }
   }
+}
+
+function buildSection(
+  state: GameStateValue,
+  bindings: readonly KeyBinding[],
+  isActive: boolean,
+): HTMLElement {
+  const section = document.createElement("section");
+  section.className = isActive
+    ? "keybindings-help-section keybindings-help-section--active"
+    : "keybindings-help-section";
+
+  const header = document.createElement("h3");
+  header.className = "keybindings-help-section-title";
+  header.textContent = isActive ? `${stateLabel(state)} · écran courant` : stateLabel(state);
+  section.appendChild(header);
+
+  const dl = document.createElement("dl");
+  dl.className = "keybindings-help-list";
+  for (const b of bindings) {
+    dl.appendChild(buildRow(b));
+  }
+  section.appendChild(dl);
+
+  return section;
 }
 
 function buildRow(binding: KeyBinding): DocumentFragment {
