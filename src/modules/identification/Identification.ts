@@ -1,4 +1,4 @@
-import { Button, Input } from "@modules/ui";
+import { Button, PseudoInput } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
@@ -7,7 +7,7 @@ import { validatePseudo } from "./validation";
 import "./identification.css";
 
 interface PlayerSlot {
-  readonly input: Input;
+  readonly input: PseudoInput;
   validated: PlayerTag | null;
 }
 
@@ -119,10 +119,8 @@ export class Identification {
     for (let i = 0; i < count; i += 1) {
       const wrapper = document.createElement("div");
       wrapper.className = "identification-player-slot";
-      const input = new Input({
+      const input = new PseudoInput({
         label: count === 1 ? "Pseudo" : `Joueur ${i + 1}`,
-        placeholder: "ABC",
-        maxLength: 9,
         onInput: () => this.recomputeReady(),
         onSubmit: () => void this.submit(),
       });

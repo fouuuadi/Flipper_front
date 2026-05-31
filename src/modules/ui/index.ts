@@ -4,6 +4,9 @@ export type { ButtonOptions, ButtonVariant } from "./Button";
 export { Input } from "./Input";
 export type { InputOptions } from "./Input";
 
+export { PseudoInput } from "./PseudoInput";
+export type { PseudoInputOptions } from "./PseudoInput";
+
 export { Modal } from "./Modal";
 export type { ModalOptions } from "./Modal";
 
