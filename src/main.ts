@@ -17,7 +17,7 @@ import { TableBoundaries } from "@modules/table";
 import { gameStore } from "@core/gameStore";
 import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
-import { KeybindingsHelp } from "@modules/ui";
+import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 
 import { Splash } from "@modules/splash";
@@ -166,6 +166,10 @@ async function bootstrap() {
 
   // 3. Modal d'aide raccourcis (touche `?` n'importe où dans l'app)
   new KeybindingsHelp({ store: gameStore }).start();
+
+  // 3bis. Hint visuel discret pour faire découvrir la modal (caché en `playing`
+  //      et quand la modal est ouverte)
+  new KeybindingsHelpHint({ store: gameStore }).start();
 
   // 4. Routeur d'écrans — l'état initial de la SM (`splash`) est monté
   //    immédiatement par le `subscribe` initial.
