@@ -12,3 +12,6 @@ export type { NeonTextOptions, NeonGlow, NeonSize } from "./NeonText";
 
 export { KeybindingsHelp } from "./KeybindingsHelp";
 export type { KeybindingsHelpOptions } from "./KeybindingsHelp";
+
+export { KeybindingsHelpHint } from "./KeybindingsHelpHint";
+export type { KeybindingsHelpHintOptions } from "./KeybindingsHelpHint";
