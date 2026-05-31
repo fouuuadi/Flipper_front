@@ -1,5 +1,6 @@
 import { MatchSyncAdapter, type MatchStatus, type WsServerEvent } from "@services/matchSync";
 import { attachCountdownOverlay } from "@modules/countdown";
+import { MatchTimer, formatElapsedMs } from "@modules/matchTimer";
 import "./backglass.css";
 
 const DEFAULT_LIVES = 3;
@@ -34,10 +35,13 @@ export class BackglassApp {
   private readonly scoreEl: HTMLElement;
   private readonly livesEl: HTMLElement;
   private readonly comboEl: HTMLElement;
+  private readonly timerEl: HTMLElement;
   private readonly overlayEl: HTMLElement;
   private state: HudState = { ...INITIAL_STATE };
   private detachCountdown: (() => void) | null = null;
   private sync: MatchSyncAdapter | null = null;
+  private readonly matchTimer = new MatchTimer();
+  private unsubscribeTimer: (() => void) | null = null;
 
   constructor(host: HTMLElement) {
     this.root = document.createElement("section");
@@ -71,6 +75,11 @@ export class BackglassApp {
     this.comboEl.className = "backglass-gauge";
     gauges.append(this.livesEl, this.comboEl);
     main.appendChild(gauges);
+
+    this.timerEl = document.createElement("div");
+    this.timerEl.className = "backglass-timer";
+    this.timerEl.textContent = formatElapsedMs(0);
+    main.appendChild(this.timerEl);
     this.root.appendChild(main);
 
     this.overlayEl = document.createElement("div");
@@ -101,18 +110,25 @@ export class BackglassApp {
     this.sync.connect(sessionId);
     // En attendant le 1er match:state broadcast, on affiche "Connecté…".
     this.state = { ...INITIAL_STATE, status: "waiting" };
+    this.unsubscribeTimer = this.matchTimer.subscribe((elapsed) => {
+      this.timerEl.textContent = formatElapsedMs(elapsed);
+    });
     this.render();
   }
 
   stop(): void {
     this.detachCountdown?.();
     this.detachCountdown = null;
+    this.unsubscribeTimer?.();
+    this.unsubscribeTimer = null;
+    this.matchTimer.reset();
     this.sync?.disconnect();
     this.sync = null;
   }
 
   private handleEvent(event: WsServerEvent): void {
     if (event.type === "match:state") {
+      this.syncTimerToStatus(event.status, this.state.status);
       this.state = {
         ...this.state,
         status: event.status,
@@ -144,6 +160,25 @@ export class BackglassApp {
       return;
     }
     // countdown:tick traité par l'overlay countdown.
+  }
+
+  private syncTimerToStatus(next: MatchStatus, prev: HudState["status"]): void {
+    const phase = this.matchTimer.getPhase();
+    if (next === "playing") {
+      // Première entrée en playing OU sortie de pause via le countdown back
+      if (phase === "idle") this.matchTimer.start();
+      else if (phase === "frozen") this.matchTimer.unfreeze();
+    } else if (next === "paused") {
+      if (phase === "running") this.matchTimer.freeze();
+    } else if (next === "over") {
+      if (phase === "running" || phase === "frozen") this.matchTimer.stop();
+    } else if (next === "ready" || next === "waiting") {
+      // Si on retombe en attente après une partie (ex: nouvelle session sur la
+      // même tab), on reset pour repartir à 00:00.
+      if (phase !== "idle" && prev !== "ready" && prev !== "waiting") {
+        this.matchTimer.reset();
+      }
+    }
   }
 
   private render(): void {
