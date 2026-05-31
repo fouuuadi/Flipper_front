@@ -38,6 +38,14 @@ export interface GameContext {
    * partie n'ait été identifiée.
    */
   sessionId: string | null;
+  /**
+   * Durée effective de la partie (hors pauses) en ms, peuplée à la
+   * transition vers `gameOver` via l'event `SET_FINAL_DURATION` dispatché
+   * par le `MatchTimer` orchestré dans `src/main.ts`. Null tant que la
+   * partie n'est pas terminée, ou si aucun timer n'a tourné (cas marginal :
+   * gameOver atteint sans passer par playing).
+   */
+  finalDurationMs: number | null;
 }
 
 export type GameEvent =
@@ -55,7 +63,12 @@ export type GameEvent =
   | { type: "GAME_OVER" }
   | { type: "OPEN_LEADERBOARD" }
   | { type: "BACK_TO_MENU" }
-  | { type: "REPLAY" };
+  | { type: "REPLAY" }
+  /**
+   * Persist la durée finale calculée par le `MatchTimer` dans le contexte.
+   * Accepté UNIQUEMENT en état `gameOver` (no-op ailleurs).
+   */
+  | { type: "SET_FINAL_DURATION"; durationMs: number };
 
 export type GameEventType = GameEvent["type"];
 

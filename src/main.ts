@@ -18,6 +18,7 @@ import { gameStore } from "@core/gameStore";
 import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
+import { MatchTimer } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 
 import { Splash } from "@modules/splash";
@@ -171,11 +172,44 @@ async function bootstrap() {
   //      et quand la modal est ouverte)
   new KeybindingsHelpHint({ store: gameStore }).start();
 
-  // 4. Routeur d'écrans — l'état initial de la SM (`splash`) est monté
+  // 4. MatchTimer côté playfield : chronomètre la durée effective d'une
+  //    partie (hors pauses). Synchronisé sur l'état SM. Au gameOver,
+  //    dispatche `SET_FINAL_DURATION` pour persister la valeur dans le
+  //    contexte SM (consommée par l'écran gameOver pour affichage).
+  const matchTimer = new MatchTimer();
+  gameStore.subscribe(({ value }) => {
+    const phase = matchTimer.getPhase();
+    switch (value) {
+      case "playing":
+        if (phase === "idle") matchTimer.start();
+        else if (phase === "frozen") matchTimer.unfreeze();
+        break;
+      case "paused":
+        if (phase === "running") matchTimer.freeze();
+        break;
+      case "gameOver":
+        if (phase === "running" || phase === "frozen") {
+          matchTimer.stop();
+          gameStore.send({
+            type: "SET_FINAL_DURATION",
+            durationMs: matchTimer.getElapsedMs(),
+          });
+        }
+        break;
+      case "splash":
+      case "menu":
+      case "identification":
+      case "leaderboard":
+        if (phase !== "idle") matchTimer.reset();
+        break;
+    }
+  });
+
+  // 5. Routeur d'écrans — l'état initial de la SM (`splash`) est monté
   //    immédiatement par le `subscribe` initial.
   new ScreenRouter(document.body, gameStore, factories).start();
 
-  // 5. 3D en arrière-plan (le canvas est sous tous les overlays UI)
+  // 6. 3D en arrière-plan (le canvas est sous tous les overlays UI)
   await initPhysics();
 }
 

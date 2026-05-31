@@ -19,6 +19,7 @@ describe("gameMachine — initial state", () => {
       currentBall: 1,
       startedAt: null,
       sessionId: null,
+      finalDurationMs: null,
     });
   });
 });
@@ -134,6 +135,7 @@ describe("gameMachine — paused transitions", () => {
         currentBall: 3,
         startedAt: 1234,
         sessionId: "session-x",
+        finalDurationMs: null,
       },
     };
     const next = transition(playingSnapshot, { type: "ABANDON" });
@@ -155,6 +157,7 @@ describe("gameMachine — gameOver transitions", () => {
         currentBall: 3,
         startedAt: 1234,
         sessionId: "old-session",
+        finalDurationMs: 45000,
       },
     };
     const next = transition(ended, { type: "REPLAY" });
@@ -179,6 +182,24 @@ describe("gameMachine — gameOver transitions", () => {
     const next = transition(snapshotAt("gameOver"), { type: "BACK_TO_MENU" });
     expect(next?.value).toBe("menu");
     expect(next?.context).toEqual(initialContext);
+  });
+
+  it("gameOver + SET_FINAL_DURATION patche finalDurationMs sans changer d'état", () => {
+    const next = transition(snapshotAt("gameOver"), {
+      type: "SET_FINAL_DURATION",
+      durationMs: 42_500,
+    });
+    expect(next?.value).toBe("gameOver");
+    expect(next?.context.finalDurationMs).toBe(42_500);
+  });
+
+  it("SET_FINAL_DURATION est ignoré hors gameOver (no-op silencieux)", () => {
+    const next = transition(snapshotAt("playing"), {
+      type: "SET_FINAL_DURATION",
+      durationMs: 1000,
+    });
+    // transition retourne null si l'event n'est pas autorisé en l'état courant
+    expect(next).toBeNull();
   });
 });
 

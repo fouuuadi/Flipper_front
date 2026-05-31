@@ -48,6 +48,7 @@ function snapshotIn(
       currentBall: 1,
       startedAt: null,
       sessionId,
+      finalDurationMs: null,
     },
   };
 }

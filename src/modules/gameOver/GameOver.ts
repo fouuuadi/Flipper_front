@@ -2,6 +2,7 @@ import { Button } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
 import type { MachineSnapshot, Player } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
+import { formatElapsedMs } from "@modules/matchTimer";
 import { LocalStorageLeaderboardStore, type LeaderboardStore } from "@services/leaderboardStore";
 import { ApiError, finishScore, type FinishSessionResponse } from "./api";
 import { pickWinner } from "./winner";
@@ -23,6 +24,7 @@ export class GameOver {
   private readonly root: HTMLElement;
   private readonly statusEl: HTMLElement;
   private readonly summaryEl: HTMLElement;
+  private readonly durationEl: HTMLElement;
   private readonly recordEl: HTMLElement;
   private readonly errorEl: HTMLElement;
   private readonly replayButton: Button;
@@ -54,6 +56,10 @@ export class GameOver {
     this.summaryEl = document.createElement("div");
     this.summaryEl.className = "gameover-summary";
     card.appendChild(this.summaryEl);
+
+    this.durationEl = document.createElement("p");
+    this.durationEl.className = "gameover-duration";
+    card.appendChild(this.durationEl);
 
     this.recordEl = document.createElement("p");
     this.recordEl.className = "gameover-record";
@@ -90,8 +96,21 @@ export class GameOver {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    // L'orchestrateur dans `src/main.ts` dispatche `SET_FINAL_DURATION` quand
+    // il stoppe le MatchTimer juste après la transition vers gameOver. Cet
+    // event ne change pas d'état mais patche `finalDurationMs`. On lit donc
+    // l'état une 1re fois pour le rendu initial (durée encore null possible),
+    // puis on s'abonne au store pour re-render dès que la durée arrive.
     const snapshot = gameStore.getState();
     this.renderSummary(snapshot);
+    this.renderDuration(snapshot);
+    const unsubscribe = gameStore.subscribe((snap) => {
+      if (snap.value !== "gameOver") {
+        unsubscribe();
+        return;
+      }
+      this.renderDuration(snap);
+    });
     void this.persist(snapshot);
   }
 
@@ -135,6 +154,15 @@ export class GameOver {
     const solo = players[0];
     if (!solo) return;
     this.summaryEl.appendChild(this.renderPlayerLine(solo, false));
+  }
+
+  private renderDuration(snapshot: MachineSnapshot): void {
+    const ms = snapshot.context.finalDurationMs;
+    if (ms === null) {
+      this.durationEl.textContent = "";
+      return;
+    }
+    this.durationEl.textContent = `Durée : ${formatElapsedMs(ms)}`;
   }
 
   private renderPlayerLine(player: Player, isWinner: boolean): HTMLElement {

@@ -26,6 +26,7 @@ function snapshot(sessionId: string | null): MachineSnapshot {
       currentBall: 1,
       startedAt: null,
       sessionId,
+      finalDurationMs: null,
     },
   };
 }

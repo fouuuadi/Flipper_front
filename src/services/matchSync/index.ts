@@ -1,5 +1,6 @@
 export { MatchSyncAdapter } from "./MatchSyncAdapter";
 export { bindMatchSyncToGameStore } from "./bindToGameStore";
+export { onPauseChange } from "./onPauseChange";
 export type {
   ClientCommand,
   CountdownTickEvent,

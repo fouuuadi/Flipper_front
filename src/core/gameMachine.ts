@@ -20,6 +20,7 @@ export const initialContext: GameContext = {
   currentBall: 1,
   startedAt: null,
   sessionId: null,
+  finalDurationMs: null,
 };
 
 export const initialState: GameStateValue = "splash";
@@ -58,6 +59,7 @@ const transitions: TransitionTable = {
           currentBall: 1,
           startedAt: Date.now(),
           sessionId: event.sessionId,
+          finalDurationMs: null,
         },
       };
     },
@@ -85,7 +87,8 @@ const transitions: TransitionTable = {
     REPLAY: (ctx) => ({
       // Rejoue avec les mêmes joueurs, scores et balles remis à zéro.
       // La sessionId est reset : l'écran identification recréera une nouvelle
-      // session via POST /sessions.
+      // session via POST /sessions. finalDurationMs reset aussi pour la
+      // nouvelle partie.
       value: "identification",
       context: {
         mode: ctx.mode,
@@ -93,6 +96,7 @@ const transitions: TransitionTable = {
         currentBall: 1,
         startedAt: null,
         sessionId: null,
+        finalDurationMs: null,
       },
     }),
     BACK_TO_MENU: () => ({
@@ -100,6 +104,11 @@ const transitions: TransitionTable = {
       context: { ...initialContext },
     }),
     OPEN_LEADERBOARD: () => ({ value: "leaderboard" }),
+    SET_FINAL_DURATION: (ctx, event) => {
+      if (event.type !== "SET_FINAL_DURATION") return {};
+      // Pas de changement d'état — juste un patch de contexte.
+      return { context: { ...ctx, finalDurationMs: event.durationMs } };
+    },
   },
   leaderboard: {
     BACK_TO_MENU: () => ({

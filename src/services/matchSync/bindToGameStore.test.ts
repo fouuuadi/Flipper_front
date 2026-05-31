@@ -44,6 +44,7 @@ function fakeStore(initial: MachineSnapshot["value"]): GameStore & {
         currentBall: 1,
         startedAt: null,
         sessionId: null,
+        finalDurationMs: null,
       },
     }),
     send: (event: GameEvent) => {
