@@ -1,0 +1,134 @@
+.backglass-scene {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(
+      900px 600px at 50% 20%,
+      var(--color-galaxy-purple) 0%,
+      rgba(10, 5, 32, 0.7) 60%
+    ),
+    var(--color-deep-space);
+  color: var(--color-white);
+  font-family: var(--font-ui);
+}
+
+.backglass-scene .backglass-top {
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.backglass-scene .backglass-status {
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.backglass-scene .backglass-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+}
+
+.backglass-scene .backglass-label {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.backglass-scene .backglass-score {
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 18vw, 12rem);
+  letter-spacing: 0.05em;
+  color: var(--color-neon-cyan);
+  text-shadow:
+    0 0 16px var(--color-neon-cyan),
+    0 0 40px var(--color-neon-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.backglass-scene .backglass-gauges {
+  display: flex;
+  gap: var(--space-8);
+  align-items: baseline;
+}
+
+.backglass-scene .backglass-timer {
+  margin-top: var(--space-4);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.15em;
+  color: var(--color-neon-orange);
+  text-shadow:
+    0 0 10px rgba(255, 165, 2, 0.55),
+    0 0 22px rgba(255, 165, 2, 0.25);
+  font-variant-numeric: tabular-nums;
+}
+
+.backglass-scene .backglass-gauge {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: 0.12em;
+  color: var(--color-neon-orange);
+  text-shadow: 0 0 12px rgba(255, 165, 2, 0.6);
+  min-width: 9ch;
+  text-align: center;
+}
+
+.backglass-scene .backglass-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.backglass-scene .backglass-overlay-card {
+  background: rgba(10, 5, 32, 0.85);
+  border: 2px solid var(--color-neon-pink);
+  border-radius: var(--space-4);
+  padding: var(--space-8) var(--space-12);
+  text-align: center;
+  box-shadow:
+    0 0 24px rgba(255, 51, 102, 0.5),
+    0 0 60px rgba(255, 51, 102, 0.3);
+  animation: backglass-overlay-in 220ms ease-out;
+}
+
+.backglass-scene .backglass-overlay-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 12px var(--color-neon-pink),
+    0 0 28px rgba(255, 51, 102, 0.6);
+}
+
+.backglass-scene .backglass-overlay-subtitle {
+  margin: var(--space-3) 0 0 0;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+}
+
+@keyframes backglass-overlay-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

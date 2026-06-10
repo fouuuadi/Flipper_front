@@ -8,6 +8,8 @@ Le projet est organisé en architecture modulaire par feature et contient actuel
 
 ## Démarrage rapide
 
+### En local (Node)
+
 ```bash
 # Installer les dépendances
 npm install
@@ -26,6 +28,23 @@ npm run lint:fix
 npm run format
 npm run format:check
 ```
+
+### En local (Docker, 3 services)
+
+Le front est packagé en **trois images nginx indépendantes** — une par écran physique du flipper (playfield, backglass, dmd). Chaque image embarque le même bundle Vite mais sert une page HTML différente via une nginx conf dédiée (`nginx/<app>.conf`).
+
+```bash
+# Build + run des 3 services
+docker compose up --build
+```
+
+| Service     | URL                     | Entrée                       |
+| ----------- | ----------------------- | ---------------------------- |
+| `playfield` | http://localhost:8081   | `apps/playfield/index.html`  |
+| `backglass` | http://localhost:8082   | `apps/backglass/index.html`  |
+| `dmd`       | http://localhost:8083   | `apps/dmd/index.html`        |
+
+Sous le capot, chaque service construit la même image à partir du `Dockerfile` paramétré par l'argument `APP` (cf. `docker-compose.yml`).
 
 ---
 

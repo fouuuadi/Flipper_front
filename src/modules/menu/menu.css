@@ -1,0 +1,62 @@
+.menu-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(
+      900px 600px at 20% 10%,
+      var(--color-galaxy-purple) 0%,
+      rgba(10, 5, 32, 0.6) 60%
+    ),
+    radial-gradient(700px 500px at 80% 90%, #120b2d 0%, rgba(10, 5, 32, 0.4) 55%),
+    var(--color-deep-space);
+  font-family: var(--font-ui);
+  color: var(--color-white);
+  animation: menu-fade-in 240ms ease-out;
+}
+
+.menu-scene .menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+}
+
+.menu-scene .menu-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.menu-scene .menu-title-wrap h1,
+.menu-scene .menu-title-wrap h2 {
+  margin: 0;
+}
+
+.menu-scene .menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: min(280px, 80vw);
+}
+
+.menu-scene .menu-actions .ui-button {
+  width: 100%;
+}
+
+@keyframes menu-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

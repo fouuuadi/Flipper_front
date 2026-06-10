@@ -20,6 +20,7 @@ import typescriptLogo from "./typescript.svg";
 
 import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
+import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
 
 // Event Bus
 import { EventBus } from "@core/EventBus";
@@ -50,13 +51,16 @@ sceneManager.scene.add(directionalLight);
 
 // Playfield
 const playfield = new Playfield();
-playfield.addTo(sceneManager.scene);
+// Commentaire pour désactiver la table et la remplacé par le modèle Blender
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
 
-// Camera
-sceneManager.camera.position.set(0, 8, 10);
+// Ici on met blender, références module pour le bridge Rapier, mesh Blender
+let leftFlipper: Flipper | null = null;
+let rightFlipper: Flipper | null = null;
+
+sceneManager.camera.position.set(0, 3, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
 // Physics
@@ -87,23 +91,18 @@ async function initPhysics() {
 
   ball.addTo(sceneManager.scene);
 
-  const leftFlipper = new Flipper(world, "left");
-  leftFlipper.addTo(sceneManager.scene);
+  // Pour blender on assigne aux variables module pour le bridge
+  leftFlipper = new Flipper(world, "left");
 
-  const rightFlipper = new Flipper(world, "right");
-  rightFlipper.addTo(sceneManager.scene);
+  rightFlipper = new Flipper(world, "right");
 
   tableBoundaries = new TableBoundaries(world);
-  tableBoundaries.addTo(sceneManager.scene);
 
   const launcher = new Launcher(ball);
-  launcher.addTo(sceneManager.scene);
 
   const leftSlingshot = new Slingshot(world, "left");
-  leftSlingshot.addTo(sceneManager.scene);
 
   const rightSlingshot = new Slingshot(world, "right");
-  rightSlingshot.addTo(sceneManager.scene);
 
   // Ici on gere le RigidBody de la balle aux slingshots
   const ballRigidBody = physics.getBody("main-ball");
@@ -133,8 +132,8 @@ async function initPhysics() {
 
     ball?.updateFromPhysics();
 
-    leftFlipper.update(deltaTime);
-    rightFlipper.update(deltaTime);
+    leftFlipper?.update(deltaTime);
+    rightFlipper?.update(deltaTime);
 
     launcher.update(deltaTime);
 
@@ -147,4 +146,19 @@ async function initPhysics() {
   sceneManager.start();
 }
 
-initPhysics();
+// Ici on gére le demarrage physique d'abord, puis chargement du GLB Blender
+// Les bridges sont ajoutés à la boucle onUpdate une fois le GLB prêt
+initPhysics().then(() => {
+  if (leftFlipper === null || rightFlipper === null) return;
+
+  loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
+    .then(({ bridges }) => {
+      sceneManager.onUpdate(() => {
+        bridges.forEach((bridge) => bridge.update());
+      });
+      console.log(`✅ ${bridges.length} bridge(s) Rapier → Blender actif(s)`);
+    })
+    .catch((err: unknown) => {
+      console.error("❌ Échec du chargement de la table Blender :", err);
+    });
+});

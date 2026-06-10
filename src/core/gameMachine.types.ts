@@ -1,0 +1,78 @@
+/**
+ * Types stricts pour la state machine du jeu.
+ * Source unique de vérité pour les états, events et contexte.
+ */
+
+export type GameMode = "solo" | "1v1";
+
+/**
+ * Identifiant joueur au format `pseudo#hashtag` (ex: "fouad#1234").
+ * Le typage en template literal permet une validation minimale à la compilation,
+ * la validation runtime reste à la charge de l'écran d'identification.
+ */
+export type PlayerTag = `${string}#${string}`;
+
+export interface Player {
+  tag: PlayerTag;
+  score: number;
+  ballsRemaining: number;
+}
+
+export type GameStateValue =
+  | "splash"
+  | "menu"
+  | "identification"
+  | "playing"
+  | "paused"
+  | "gameOver"
+  | "leaderboard";
+
+export interface GameContext {
+  mode: GameMode | null;
+  players: Player[];
+  currentBall: number;
+  startedAt: number | null;
+  /**
+   * Session backend (POST /sessions). Null en 1v1 tant que le matchmaking
+   * back n'est pas livré (cf. Flipper_back issue #59), ou avant qu'une
+   * partie n'ait été identifiée.
+   */
+  sessionId: string | null;
+  /**
+   * Durée effective de la partie (hors pauses) en ms, peuplée à la
+   * transition vers `gameOver` via l'event `SET_FINAL_DURATION` dispatché
+   * par le `MatchTimer` orchestré dans `src/main.ts`. Null tant que la
+   * partie n'est pas terminée, ou si aucun timer n'a tourné (cas marginal :
+   * gameOver atteint sans passer par playing).
+   */
+  finalDurationMs: number | null;
+}
+
+export type GameEvent =
+  | { type: "PRESS_A" }
+  | { type: "START_GAME" }
+  | {
+      type: "PLAYERS_VALIDATED";
+      mode: GameMode;
+      players: PlayerTag[];
+      sessionId: string | null;
+    }
+  | { type: "PAUSE" }
+  | { type: "RESUME" }
+  | { type: "ABANDON" }
+  | { type: "GAME_OVER" }
+  | { type: "OPEN_LEADERBOARD" }
+  | { type: "BACK_TO_MENU" }
+  | { type: "REPLAY" }
+  /**
+   * Persist la durée finale calculée par le `MatchTimer` dans le contexte.
+   * Accepté UNIQUEMENT en état `gameOver` (no-op ailleurs).
+   */
+  | { type: "SET_FINAL_DURATION"; durationMs: number };
+
+export type GameEventType = GameEvent["type"];
+
+export interface MachineSnapshot {
+  value: GameStateValue;
+  context: GameContext;
+}
