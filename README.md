@@ -20,10 +20,18 @@ Installe Git LFS une fois sur ta machine :
 ```bash
 # macOS
 brew install git-lfs
-# Debian/Ubuntu
-sudo apt install git-lfs
 
-# puis, une fois par machine :
+# Windows
+#   - inclus avec Git for Windows (https://git-scm.com/download/win)
+#   - sinon : winget install GitHub.GitLFS
+#     ou télécharger l'installeur depuis https://git-lfs.com
+
+# Linux
+sudo apt install git-lfs       # Debian/Ubuntu
+sudo dnf install git-lfs       # Fedora
+sudo pacman -S git-lfs         # Arch
+
+# puis, une fois par machine (tous OS) :
 git lfs install
 ```
 
@@ -31,10 +39,13 @@ git lfs install
 silencieusement ignoré et le binaire repart en blob git normal (ce qu'on veut
 éviter). En cas de doute : `git lfs status` après avoir stagé ton fichier.
 
-> Note : la version actuelle de `tableMarioGalaxy.glb` reste un blob git normal
-> (présente dans l'historique avant la mise en place de LFS — non migrée pour
-> éviter une réécriture d'historique). Le `.gitattributes` capture uniquement
-> les **futures** versions, ce qui suffit à empêcher l'historique de grossir.
+> ⚠️ **`git lfs install` doit être fait AVANT de cloner.** Sinon tu récupères le
+> pointeur LFS (~130 octets) au lieu du modèle 3D, et l'app ne charge pas la
+> table. Si tu as déjà cloné sans LFS : `git lfs install && git lfs pull`.
+>
+> Note : `tableMarioGalaxy.glb` est désormais suivi par LFS. La conversion a été
+> faite sans réécrire l'historique — l'ancien blob reste dans les commits passés,
+> mais toutes les versions futures passent par LFS.
 
 ---
 

@@ -14,11 +14,9 @@
 #    Sans ça, le filtre est ignoré et le binaire repart en blob git normal.
 #    Voir la section "Assets 3D & Git LFS" du README.
 #
-# Note : ce filtre s'applique aux NOUVELLES versions committées. Les versions
-# déjà présentes dans l'historique (tableMarioGalaxy.glb) ne sont PAS migrées
-# rétroactivement — choix assumé pour éviter une réécriture d'historique
-# coûteuse. Le but ici est uniquement d'empêcher l'historique de continuer
-# à grossir.
+# `tableMarioGalaxy.glb` est désormais suivi par LFS (converti en pointeur sans
+# réécriture d'historique). L'ancien blob brut reste dans les commits passés :
+# le but ici est d'empêcher les FUTURES versions de continuer à grossir l'historique.
 
 *.glb  filter=lfs diff=lfs merge=lfs -text
 *.gltf filter=lfs diff=lfs merge=lfs -text
