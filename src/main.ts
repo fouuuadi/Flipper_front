@@ -15,6 +15,7 @@ import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
 
 import { gameStore } from "@core/gameStore";
+import { applyDevBoot } from "@core/devBoot";
 import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
@@ -157,6 +158,11 @@ const factories: ScreenFactoryMap = {
 };
 
 async function bootstrap() {
+  // 0. Bypass de dev (`?boot=playing`) : bascule la SM avant tout abonnement
+  //    pour que MatchTimer et ScreenRouter reçoivent l'état cible dès leur
+  //    subscribe initial. No-op sans le query param et en prod.
+  applyDevBoot(gameStore);
+
   // 1. Câbler les events serveur (match:state) sur la SM. Idempotent : peut
   //    s'abonner sans WS ouverte ; l'écran identification déclenchera le
   //    `matchSync.connect()` une fois la session créée.
