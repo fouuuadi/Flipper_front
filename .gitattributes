@@ -1,0 +1,26 @@
+# Git LFS — assets 3D lourds
+#
+# Les modèles 3D (Blender → glTF/GLB) sont des binaires de plusieurs dizaines
+# de Mo. Sans LFS, chaque version reste à jamais dans l'historique git et
+# alourdit chaque `git clone` pour toute l'équipe (même pour qui ne touche
+# qu'au CSS).
+#
+# ⚠️ PRÉREQUIS OBLIGATOIRE pour que ce filtre fasse effet :
+#    chaque personne qui commit un de ces fichiers DOIT avoir installé Git LFS
+#    sur sa machine une fois pour toutes :
+#
+#        git lfs install
+#
+#    Sans ça, le filtre est ignoré et le binaire repart en blob git normal.
+#    Voir la section "Assets 3D & Git LFS" du README.
+#
+# Note : ce filtre s'applique aux NOUVELLES versions committées. Les versions
+# déjà présentes dans l'historique (tableMarioGalaxy.glb) ne sont PAS migrées
+# rétroactivement — choix assumé pour éviter une réécriture d'historique
+# coûteuse. Le but ici est uniquement d'empêcher l'historique de continuer
+# à grossir.
+
+*.glb  filter=lfs diff=lfs merge=lfs -text
+*.gltf filter=lfs diff=lfs merge=lfs -text
+*.fbx  filter=lfs diff=lfs merge=lfs -text
+*.bin  filter=lfs diff=lfs merge=lfs -text
