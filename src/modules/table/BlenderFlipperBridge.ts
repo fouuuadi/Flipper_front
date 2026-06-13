@@ -11,8 +11,6 @@ export class BlenderFlipperBridge {
   }
 
   update(): void {
-    // Only update Y rotation (swing angle). Position stays at Blender position.
-    // Change to rotation.x or rotation.z if pivot axis differs in Blender export.
     this.blenderMesh.rotation.y = this.physicsFlipper.mesh.rotation.y;
   }
 }
