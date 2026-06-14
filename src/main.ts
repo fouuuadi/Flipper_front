@@ -46,7 +46,7 @@ directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
 const playfield = new Playfield();
-// playfield.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé — table Blender utilisée
+// playfield.addTo(sceneManager.scene); // table Blender utilisée
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
@@ -55,8 +55,9 @@ let tableBoundaries: TableBoundaries | null = null;
 let leftFlipper: Flipper | null = null;
 let rightFlipper: Flipper | null = null;
 
-sceneManager.camera.position.set(0, 3, 10);
-sceneManager.camera.lookAt(0, 0, 0);
+// Ici on gere la caméra
+sceneManager.camera.position.set(0, 10, -7);
+sceneManager.camera.lookAt(0, 0, 1.5);
 
 const physics = new RapierPhysicsAdapter();
 
@@ -224,19 +225,17 @@ async function bootstrap() {
   await initPhysics();
 
   // 7. [BLENDER] Charger la table Blender et brancher les bridges flipper
-  //    leftFlipper / rightFlipper sont garantis non-null après initPhysics()
-  if (leftFlipper && rightFlipper) {
-    loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
-      .then(({ bridges }) => {
-        console.log(`🎰 ${bridges.length} bridge(s) flipper actif(s)`);
-        sceneManager.onUpdate(() => {
-          for (const bridge of bridges) bridge.update();
-        });
-      })
-      .catch((err) => {
-        console.error("❌ Impossible de charger la table Blender :", err);
+  //    Bridge autonome : gère ses propres listeners clavier, pas de dépendance Flipper
+  loadBlenderTable(sceneManager.scene)
+    .then(({ bridges }) => {
+      console.log(`🎰 ${bridges.length} bridge(s) flipper actif(s)`);
+      sceneManager.onUpdate((deltaTime) => {
+        for (const bridge of bridges) bridge.update(deltaTime);
       });
-  }
+    })
+    .catch((err) => {
+      console.error("❌ Impossible de charger la table Blender :", err);
+    });
 }
 
 bootstrap().catch((err) => {
