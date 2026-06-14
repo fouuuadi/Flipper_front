@@ -25,14 +25,13 @@ export function loadBlenderTable(
         console.log("✅ Table Blender chargée");
         console.log("   scale racine :", tableScene.scale.toArray());
 
-        // Hiérarchie complète pour diagnostic
         tableScene.traverse((obj) => {
           if (obj.name) {
             console.log(`   ▸ "${obj.name}" [${obj.type}]  pos=${obj.position.toArray().map(v => +v.toFixed(2))}  scale=${obj.scale.toArray().map(v => +v.toFixed(3))}`);
           }
         });
 
-        // Récupérer les flippers — ils RESTENT dans la hiérarchie GLB
+        // Récupérer les flippers ils RESTENT dans la hiérarchie GLB
         const flipperLeftMesh  = tableScene.getObjectByName("flipper_left")  ?? null;
         const flipperRightMesh = tableScene.getObjectByName("flipper_right") ?? null;
 
