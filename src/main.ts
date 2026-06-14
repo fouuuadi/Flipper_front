@@ -13,6 +13,7 @@ import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import { Flipper } from "@modules/flipper";
 import { TableBoundaries } from "@modules/table";
+import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
 
 import { gameStore } from "@core/gameStore";
 import { applyDevBoot } from "@core/devBoot";
@@ -45,12 +46,16 @@ directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
 const playfield = new Playfield();
-playfield.addTo(sceneManager.scene);
+// playfield.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé — table Blender utilisée
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
 
-sceneManager.camera.position.set(0, 8, 10);
+// [BLENDER] Flippers promus en module scope pour être accessibles dans bootstrap()
+let leftFlipper: Flipper | null = null;
+let rightFlipper: Flipper | null = null;
+
+sceneManager.camera.position.set(0, 3, 10);
 sceneManager.camera.lookAt(0, 0, 0);
 
 const physics = new RapierPhysicsAdapter();
@@ -78,24 +83,24 @@ async function initPhysics() {
 
   ball.addTo(sceneManager.scene);
 
-  const leftFlipper = new Flipper(world, "left");
-  leftFlipper.addTo(sceneManager.scene);
+  leftFlipper = new Flipper(world, "left");
+  // leftFlipper.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
 
-  const rightFlipper = new Flipper(world, "right");
-  rightFlipper.addTo(sceneManager.scene);
+  rightFlipper = new Flipper(world, "right");
+  // rightFlipper.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
 
   tableBoundaries = new TableBoundaries(world);
-  tableBoundaries.addTo(sceneManager.scene);
+  // tableBoundaries.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
 
   const launcher = new Launcher(ball);
-  launcher.addTo(sceneManager.scene);
+  // launcher.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
 
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
     ball?.updateFromPhysics();
 
-    leftFlipper.update(deltaTime);
-    rightFlipper.update(deltaTime);
+    leftFlipper?.update(deltaTime);
+    rightFlipper?.update(deltaTime);
 
     launcher.update(deltaTime);
   });
@@ -217,6 +222,21 @@ async function bootstrap() {
 
   // 6. 3D en arrière-plan (le canvas est sous tous les overlays UI)
   await initPhysics();
+
+  // 7. [BLENDER] Charger la table Blender et brancher les bridges flipper
+  //    leftFlipper / rightFlipper sont garantis non-null après initPhysics()
+  if (leftFlipper && rightFlipper) {
+    loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
+      .then(({ bridges }) => {
+        console.log(`🎰 ${bridges.length} bridge(s) flipper actif(s)`);
+        sceneManager.onUpdate(() => {
+          for (const bridge of bridges) bridge.update();
+        });
+      })
+      .catch((err) => {
+        console.error("❌ Impossible de charger la table Blender :", err);
+      });
+  }
 }
 
 bootstrap().catch((err) => {
