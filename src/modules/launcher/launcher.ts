@@ -50,14 +50,9 @@ export class Launcher {
 
         this.chargeTime = 0;
 
-        // Impulsion
+        // Impulsion vers le haut de la table (axe -z)
         const force = this.power * 10;
-
-        const rigidBody = (this.ball as any).rigidBody;
-
-        if (rigidBody) {
-          rigidBody.applyImpulse({ x: 0, y: 0, z: -force }, true);
-        }
+        this.ball.applyImpulse({ x: 0, y: 0, z: -force });
       }
     });
   }
