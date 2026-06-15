@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { EventBus } from "@core/EventBus";
 import { PLAYFIELD_TILT_DEG } from "@modules/playfield/Playfield";
 
 type FlipperSide = "left" | "right";
@@ -18,11 +17,9 @@ export class Flipper {
   private readonly minLimit: number;
   private readonly maxLimit: number;
   private readonly playfieldPitch: number;
-  private eventBus: EventBus<{ flipper_activate: { side: FlipperSide } }>;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
     this.side = side;
-    this.eventBus = EventBus.getInstance<{ flipper_activate: { side: FlipperSide } }>();
 
     const flipperLength = 0.86;
     const flipperHeight = 0.18;
@@ -95,12 +92,10 @@ export class Flipper {
     window.addEventListener("keydown", (event) => {
       if (this.side === "left" && event.code === "ShiftLeft") {
         this.isActive = true;
-        this.eventBus.emit("flipper_activate", { side: this.side });
       }
 
       if (this.side === "right" && event.code === "ShiftRight") {
         this.isActive = true;
-        this.eventBus.emit("flipper_activate", { side: this.side });
       }
     });
 
