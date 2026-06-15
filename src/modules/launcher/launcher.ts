@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import type { Ball } from "@modules/ball";
-import { EventBus } from "@core/EventBus";
 
 export class Launcher {
   mesh: THREE.Mesh;
@@ -59,13 +58,6 @@ export class Launcher {
         if (rigidBody) {
           rigidBody.applyImpulse({ x: 0, y: 0, z: -force }, true);
         }
-
-        // Event
-        EventBus.getInstance<{ ball_launched: { power: number } }>().emit("ball_launched", {
-          power: this.power,
-        });
-
-        console.log("Ball launched with power:", this.power);
       }
     });
   }

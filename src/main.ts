@@ -45,13 +45,15 @@ directionalLight.position.set(5, 10, 5);
 directionalLight.castShadow = true;
 sceneManager.scene.add(directionalLight);
 
+// Le visuel de la table provient du modèle Blender (GLB) chargé plus bas ; les
+// objets Three.js de la couche gameplay ne sont donc plus ajoutés à la scène et
+// ne servent qu'à la physique.
 const playfield = new Playfield();
-// playfield.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé — table Blender utilisée
 
 let ball: Ball | null = null;
 let tableBoundaries: TableBoundaries | null = null;
 
-// [BLENDER] Flippers promus en module scope pour être accessibles dans bootstrap()
+// Flippers au scope module pour être accessibles dans bootstrap() (bridges Blender)
 let leftFlipper: Flipper | null = null;
 let rightFlipper: Flipper | null = null;
 
@@ -84,16 +86,9 @@ async function initPhysics() {
   ball.addTo(sceneManager.scene);
 
   leftFlipper = new Flipper(world, "left");
-  // leftFlipper.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
-
   rightFlipper = new Flipper(world, "right");
-  // rightFlipper.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
-
   tableBoundaries = new TableBoundaries(world);
-  // tableBoundaries.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
-
   const launcher = new Launcher(ball);
-  // launcher.addTo(sceneManager.scene); // [BLENDER] Visuel Three.js désactivé
 
   sceneManager.onUpdate((deltaTime) => {
     physics.step(deltaTime);
@@ -223,7 +218,7 @@ async function bootstrap() {
   // 6. 3D en arrière-plan (le canvas est sous tous les overlays UI)
   await initPhysics();
 
-  // 7. [BLENDER] Charger la table Blender et brancher les bridges flipper
+  // 7. Charger la table Blender et brancher les bridges flipper
   //    leftFlipper / rightFlipper sont garantis non-null après initPhysics()
   if (leftFlipper && rightFlipper) {
     loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
