@@ -388,7 +388,7 @@ export class Menu {
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = 'bold 76px Bungee, Arial, sans-serif';
+    ctx.font = "bold 76px Bungee, Arial, sans-serif";
     ctx.shadowColor = "rgba(0,0,0,0.45)";
     ctx.shadowBlur = 8;
     ctx.shadowOffsetY = 5;
@@ -486,12 +486,26 @@ export class Menu {
 
   private updateMenuButtons(): void {
     this.menuButtons.forEach((menuButton) => {
-      const targetScale = menuButton === this.selectedMenuButton ? 1.18 : menuButton === this.hoveredMenuButton ? 1.08 : 1;
+      const targetScale =
+        menuButton === this.selectedMenuButton
+          ? 1.18
+          : menuButton === this.hoveredMenuButton
+            ? 1.08
+            : 1;
       menuButton.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.2);
       const frontMaterial = Array.isArray(menuButton.material) ? menuButton.material[4] : null;
       if (frontMaterial instanceof THREE.MeshStandardMaterial) {
-        const targetGlow = menuButton === this.selectedMenuButton ? 1.35 : menuButton === this.hoveredMenuButton ? 1 : 0.75;
-        frontMaterial.emissiveIntensity = THREE.MathUtils.lerp(frontMaterial.emissiveIntensity, targetGlow, 0.2);
+        const targetGlow =
+          menuButton === this.selectedMenuButton
+            ? 1.35
+            : menuButton === this.hoveredMenuButton
+              ? 1
+              : 0.75;
+        frontMaterial.emissiveIntensity = THREE.MathUtils.lerp(
+          frontMaterial.emissiveIntensity,
+          targetGlow,
+          0.2,
+        );
       }
     });
   }
@@ -524,7 +538,14 @@ export class Menu {
     const ctx = canvas.getContext("2d");
     if (!ctx) return new THREE.CanvasTexture(canvas);
 
-    const gradient = ctx.createRadialGradient(size * 0.35, size * 0.25, size * 0.1, size * 0.5, size * 0.5, size * 0.8);
+    const gradient = ctx.createRadialGradient(
+      size * 0.35,
+      size * 0.25,
+      size * 0.1,
+      size * 0.5,
+      size * 0.5,
+      size * 0.8,
+    );
     gradient.addColorStop(0, "#1b0b3f");
     gradient.addColorStop(0.5, "#0b0620");
     gradient.addColorStop(1, "#05020f");
@@ -569,7 +590,14 @@ export class Menu {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    const gradient = ctx.createRadialGradient(size * 0.5, size * 0.45, 6, size * 0.5, size * 0.5, size * 0.6);
+    const gradient = ctx.createRadialGradient(
+      size * 0.5,
+      size * 0.45,
+      6,
+      size * 0.5,
+      size * 0.5,
+      size * 0.6,
+    );
     gradient.addColorStop(0, "#ffffff");
     gradient.addColorStop(0.35, "#9ed6ff");
     gradient.addColorStop(0.7, "#4f6bff");

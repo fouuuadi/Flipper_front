@@ -34,14 +34,16 @@ export class Settings {
 
   private createBackground(): DocumentFragment {
     const fragment = document.createDocumentFragment();
-    ["settings-starfield", "settings-nebula settings-nebula--left", "settings-nebula settings-nebula--right"].forEach(
-      (className) => {
-        const layer = document.createElement("div");
-        layer.className = className;
-        layer.setAttribute("aria-hidden", "true");
-        fragment.appendChild(layer);
-      },
-    );
+    [
+      "settings-starfield",
+      "settings-nebula settings-nebula--left",
+      "settings-nebula settings-nebula--right",
+    ].forEach((className) => {
+      const layer = document.createElement("div");
+      layer.className = className;
+      layer.setAttribute("aria-hidden", "true");
+      fragment.appendChild(layer);
+    });
     return fragment;
   }
 
