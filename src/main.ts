@@ -8,6 +8,7 @@ import { applyDevBoot } from "@core/devBoot";
 import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
+import { bindGameplayInput } from "@modules/gameplayInput";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 
@@ -86,7 +87,11 @@ async function bootstrap() {
   new ScreenRouter(document.body, gameStore, factories).start();
 
   // 6. Scène 3D en arrière-plan (le canvas est sous tous les overlays UI).
-  const { sceneManager, leftFlipper, rightFlipper } = await createPlayfieldScene();
+  const { sceneManager, leftFlipper, rightFlipper, launcher } = await createPlayfieldScene();
+
+  // 6bis. Clavier gameplay (flippers + lanceur) — source unique, active
+  //       uniquement en `playing`.
+  bindGameplayInput(gameStore, { leftFlipper, rightFlipper, launcher });
 
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)

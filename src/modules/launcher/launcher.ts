@@ -33,28 +33,25 @@ export class Launcher {
     this.mesh.receiveShadow = true;
 
     this.initialZ = this.mesh.position.z;
+  }
 
-    // Input
-    window.addEventListener("keydown", (event) => {
-      if (event.code === "Space") {
-        this.isCharging = true;
-      }
-    });
+  /** Début de la charge (touche maintenue). L'input est câblé en dehors. */
+  startCharge(): void {
+    this.isCharging = true;
+  }
 
-    window.addEventListener("keyup", (event) => {
-      if (event.code === "Space") {
-        this.isCharging = false;
+  /** Relâche le lanceur : propulse la bille selon la charge accumulée. */
+  release(): void {
+    if (!this.isCharging) return;
+    this.isCharging = false;
 
-        const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
-        this.power = normalized;
+    const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
+    this.power = normalized;
+    this.chargeTime = 0;
 
-        this.chargeTime = 0;
-
-        // Impulsion vers le haut de la table (axe -z)
-        const force = this.power * 10;
-        this.ball.applyImpulse({ x: 0, y: 0, z: -force });
-      }
-    });
+    // Impulsion vers le haut de la table (axe -z)
+    const force = this.power * 10;
+    this.ball.applyImpulse({ x: 0, y: 0, z: -force });
   }
 
   update(deltaTime: number) {

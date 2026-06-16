@@ -11,7 +11,6 @@ export class Flipper {
 
   private isActive = false;
   private angle = 0;
-  private readonly side: FlipperSide;
   private readonly activeAngle: number;
   private readonly restAngle: number;
   private readonly minLimit: number;
@@ -19,8 +18,6 @@ export class Flipper {
   private readonly playfieldPitch: number;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
-    this.side = side;
-
     const flipperLength = 0.86;
     const flipperHeight = 0.18;
     const flipperDepth = 0.28;
@@ -86,28 +83,16 @@ export class Flipper {
     jointData.limits = [this.minLimit, this.maxLimit];
 
     world.createImpulseJoint(jointData, pivot, this.rigidBody, true);
+  }
 
-    // Ici on gére l'input clavier
+  /** Active le flipper (touche maintenue). L'input est câblé en dehors. */
+  press(): void {
+    this.isActive = true;
+  }
 
-    window.addEventListener("keydown", (event) => {
-      if (this.side === "left" && event.code === "ShiftLeft") {
-        this.isActive = true;
-      }
-
-      if (this.side === "right" && event.code === "ShiftRight") {
-        this.isActive = true;
-      }
-    });
-
-    window.addEventListener("keyup", (event) => {
-      if (this.side === "left" && event.code === "ShiftLeft") {
-        this.isActive = false;
-      }
-
-      if (this.side === "right" && event.code === "ShiftRight") {
-        this.isActive = false;
-      }
-    });
+  /** Relâche le flipper (touche relâchée). */
+  release(): void {
+    this.isActive = false;
   }
 
   update(deltaTime: number) {
