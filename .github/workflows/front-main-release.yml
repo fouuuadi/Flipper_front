@@ -31,6 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [playfield, backglass, dmd]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,11 +45,26 @@ jobs:
           # publiée embarque une table cassée qui ne charge pas sur la borne.
           lfs: true
 
-      - name: Resolve image name
+      - name: Resolve image tags
         id: vars
         shell: bash
         run: |
-          echo "image_name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/flipper-front" >> "$GITHUB_OUTPUT"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          img="ghcr.io/${owner}/flipper-front-${{ matrix.app }}"
+          {
+            echo "image_ref=${img}:sha-${GITHUB_SHA}"
+            echo "tags<<EOF"
+            echo "${img}:sha-${GITHUB_SHA}"
+            echo "${img}:main-latest"
+            # Alias legacy `flipper-front` (= build playfield) pour ne pas
+            # casser le déploiement k8s/gitops existant qui le référence.
+            if [ "${{ matrix.app }}" = "playfield" ]; then
+              legacy="ghcr.io/${owner}/flipper-front"
+              echo "${legacy}:sha-${GITHUB_SHA}"
+              echo "${legacy}:main-latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -61,16 +81,16 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ${{ steps.vars.outputs.image_name }}:sha-${{ github.sha }}
-            ${{ steps.vars.outputs.image_name }}:main-latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            APP=${{ matrix.app }}
+          tags: ${{ steps.vars.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
       - name: Trivy report (HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.35.0
         with:
-          image-ref: ${{ steps.vars.outputs.image_name }}:sha-${{ github.sha }}
+          image-ref: ${{ steps.vars.outputs.image_ref }}
           format: table
           ignore-unfixed: true
           vuln-type: os,library
@@ -80,7 +100,7 @@ jobs:
       - name: Trivy gate (CRITICAL only)
         uses: aquasecurity/trivy-action@v0.35.0
         with:
-          image-ref: ${{ steps.vars.outputs.image_name }}:sha-${{ github.sha }}
+          image-ref: ${{ steps.vars.outputs.image_ref }}
           format: table
           ignore-unfixed: true
           vuln-type: os,library
