@@ -5,8 +5,7 @@
   overflow: hidden;
   background:
     radial-gradient(900px 600px at 20% 10%, #1a0b3d 0%, rgba(10, 5, 32, 0.6) 60%),
-    radial-gradient(900px 600px at 80% 80%, #120b2d 0%, rgba(10, 5, 32, 0.4) 55%),
-    #0a0520;
+    radial-gradient(900px 600px at 80% 80%, #120b2d 0%, rgba(10, 5, 32, 0.4) 55%), #0a0520;
   color: var(--color-white);
   font-family: var(--font-ui);
   animation: menu-fade-in 260ms ease-out;

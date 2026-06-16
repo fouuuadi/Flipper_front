@@ -222,7 +222,8 @@ export class CosmeticsStore {
 
     ["SHOP", "MISSIONS"].forEach((label, index) => {
       const item = document.createElement("button");
-      item.className = index === 0 ? "cosmetics-nav-item cosmetics-nav-item--active" : "cosmetics-nav-item";
+      item.className =
+        index === 0 ? "cosmetics-nav-item cosmetics-nav-item--active" : "cosmetics-nav-item";
       item.type = "button";
       item.textContent = label;
       nav.appendChild(item);
