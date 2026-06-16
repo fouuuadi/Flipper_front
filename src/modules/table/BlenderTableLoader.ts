@@ -1,17 +1,12 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { BlenderFlipperBridge } from "./BlenderFlipperBridge";
-import type { Flipper } from "@modules/flipper/Flipper";
 
 export interface BlenderTableResult {
   bridges: BlenderFlipperBridge[];
 }
 
-export function loadBlenderTable(
-  scene: THREE.Scene,
-  leftFlipper: Flipper,
-  rightFlipper: Flipper,
-): Promise<BlenderTableResult> {
+export function loadBlenderTable(scene: THREE.Scene): Promise<BlenderTableResult> {
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader();
 
@@ -27,30 +22,43 @@ export function loadBlenderTable(
 
         tableScene.traverse((obj) => {
           if (obj.name) {
-            console.log(`   ▸ "${obj.name}" [${obj.type}]  pos=${obj.position.toArray().map(v => +v.toFixed(2))}  scale=${obj.scale.toArray().map(v => +v.toFixed(3))}`);
+            console.log(
+              `   ▸ "${obj.name}" [${obj.type}]  pos=${obj.position.toArray().map((v) => +v.toFixed(2))}  scale=${obj.scale.toArray().map((v) => +v.toFixed(3))}`,
+            );
           }
         });
 
-        // Récupérer les flippers ils RESTENT dans la hiérarchie GLB
-        const flipperLeftMesh  = tableScene.getObjectByName("flipper_left")  ?? null;
-        const flipperRightMesh = tableScene.getObjectByName("flipper_right") ?? null;
+        // ici on récupère les flippers, ils RESTENT dans la hiérarchie GLB (pas de scene.attach())
+        const flipperLeftMesh = tableScene.getObjectByName("Flipper_left") ?? null;
+        const flipperRightMesh = tableScene.getObjectByName("Flipper_right") ?? null;
 
-        if (!flipperLeftMesh)  console.warn("⚠️ flipper_left introuvable dans le GLB");
-        if (!flipperRightMesh) console.warn("⚠️ flipper_right introuvable dans le GLB");
+        if (!flipperLeftMesh) console.warn("⚠️ Flipper_left introuvable dans le GLB");
+        if (!flipperRightMesh) console.warn("⚠️ Flipper_right introuvable dans le GLB");
 
-        if (flipperLeftMesh)  console.log("✅ flipper_left  [" + flipperLeftMesh.type  + "] visible=" + flipperLeftMesh.visible);
-        if (flipperRightMesh) console.log("✅ flipper_right [" + flipperRightMesh.type + "] visible=" + flipperRightMesh.visible);
+        if (flipperLeftMesh) {
+          console.log("✅ Flipper_left  [" + flipperLeftMesh.type + "] visible=" + flipperLeftMesh.visible + " scale=" + flipperLeftMesh.scale.toArray());
 
-        // Ici je met à jour uniquement rotation.y
-        // La position Blender reste telle quelle pas de scene.attach()
+          if (flipperLeftMesh.scale.lengthSq() === 0) {
+            flipperLeftMesh.scale.set(1, 1, 1);
+            console.log("🔧 Flipper_left scale forcé à (1,1,1)");
+          }
+        }
+        if (flipperRightMesh) {
+          console.log("✅ Flipper_right [" + flipperRightMesh.type + "] visible=" + flipperRightMesh.visible + " scale=" + flipperRightMesh.scale.toArray());
+          if (flipperRightMesh.scale.lengthSq() === 0) {
+            flipperRightMesh.scale.set(1, 1, 1);
+            console.log("🔧 Flipper_right scale forcé à (1,1,1)");
+          }
+        }
+
         const bridges: BlenderFlipperBridge[] = [];
 
         if (flipperLeftMesh !== null) {
-          bridges.push(new BlenderFlipperBridge(leftFlipper, flipperLeftMesh));
+          bridges.push(new BlenderFlipperBridge("left", flipperLeftMesh));
           console.log("🔗 Bridge gauche prêt");
         }
         if (flipperRightMesh !== null) {
-          bridges.push(new BlenderFlipperBridge(rightFlipper, flipperRightMesh));
+          bridges.push(new BlenderFlipperBridge("right", flipperRightMesh));
           console.log("🔗 Bridge droit prêt");
         }
 

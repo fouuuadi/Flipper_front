@@ -5,9 +5,7 @@ import { SceneManager } from "@engine/SceneManager";
 import { Launcher } from "@modules/launcher/launcher";
 import {
   Playfield,
-  PLAYFIELD_HEIGHT,
   PLAYFIELD_TILT_DEG,
-  PLAYFIELD_WIDTH,
 } from "@modules/playfield";
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
@@ -66,16 +64,32 @@ async function initPhysics() {
 
   const world = physics.getWorld();
 
-  physics.createBounds({
-    y: 0,
-    length: PLAYFIELD_HEIGHT,
-    width: PLAYFIELD_WIDTH,
-    tiltDeg: PLAYFIELD_TILT_DEG,
+  // [BLENDER] Ancien sol calé sur la table Three.js — remplacé par le sol Blender ci-dessous
+  // physics.createBounds({
+  //   y: 0,
+  //   length: PLAYFIELD_HEIGHT,
+  //   width: PLAYFIELD_WIDTH,
+  //   tiltDeg: PLAYFIELD_TILT_DEG,
+  // });
+
+  // Sol physique calé sur la surface de la table Blender (Plane à y≈0.33, centré à z≈1.12)
+  // Centre du body à y=0.13 → surface haute à y≈0.33 (=0.13+0.2), aligne avec le mesh Blender
+  // Inclinaison négative → balle roule vers z<0 (côté flippers Blender à z≈-2.3)
+  const blenderTiltRad = -(PLAYFIELD_TILT_DEG * Math.PI) / 180;
+  physics.addBody({
+    id: "playfield",
+    position: { x: 0, y: 0.13, z: 1.12 },
+    rotation: { x: blenderTiltRad, y: 0, z: 0 },
+    isStatic: true,
+    shape: "box",
+    halfExtents: { x: 3.0, y: 0.2, z: 6.0 },
+    friction: 0.7,
+    restitution: 0.0,
   });
 
   ball = new Ball(physics, {
     id: "main-ball",
-    initialPosition: { x: 0, y: 1.5, z: 3 },
+    initialPosition: { x: 0, y: 2.0, z: 3.5 }, // Haut au-dessus de la table Blender, côté lanceur
     radius: 0.12,
     mass: 0.08,
     friction: 0.12,
