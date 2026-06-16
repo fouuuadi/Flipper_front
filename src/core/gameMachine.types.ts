@@ -25,7 +25,9 @@ export type GameStateValue =
   | "playing"
   | "paused"
   | "gameOver"
-  | "leaderboard";
+  | "leaderboard"
+  | "cosmetics"
+  | "settings";
 
 export interface GameContext {
   mode: GameMode | null;
@@ -62,6 +64,8 @@ export type GameEvent =
   | { type: "ABANDON" }
   | { type: "GAME_OVER" }
   | { type: "OPEN_LEADERBOARD" }
+  | { type: "OPEN_COSMETICS" }
+  | { type: "OPEN_SETTINGS" }
   | { type: "BACK_TO_MENU" }
   | { type: "REPLAY" }
   /**

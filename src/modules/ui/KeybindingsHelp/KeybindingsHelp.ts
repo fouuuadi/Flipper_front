@@ -19,6 +19,8 @@ const SECTION_ORDER: readonly GameStateValue[] = [
   "paused",
   "gameOver",
   "leaderboard",
+  "cosmetics",
+  "settings",
 ];
 
 import "./keybindings-help.css";
@@ -228,6 +230,10 @@ function stateLabel(state: GameStateValue): string {
       return "Fin de partie";
     case "leaderboard":
       return "Classement";
+    case "cosmetics":
+      return "Boutique";
+    case "settings":
+      return "Parametres";
   }
 }
 

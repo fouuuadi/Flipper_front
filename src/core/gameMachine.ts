@@ -46,6 +46,8 @@ const transitions: TransitionTable = {
   menu: {
     START_GAME: () => ({ value: "identification" }),
     OPEN_LEADERBOARD: () => ({ value: "leaderboard" }),
+    OPEN_COSMETICS: () => ({ value: "cosmetics" }),
+    OPEN_SETTINGS: () => ({ value: "settings" }),
   },
   identification: {
     PLAYERS_VALIDATED: (_ctx, event) => {
@@ -111,6 +113,19 @@ const transitions: TransitionTable = {
     },
   },
   leaderboard: {
+    BACK_TO_MENU: () => ({
+      value: "menu",
+      context: { ...initialContext },
+    }),
+  },
+  cosmetics: {
+    BACK_TO_MENU: () => ({
+      value: "menu",
+      context: { ...initialContext },
+    }),
+    START_GAME: () => ({ value: "identification" }),
+  },
+  settings: {
     BACK_TO_MENU: () => ({
       value: "menu",
       context: { ...initialContext },

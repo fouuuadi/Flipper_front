@@ -95,9 +95,9 @@ export class BackglassApp {
    * et abonne le rendu aux events. Sans `session_id`, reste sur l'écran
    * d'attente jusqu'à ce que l'utilisateur recharge avec le bon paramètre.
    */
-  start(): void {
+  start(sessionIdOverride?: string | null): void {
     const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
+    const sessionId = sessionIdOverride ?? params.get("session_id");
     if (!sessionId) {
       this.state = { ...INITIAL_STATE, status: "waiting-session" };
       this.render();
@@ -124,6 +124,7 @@ export class BackglassApp {
     this.matchTimer.reset();
     this.sync?.disconnect();
     this.sync = null;
+    this.root.remove();
   }
 
   private handleEvent(event: WsServerEvent): void {
