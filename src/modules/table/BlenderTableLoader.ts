@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import type * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { BlenderFlipperBridge } from "./BlenderFlipperBridge";
 
@@ -6,20 +6,32 @@ export interface BlenderTableResult {
   bridges: BlenderFlipperBridge[];
 }
 
+<<<<<<< HEAD
 export function loadBlenderTable(scene: THREE.Scene): Promise<BlenderTableResult> {
+=======
+/**
+ * Charge la table modélisée sous Blender (GLB) dans la scène et branche un
+ * bridge par flipper trouvé dans la hiérarchie GLB (`flipper_left` /
+ * `flipper_right`) pour synchroniser leur visuel sur les flippers physiques.
+ */
+export function loadBlenderTable(
+  scene: THREE.Scene,
+  leftFlipper: Flipper,
+  rightFlipper: Flipper,
+): Promise<BlenderTableResult> {
+>>>>>>> 98474e0 (fix(blender): repair table loader types and sync flippers to physics)
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader();
 
     loader.load(
       "/models/tableMarioGalaxy.glb",
-
       (gltf) => {
-        const tableScene = gltf.scene;
-        scene.add(tableScene);
+        scene.add(gltf.scene);
 
-        console.log("✅ Table Blender chargée");
-        console.log("   scale racine :", tableScene.scale.toArray());
+        const flipperLeftMesh = gltf.scene.getObjectByName("flipper_left") ?? null;
+        const flipperRightMesh = gltf.scene.getObjectByName("flipper_right") ?? null;
 
+<<<<<<< HEAD
         tableScene.traverse((obj) => {
           if (obj.name) {
             console.log(
@@ -60,20 +72,23 @@ export function loadBlenderTable(scene: THREE.Scene): Promise<BlenderTableResult
         if (flipperRightMesh !== null) {
           bridges.push(new BlenderFlipperBridge("right", flipperRightMesh));
           console.log("🔗 Bridge droit prêt");
+=======
+        if (!flipperLeftMesh) console.warn('⚠️ "flipper_left" introuvable dans le GLB');
+        if (!flipperRightMesh) console.warn('⚠️ "flipper_right" introuvable dans le GLB');
+
+        const bridges: BlenderFlipperBridge[] = [];
+        if (flipperLeftMesh) {
+          bridges.push(new BlenderFlipperBridge(leftFlipper, flipperLeftMesh));
+        }
+        if (flipperRightMesh) {
+          bridges.push(new BlenderFlipperBridge(rightFlipper, flipperRightMesh));
+>>>>>>> 98474e0 (fix(blender): repair table loader types and sync flippers to physics)
         }
 
         resolve({ bridges });
       },
-
-      (progress) => {
-        if (progress.total > 0)
-          console.log(`⏳ GLB : ${Math.round((progress.loaded / progress.total) * 100)}%`);
-      },
-
-      (error) => {
-        console.error("❌ Erreur GLB :", error);
-        reject(error);
-      },
+      undefined,
+      (error) => reject(error),
     );
   });
 }
