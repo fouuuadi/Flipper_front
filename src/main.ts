@@ -18,6 +18,8 @@ import { Identification } from "@modules/identification";
 import { Pause } from "@modules/pause";
 import { GameOver } from "@modules/gameOver";
 import { Leaderboard } from "@modules/leaderboard";
+import { CosmeticsStore } from "@modules/cosmetics";
+import { Settings } from "@modules/settings";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI — ScreenRouter pilote le cycle de vie de chaque écran selon la SM.
@@ -54,6 +56,16 @@ const factories: ScreenFactoryMap = {
     const lb = new Leaderboard();
     lb.mount(host);
     return { stop: () => lb.unmount() };
+  },
+  cosmetics: (host) => {
+    const cosmetics = new CosmeticsStore();
+    cosmetics.mount(host);
+    return { stop: () => cosmetics.unmount() };
+  },
+  settings: (host) => {
+    const settings = new Settings();
+    settings.mount(host);
+    return { stop: () => settings.unmount() };
   },
 };
 

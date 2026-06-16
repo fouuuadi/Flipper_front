@@ -48,6 +48,8 @@ export const BINDINGS: readonly KeyBinding[] = [
   // menu
   { state: "menu", key: "Enter", event: "START_GAME", label: "Démarrer une partie" },
   { state: "menu", key: "l", event: "OPEN_LEADERBOARD", label: "Ouvrir le leaderboard" },
+  { state: "menu", key: "b", event: "OPEN_COSMETICS", label: "Ouvrir la boutique" },
+  { state: "menu", key: "p", event: "OPEN_SETTINGS", label: "Ouvrir les parametres" },
 
   // identification — pas de binding global ; l'Input.ts gère sa saisie
 
@@ -64,6 +66,8 @@ export const BINDINGS: readonly KeyBinding[] = [
 
   // leaderboard
   { state: "leaderboard", key: "Escape", event: "BACK_TO_MENU", label: "Retour au menu" },
+  { state: "cosmetics", key: "Escape", event: "BACK_TO_MENU", label: "Retour au menu" },
+  { state: "settings", key: "Escape", event: "BACK_TO_MENU", label: "Retour au menu" },
 ];
 
 /**

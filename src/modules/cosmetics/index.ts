@@ -1,0 +1,1 @@
+export { CosmeticsStore } from "./CosmeticsStore";

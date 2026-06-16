@@ -47,6 +47,16 @@ describe("gameMachine — menu transitions", () => {
     expect(next?.value).toBe("leaderboard");
   });
 
+  it("menu + OPEN_COSMETICS → cosmetics", () => {
+    const next = transition(snapshotAt("menu"), { type: "OPEN_COSMETICS" });
+    expect(next?.value).toBe("cosmetics");
+  });
+
+  it("menu + OPEN_SETTINGS → settings", () => {
+    const next = transition(snapshotAt("menu"), { type: "OPEN_SETTINGS" });
+    expect(next?.value).toBe("settings");
+  });
+
   it("menu + RESUME → no transition (invalid)", () => {
     const next = transition(snapshotAt("menu"), { type: "RESUME" });
     expect(next).toBeNull();
@@ -218,6 +228,31 @@ describe("gameMachine — leaderboard transitions", () => {
   });
 });
 
+describe("gameMachine — cosmetics transitions", () => {
+  it("cosmetics + BACK_TO_MENU → menu + context reset", () => {
+    const next = transition(snapshotAt("cosmetics"), {
+      type: "BACK_TO_MENU",
+    });
+    expect(next?.value).toBe("menu");
+    expect(next?.context).toEqual(initialContext);
+  });
+
+  it("cosmetics + START_GAME → identification", () => {
+    const next = transition(snapshotAt("cosmetics"), { type: "START_GAME" });
+    expect(next?.value).toBe("identification");
+  });
+});
+
+describe("gameMachine — settings transitions", () => {
+  it("settings + BACK_TO_MENU → menu + context reset", () => {
+    const next = transition(snapshotAt("settings"), {
+      type: "BACK_TO_MENU",
+    });
+    expect(next?.value).toBe("menu");
+    expect(next?.context).toEqual(initialContext);
+  });
+});
+
 describe("gameMachine — guard against arbitrary jumps", () => {
   // Garde-fou systématique : aucun event ne doit déclencher de transition
   // depuis un état "splash" sauf PRESS_A.
@@ -228,6 +263,8 @@ describe("gameMachine — guard against arbitrary jumps", () => {
     { type: "ABANDON" as const },
     { type: "GAME_OVER" as const },
     { type: "OPEN_LEADERBOARD" as const },
+    { type: "OPEN_COSMETICS" as const },
+    { type: "OPEN_SETTINGS" as const },
     { type: "BACK_TO_MENU" as const },
     { type: "REPLAY" as const },
   ];
