@@ -34,6 +34,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Indispensable : sans ça le checkout récupère le pointeur LFS du
+          # modèle 3D (.glb, 133 o) au lieu du binaire (~71 Mo), et l'image
+          # publiée embarque une table cassée qui ne charge pas sur la borne.
+          lfs: true
 
       - name: Resolve image name
         id: vars
