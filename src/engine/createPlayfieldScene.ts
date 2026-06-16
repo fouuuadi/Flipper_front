@@ -16,6 +16,7 @@ export interface PlayfieldScene {
   readonly sceneManager: SceneManager;
   readonly leftFlipper: Flipper;
   readonly rightFlipper: Flipper;
+  readonly launcher: Launcher;
 }
 
 /**
@@ -98,5 +99,5 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
     sceneManager.dispose();
   });
 
-  return { sceneManager, leftFlipper, rightFlipper };
+  return { sceneManager, leftFlipper, rightFlipper, launcher };
 }
