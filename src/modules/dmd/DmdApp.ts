@@ -10,7 +10,7 @@ type DmdMessage = {
 };
 
 const STATUS_IDLE: DmdMessage = {
-  text: "FLIPHETIC",
+  text: "FLIP GALAXY",
   priority: 0,
   durationMs: null,
 };
