@@ -1,4 +1,5 @@
-import { gameStore } from "@core/gameStore";
+import { dispatchIntent } from "@core/keyboardDispatcher";
+import { matchSync } from "@services/matchSync";
 import "./cosmetics.css";
 
 interface SkinItem {
@@ -58,7 +59,9 @@ export class CosmeticsStore {
     backButton.className = "cosmetics-back-button";
     backButton.type = "button";
     backButton.setAttribute("aria-label", "Retour au menu");
-    backButton.addEventListener("click", () => gameStore.send({ type: "BACK_TO_MENU" }));
+    backButton.addEventListener("click", () =>
+      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+    );
 
     const arrow = document.createElement("img");
     arrow.src = `${ASSET_BASE}Fleche.png`;
@@ -233,7 +236,9 @@ export class CosmeticsStore {
     play.className = "cosmetics-nav-item cosmetics-play-button";
     play.type = "button";
     play.setAttribute("aria-label", "Jouer");
-    play.addEventListener("click", () => gameStore.send({ type: "START_GAME" }));
+    play.addEventListener("click", () =>
+      dispatchIntent({ type: "START_GAME" }, { sync: matchSync }),
+    );
     const playIcon = document.createElement("img");
     playIcon.src = `${ASSET_BASE}IconPlay.PNG`;
     playIcon.alt = "";

@@ -22,7 +22,9 @@ import { isServerEvent, type ClientCommand, type WsServerEvent } from "./protoco
  */
 export class MatchSyncAdapter {
   private socket: WebSocket | null = null;
-  private sessionId: string | null = null;
+  // Query string de la connexion courante (`session_id=…` legacy ou
+  // `borne_id=…`). Null quand déconnecté.
+  private target: string | null = null;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalDisconnect = false;
@@ -41,11 +43,20 @@ export class MatchSyncAdapter {
     this.socketFactory = options.socketFactory ?? ((url) => new WebSocket(url));
   }
 
-  /** Ouvre la connexion WS pour la session donnée. */
+  /** Ouvre la connexion WS pour la session donnée (legacy MATCH_SYNC). */
   connect(sessionId: string): void {
-    if (this.sessionId === sessionId && this.socket) return;
+    this.connectTo(`session_id=${encodeURIComponent(sessionId)}`);
+  }
+
+  /** Ouvre la connexion WS permanente sur le canal borne (partagé par les 3 écrans). */
+  connectBorne(borneId: string = env.borneId): void {
+    this.connectTo(`borne_id=${encodeURIComponent(borneId)}`);
+  }
+
+  private connectTo(target: string): void {
+    if (this.target === target && this.socket) return;
     this.disconnect();
-    this.sessionId = sessionId;
+    this.target = target;
     this.intentionalDisconnect = false;
     this.openSocket();
   }
@@ -61,7 +72,7 @@ export class MatchSyncAdapter {
       this.socket.close();
       this.socket = null;
     }
-    this.sessionId = null;
+    this.target = null;
     this.reconnectAttempts = 0;
     this.pendingDispatch.length = 0;
   }
@@ -89,8 +100,8 @@ export class MatchSyncAdapter {
   // ─── internals ────────────────────────────────────────────────────────
 
   private openSocket(): void {
-    if (!this.sessionId) return;
-    const url = `${this.baseWsUrl}?session_id=${encodeURIComponent(this.sessionId)}`;
+    if (!this.target) return;
+    const url = `${this.baseWsUrl}?${this.target}`;
     const socket = this.socketFactory(url);
     this.socket = socket;
 
@@ -105,7 +116,7 @@ export class MatchSyncAdapter {
 
     socket.addEventListener("close", () => {
       this.socket = null;
-      if (!this.intentionalDisconnect && this.sessionId) {
+      if (!this.intentionalDisconnect && this.target) {
         this.scheduleReconnect();
       }
     });

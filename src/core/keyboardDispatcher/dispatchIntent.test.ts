@@ -1,96 +1,58 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { GameStore } from "@core/gameStore";
-import type { MachineSnapshot } from "@core/gameMachine.types";
 import type { MatchSyncAdapter } from "@services/matchSync";
 
 import { dispatchIntent } from "./dispatchIntent";
-
-function fakeStore(snapshot: MachineSnapshot): Pick<GameStore, "getState" | "send"> {
-  return {
-    getState: () => snapshot,
-    send: vi.fn(),
-  };
-}
 
 function fakeSync(): Pick<MatchSyncAdapter, "dispatch"> {
   return { dispatch: vi.fn() };
 }
 
-function snapshot(sessionId: string | null): MachineSnapshot {
-  return {
-    value: "playing",
-    context: {
-      mode: "solo",
-      players: [],
-      currentBall: 1,
-      startedAt: null,
-      sessionId,
-      finalDurationMs: null,
-    },
-  };
-}
-
 describe("dispatchIntent", () => {
-  describe("avec sessionId (mode online)", () => {
-    let store: Pick<GameStore, "getState" | "send">;
-    let sync: Pick<MatchSyncAdapter, "dispatch">;
-
-    beforeEach(() => {
-      store = fakeStore(snapshot("sid-123"));
-      sync = fakeSync();
-    });
-
-    it("PAUSE → cmd:pause sur le WS, ne touche pas le store", () => {
-      dispatchIntent({ type: "PAUSE" }, { store, sync });
+  describe("contrôles de match → cmd:*", () => {
+    it("PAUSE → cmd:pause", () => {
+      const sync = fakeSync();
+      dispatchIntent({ type: "PAUSE" }, { sync });
       expect(sync.dispatch).toHaveBeenCalledWith({ type: "cmd:pause" });
-      expect(store.send).not.toHaveBeenCalled();
     });
 
     it("RESUME → cmd:resume", () => {
-      dispatchIntent({ type: "RESUME" }, { store, sync });
+      const sync = fakeSync();
+      dispatchIntent({ type: "RESUME" }, { sync });
       expect(sync.dispatch).toHaveBeenCalledWith({ type: "cmd:resume" });
-      expect(store.send).not.toHaveBeenCalled();
     });
 
     it("ABANDON → cmd:abandon", () => {
-      dispatchIntent({ type: "ABANDON" }, { store, sync });
+      const sync = fakeSync();
+      dispatchIntent({ type: "ABANDON" }, { sync });
       expect(sync.dispatch).toHaveBeenCalledWith({ type: "cmd:abandon" });
-      expect(store.send).not.toHaveBeenCalled();
-    });
-
-    it("les autres events (BACK_TO_MENU, REPLAY, …) passent au store direct", () => {
-      dispatchIntent({ type: "BACK_TO_MENU" }, { store, sync });
-      expect(store.send).toHaveBeenCalledWith({ type: "BACK_TO_MENU" });
-      expect(sync.dispatch).not.toHaveBeenCalled();
     });
   });
 
-  describe("sans sessionId (mode 1v1 mock / offline)", () => {
-    let store: Pick<GameStore, "getState" | "send">;
-    let sync: Pick<MatchSyncAdapter, "dispatch">;
-
-    beforeEach(() => {
-      store = fakeStore(snapshot(null));
-      sync = fakeSync();
+  describe("navigation → intent", () => {
+    it.each([
+      ["PRESS_A", "PRESS_A"],
+      ["START_GAME", "START_GAME"],
+      ["OPEN_LEADERBOARD", "OPEN_LEADERBOARD"],
+      ["OPEN_SETTINGS", "OPEN_SETTINGS"],
+      ["BACK_TO_MENU", "BACK_TO_MENU"],
+      ["REPLAY", "REPLAY"],
+    ] as const)("%s → intent %s", (eventType, action) => {
+      const sync = fakeSync();
+      dispatchIntent({ type: eventType }, { sync });
+      expect(sync.dispatch).toHaveBeenCalledWith({ type: "intent", action });
     });
 
-    it("PAUSE → store.send direct, jamais sync.dispatch", () => {
-      dispatchIntent({ type: "PAUSE" }, { store, sync });
-      expect(store.send).toHaveBeenCalledWith({ type: "PAUSE" });
-      expect(sync.dispatch).not.toHaveBeenCalled();
+    it("OPEN_COSMETICS → intent OPEN_BOUTIQUE (renommage front→back)", () => {
+      const sync = fakeSync();
+      dispatchIntent({ type: "OPEN_COSMETICS" }, { sync });
+      expect(sync.dispatch).toHaveBeenCalledWith({ type: "intent", action: "OPEN_BOUTIQUE" });
     });
+  });
 
-    it("RESUME → store.send direct", () => {
-      dispatchIntent({ type: "RESUME" }, { store, sync });
-      expect(store.send).toHaveBeenCalledWith({ type: "RESUME" });
-      expect(sync.dispatch).not.toHaveBeenCalled();
-    });
-
-    it("ABANDON → store.send direct (transition SM `paused`→`menu`)", () => {
-      dispatchIntent({ type: "ABANDON" }, { store, sync });
-      expect(store.send).toHaveBeenCalledWith({ type: "ABANDON" });
-      expect(sync.dispatch).not.toHaveBeenCalled();
-    });
+  it("n'émet rien pour un event local non routable (SET_FINAL_DURATION)", () => {
+    const sync = fakeSync();
+    dispatchIntent({ type: "SET_FINAL_DURATION", durationMs: 1000 }, { sync });
+    expect(sync.dispatch).not.toHaveBeenCalled();
   });
 });

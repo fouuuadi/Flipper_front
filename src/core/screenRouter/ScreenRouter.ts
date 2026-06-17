@@ -27,18 +27,20 @@ export type ScreenFactoryMap = Partial<Record<GameStateValue, ScreenFactory>>;
  * fonction de `state.value`. Une seule instance attendue par app (montée
  * dans `src/main.ts`).
  *
- * - À chaque changement de `state.value`, démonte l'écran courant puis
- *   monte le suivant via la factory correspondante.
- * - Si la factory est absente pour un état (ex: `playing`, où la 3D du
- *   playfield reste seule à l'écran), le routeur démonte juste l'écran
- *   précédent et n'en monte aucun.
- * - Si seule le contexte change (sans changement d'état), le routeur ne
- *   re-monte pas — c'est à l'écran de s'abonner au store s'il a besoin
- *   de réagir aux changements de contexte intra-état.
+ * - La déduplication se fait par **identité de factory**, pas par valeur
+ *   d'état : si plusieurs états successifs résolvent vers la *même* factory
+ *   (ex: backglass `playing`/`paused`/`gameOver` → même HUD, ou playfield
+ *   `splash`/`menu`/`identification`… → même Splash), l'écran reste monté et
+ *   gère lui-même les sous-états via ses propres abonnements. Évite tout
+ *   re-mount inutile (flicker, perte d'état, reconnexion WS).
+ * - Si la factory est absente pour un état (ex: `playing` du playfield, où la
+ *   3D reste seule), le routeur démonte juste l'écran précédent.
  */
 export class ScreenRouter {
+  private static readonly UNSET = Symbol("unset");
   private currentScreen: ScreenInstance | null = null;
-  private currentState: GameStateValue | null = null;
+  private currentFactory: ScreenFactory | undefined | typeof ScreenRouter.UNSET =
+    ScreenRouter.UNSET;
   private unsubscribe: (() => void) | null = null;
 
   constructor(
@@ -56,19 +58,18 @@ export class ScreenRouter {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.unmountCurrent();
-    this.currentState = null;
+    this.currentFactory = ScreenRouter.UNSET;
   }
 
   private onSnapshot(snap: MachineSnapshot): void {
-    if (snap.value === this.currentState) return;
+    const factory = this.factories[snap.value];
+    if (factory === this.currentFactory) return; // même écran → on le laisse monté
 
     this.unmountCurrent();
-
-    const factory = this.factories[snap.value];
+    this.currentFactory = factory;
     if (factory) {
       this.currentScreen = factory(this.host, snap.context);
     }
-    this.currentState = snap.value;
   }
 
   private unmountCurrent(): void {

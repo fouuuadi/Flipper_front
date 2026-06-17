@@ -1,4 +1,5 @@
-import { gameStore } from "@core/gameStore";
+import { dispatchIntent } from "@core/keyboardDispatcher";
+import { matchSync } from "@services/matchSync";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
@@ -330,16 +331,16 @@ export class Menu {
     window.setTimeout(() => {
       switch (button.userData.action) {
         case "play":
-          gameStore.send({ type: "START_GAME" });
+          dispatchIntent({ type: "START_GAME" }, { sync: matchSync });
           return;
         case "leaderboard":
-          gameStore.send({ type: "OPEN_LEADERBOARD" });
+          dispatchIntent({ type: "OPEN_LEADERBOARD" }, { sync: matchSync });
           return;
         case "cosmetics":
-          gameStore.send({ type: "OPEN_COSMETICS" });
+          dispatchIntent({ type: "OPEN_COSMETICS" }, { sync: matchSync });
           return;
         case "settings":
-          gameStore.send({ type: "OPEN_SETTINGS" });
+          dispatchIntent({ type: "OPEN_SETTINGS" }, { sync: matchSync });
           return;
         case "quit":
           window.close();

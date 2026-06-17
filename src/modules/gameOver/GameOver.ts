@@ -2,23 +2,22 @@ import { Button } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
 import type { MachineSnapshot, Player } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
+import { dispatchIntent } from "@core/keyboardDispatcher";
 import { formatElapsedMs } from "@modules/matchTimer";
 import { LocalStorageLeaderboardStore, type LeaderboardStore } from "@services/leaderboardStore";
-import { ApiError, finishScore, type FinishSessionResponse } from "./api";
 import { pickWinner } from "./winner";
 import "./gameOver.css";
 
 /**
  * Écran fin de partie.
  *
- * Comportement à l'entrée dans l'état `gameOver` :
- *   1. Solo + sessionId présent → POST /scores → affiche improved / previousBest.
- *   2. 1v1 ou pas de sessionId → skip back, save direct via LocalStorageLeaderboardStore.
- *   3. Toujours : save aussi dans le LocalStorageLeaderboardStore en parallèle
- *      (pour que l'écran leaderboard #79 ait des données en dev offline).
+ * La persistance en base est faite **automatiquement par le backend** au game
+ * over (plus de `POST /scores` ici → pas de double écriture). On conserve
+ * uniquement une copie locale (LocalStorageLeaderboardStore) pour le
+ * leaderboard offline en dev.
  *
- * Les actions (REPLAY / BACK_TO_MENU / OPEN_LEADERBOARD) émettent vers la SM,
- * jamais d'effet de bord direct.
+ * Les actions (REPLAY / BACK_TO_MENU / OPEN_LEADERBOARD) sont des **intentions**
+ * envoyées au backend sur le bus borne, qui décide la navigation.
  */
 export class GameOver {
   private readonly root: HTMLElement;
@@ -122,13 +121,12 @@ export class GameOver {
   }
 
   /**
-   * Coupe la WS de la partie qui vient de finir, puis transitionne la SM.
-   * La session backend est déjà côté `OVER` (cmd:abandon ou natural game over)
-   * et son score sera déjà flushé par `POST /scores` via `persist()`.
+   * Envoie l'intention de navigation au backend. On ne déconnecte JAMAIS
+   * `matchSync` : c'est le bus borne partagé et permanent (le déconnecter
+   * casserait les 3 écrans). Le backend décide la transition et la rebroadcast.
    */
   private leaveGameSession(event: { type: "REPLAY" | "OPEN_LEADERBOARD" | "BACK_TO_MENU" }): void {
-    matchSync.disconnect();
-    gameStore.send(event);
+    dispatchIntent(event, { sync: matchSync });
   }
 
   private renderSummary(snapshot: MachineSnapshot): void {
@@ -184,14 +182,14 @@ export class GameOver {
   }
 
   private async persist(snapshot: MachineSnapshot): Promise<void> {
-    const { mode, players, sessionId } = snapshot.context;
+    const { mode, players } = snapshot.context;
     if (!mode || players.length === 0) {
       this.statusEl.textContent = "";
       return;
     }
 
-    // Save local : toujours, pour que le leaderboard offline ait la data.
-    // Une entrée par joueur (en 1v1, les 2 sont insérées).
+    // Copie locale uniquement (leaderboard offline en dev). La persistance DB
+    // est faite par le backend au game over — aucun POST /scores ici.
     try {
       await Promise.all(
         players.map((p) =>
@@ -207,49 +205,7 @@ export class GameOver {
       // localStorage saturé / désactivé : on ne bloque pas l'écran pour ça.
     }
 
-    if (mode === "solo" && sessionId) {
-      await this.persistSolo(sessionId);
-      return;
-    }
-
-    // 1v1 ou session manquante : pas d'appel back.
-    this.statusEl.textContent = "Score sauvegardé localement";
-    this.recordEl.textContent = "";
-  }
-
-  private async persistSolo(sessionId: string): Promise<void> {
-    try {
-      const result = await finishScore(sessionId);
-      this.applyServerResult(result);
-    } catch (err) {
-      this.handlePersistError(err);
-    }
-  }
-
-  private applyServerResult(result: FinishSessionResponse): void {
     this.statusEl.textContent = "Score sauvegardé";
-    if (result.improved === true) {
-      this.recordEl.textContent = "Nouveau record !";
-      this.recordEl.classList.add("gameover-record--highlight");
-    } else if (result.improved === false && result.previousBest !== null) {
-      this.recordEl.textContent = `Ton record reste ${result.previousBest}`;
-    } else {
-      this.recordEl.textContent = "";
-    }
-  }
-
-  private handlePersistError(err: unknown): void {
-    this.statusEl.textContent = "Score sauvegardé localement";
-    if (err instanceof ApiError) {
-      if (err.status === 404) {
-        this.errorEl.textContent =
-          "Session expirée côté serveur — seule la copie locale a été enregistrée";
-      } else {
-        const reqId = err.requestId ? ` [reqId: ${err.requestId}]` : "";
-        this.errorEl.textContent = `Erreur serveur (${err.status}) : ${err.message}${reqId}`;
-      }
-    } else {
-      this.errorEl.textContent = "Serveur injoignable — copie locale uniquement";
-    }
+    this.recordEl.textContent = "";
   }
 }

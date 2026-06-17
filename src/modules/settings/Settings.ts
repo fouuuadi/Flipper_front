@@ -1,4 +1,5 @@
-import { gameStore } from "@core/gameStore";
+import { dispatchIntent } from "@core/keyboardDispatcher";
+import { matchSync } from "@services/matchSync";
 import "./settings.css";
 
 interface SettingSlider {
@@ -55,7 +56,9 @@ export class Settings {
     backButton.className = "settings-back-button";
     backButton.type = "button";
     backButton.setAttribute("aria-label", "Retour au menu");
-    backButton.addEventListener("click", () => gameStore.send({ type: "BACK_TO_MENU" }));
+    backButton.addEventListener("click", () =>
+      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+    );
 
     const arrow = document.createElement("img");
     arrow.src = "/images/cosmetics/Fleche.png";
@@ -165,7 +168,9 @@ export class Settings {
     backButton.className = "settings-action-button";
     backButton.type = "button";
     backButton.textContent = "RETOUR";
-    backButton.addEventListener("click", () => gameStore.send({ type: "BACK_TO_MENU" }));
+    backButton.addEventListener("click", () =>
+      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+    );
     footer.appendChild(backButton);
 
     return footer;

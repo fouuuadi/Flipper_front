@@ -5,7 +5,7 @@ import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
 
 import { gameStore } from "@core/gameStore";
 import { applyDevBoot } from "@core/devBoot";
-import { ScreenRouter, type ScreenFactoryMap } from "@core/screenRouter";
+import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindGameplayInput } from "@modules/gameplayInput";
@@ -13,35 +13,32 @@ import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 
 import { Splash } from "@modules/splash";
-import { Menu } from "@modules/menu";
-import { Identification } from "@modules/identification";
 import { Pause } from "@modules/pause";
 import { GameOver } from "@modules/gameOver";
-import { Leaderboard } from "@modules/leaderboard";
-import { CosmeticsStore } from "@modules/cosmetics";
-import { Settings } from "@modules/settings";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UI — ScreenRouter pilote le cycle de vie de chaque écran selon la SM.
-// L'état `playing` n'a pas de factory : seule la 3D reste à l'écran.
+// UI — rôle du PLAYFIELD : il reste sur le splash pendant TOUTE la navigation
+// (menu / identification / boutique / settings / leaderboard se font sur le
+// backglass). Au passage en jeu (`nav:state: in_game` → `playing`), le splash
+// est démonté et seule la 3D reste, avec les overlays pause / game over.
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Même référence de factory pour tous les états de navigation → grâce à la
+// déduplication par factory du ScreenRouter, le splash reste monté sans flicker.
+const splashScreen: ScreenFactory = (host) => {
+  const splash = new Splash();
+  splash.mount(host);
+  return { stop: () => splash.unmount() };
+};
 
 const factories: ScreenFactoryMap = {
-  splash: (host) => {
-    const splash = new Splash();
-    splash.mount(host);
-    return { stop: () => splash.unmount() };
-  },
-  menu: (host) => {
-    const menu = new Menu();
-    menu.mount(host);
-    return { stop: () => menu.unmount() };
-  },
-  identification: (host) => {
-    const id = new Identification();
-    id.mount(host);
-    return { stop: () => id.unmount() };
-  },
+  splash: splashScreen,
+  menu: splashScreen,
+  identification: splashScreen,
+  leaderboard: splashScreen,
+  cosmetics: splashScreen,
+  settings: splashScreen,
+  // playing : pas de factory → seule la 3D reste à l'écran.
   paused: (host) => {
     const pause = new Pause();
     pause.mount(host);
@@ -52,21 +49,6 @@ const factories: ScreenFactoryMap = {
     go.mount(host);
     return { stop: () => go.unmount() };
   },
-  leaderboard: (host) => {
-    const lb = new Leaderboard();
-    lb.mount(host);
-    return { stop: () => lb.unmount() };
-  },
-  cosmetics: (host) => {
-    const cosmetics = new CosmeticsStore();
-    cosmetics.mount(host);
-    return { stop: () => cosmetics.unmount() };
-  },
-  settings: (host) => {
-    const settings = new Settings();
-    settings.mount(host);
-    return { stop: () => settings.unmount() };
-  },
 };
 
 async function bootstrap() {
@@ -75,10 +57,11 @@ async function bootstrap() {
   //    subscribe initial. No-op sans le query param et en prod.
   applyDevBoot(gameStore);
 
-  // 1. Câbler les events serveur (match:state) sur la SM. Idempotent : peut
-  //    s'abonner sans WS ouverte ; l'écran identification déclenchera le
-  //    `matchSync.connect()` une fois la session créée.
+  // 1. Mode follower : le backend décide, le front applique. On branche le bus
+  //    borne sur la SM (nav:state + match:state) et on ouvre la connexion
+  //    permanente au boot — bien avant toute partie.
   bindMatchSyncToGameStore(matchSync, gameStore);
+  matchSync.connectBorne();
 
   // 2. Dispatcher clavier global (Échap → PAUSE/RESUME, A → ABANDON, etc.)
   new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();

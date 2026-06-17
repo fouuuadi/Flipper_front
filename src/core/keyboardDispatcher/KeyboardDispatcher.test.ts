@@ -62,6 +62,7 @@ function makeStore(initial: MachineSnapshot): MutableStore {
   return {
     getState: () => snap,
     send: vi.fn(),
+    applyServerState: vi.fn(),
     subscribe: () => () => {},
     __setState: (next) => {
       snap = next;
@@ -112,21 +113,9 @@ describe("KeyboardDispatcher", () => {
     expect(sync.dispatch).not.toHaveBeenCalled();
   });
 
-  it("route une touche vers le store quand pas de session (PAUSE en playing)", () => {
+  it("PAUSE en playing → cmd:pause sur le bus borne, jamais le store", () => {
     const target = new FakeEventTarget();
     const store = makeStore(snapshotIn("playing"));
-    const sync = makeSync();
-    new KeyboardDispatcher({ store, sync, target }).start();
-
-    target.dispatchEvent(fakeKey("Escape"));
-
-    expect(store.send).toHaveBeenCalledWith({ type: "PAUSE" });
-    expect(sync.dispatch).not.toHaveBeenCalled();
-  });
-
-  it("route via cmd:pause quand il y a une session (PAUSE en playing online)", () => {
-    const target = new FakeEventTarget();
-    const store = makeStore(snapshotIn("playing", "sid-abc"));
     const sync = makeSync();
     new KeyboardDispatcher({ store, sync, target }).start();
 
@@ -136,7 +125,19 @@ describe("KeyboardDispatcher", () => {
     expect(store.send).not.toHaveBeenCalled();
   });
 
-  it("matche le wildcard du splash : n'importe quelle touche → PRESS_A", () => {
+  it("RESUME en paused → cmd:resume", () => {
+    const target = new FakeEventTarget();
+    const store = makeStore(snapshotIn("paused"));
+    const sync = makeSync();
+    new KeyboardDispatcher({ store, sync, target }).start();
+
+    target.dispatchEvent(fakeKey("Escape"));
+
+    expect(sync.dispatch).toHaveBeenCalledWith({ type: "cmd:resume" });
+    expect(store.send).not.toHaveBeenCalled();
+  });
+
+  it("matche le wildcard du splash : n'importe quelle touche → intent PRESS_A", () => {
     const target = new FakeEventTarget();
     const store = makeStore(snapshotIn("splash"));
     const sync = makeSync();
@@ -146,8 +147,9 @@ describe("KeyboardDispatcher", () => {
     target.dispatchEvent(fakeKey("Enter"));
     target.dispatchEvent(fakeKey(" "));
 
-    expect(store.send).toHaveBeenCalledTimes(3);
-    expect(store.send).toHaveBeenCalledWith({ type: "PRESS_A" });
+    expect(sync.dispatch).toHaveBeenCalledTimes(3);
+    expect(sync.dispatch).toHaveBeenCalledWith({ type: "intent", action: "PRESS_A" });
+    expect(store.send).not.toHaveBeenCalled();
   });
 
   it("ignore une touche qui n'a pas de binding pour l'état courant", () => {
@@ -158,7 +160,7 @@ describe("KeyboardDispatcher", () => {
 
     target.dispatchEvent(fakeKey("z")); // menu n'a que Enter et "l"
 
-    expect(store.send).not.toHaveBeenCalled();
+    expect(sync.dispatch).not.toHaveBeenCalled();
   });
 
   it("court-circuite tout quand la modal d'aide est ouverte", () => {
@@ -182,7 +184,7 @@ describe("KeyboardDispatcher", () => {
 
     target.dispatchEvent(fakeKey("a", { fromInput: true }));
 
-    expect(store.send).not.toHaveBeenCalled();
+    expect(sync.dispatch).not.toHaveBeenCalled();
   });
 
   it("stop() retire le listener — plus aucun event ne passe", () => {
@@ -195,7 +197,7 @@ describe("KeyboardDispatcher", () => {
 
     target.dispatchEvent(fakeKey("Escape"));
 
-    expect(store.send).not.toHaveBeenCalled();
+    expect(sync.dispatch).not.toHaveBeenCalled();
   });
 
   it("start() est idempotent (pas de double listener)", () => {
@@ -208,7 +210,7 @@ describe("KeyboardDispatcher", () => {
 
     target.dispatchEvent(fakeKey("Escape"));
 
-    expect(store.send).toHaveBeenCalledTimes(1);
+    expect(sync.dispatch).toHaveBeenCalledTimes(1);
   });
 
   it("lit l'état SM à chaque keydown (pas figé au start)", () => {
@@ -217,12 +219,12 @@ describe("KeyboardDispatcher", () => {
     const sync = makeSync();
     new KeyboardDispatcher({ store, sync, target }).start();
 
-    target.dispatchEvent(fakeKey("Escape")); // playing → PAUSE
+    target.dispatchEvent(fakeKey("Escape")); // playing → cmd:pause
     store.__setState(snapshotIn("paused"));
-    target.dispatchEvent(fakeKey("Escape")); // paused → RESUME
+    target.dispatchEvent(fakeKey("Escape")); // paused → cmd:resume
 
-    expect(store.send).toHaveBeenNthCalledWith(1, { type: "PAUSE" });
-    expect(store.send).toHaveBeenNthCalledWith(2, { type: "RESUME" });
+    expect(sync.dispatch).toHaveBeenNthCalledWith(1, { type: "cmd:pause" });
+    expect(sync.dispatch).toHaveBeenNthCalledWith(2, { type: "cmd:resume" });
   });
 
   it("n'intercepte jamais `?` (réservé à la modal d'aide)", () => {
@@ -246,7 +248,7 @@ describe("KeyboardDispatcher", () => {
     target.dispatchEvent(fakeKey("A")); // ABANDON même en MAJ
     target.dispatchEvent(fakeKey("a"));
 
-    expect(store.send).toHaveBeenCalledTimes(2);
-    expect(store.send).toHaveBeenCalledWith({ type: "ABANDON" });
+    expect(sync.dispatch).toHaveBeenCalledTimes(2);
+    expect(sync.dispatch).toHaveBeenCalledWith({ type: "cmd:abandon" });
   });
 });

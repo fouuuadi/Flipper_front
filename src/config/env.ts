@@ -6,6 +6,7 @@ interface EnvConfig {
   isProd: boolean;
   apiBaseUrl: string;
   wsUrl: string;
+  borneId: string;
   appTitle: string;
 }
 
@@ -29,5 +30,9 @@ export const env: EnvConfig = {
   // route `/api` et `/ws` vers le backend. Surchargeables via VITE_*.
   apiBaseUrl: (import.meta.env.VITE_API_BASE_URL as string) ?? "/api",
   wsUrl: (import.meta.env.VITE_WS_URL as string) ?? defaultWsUrl(),
+  // Identifiant du canal borne partagé par les 3 écrans. DOIT correspondre au
+  // `BORNE_ID` du backend (inliné au build par Vite). Défaut aligné sur le
+  // `.env` backend de dev.
+  borneId: (import.meta.env.VITE_BORNE_ID as string) ?? "flipper-cabinet-1",
   appTitle: (import.meta.env.VITE_APP_TITLE as string) ?? "Flipper",
 };
