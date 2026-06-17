@@ -14,6 +14,17 @@ export type MatchStatus = "waiting" | "ready" | "playing" | "paused" | "over";
 /** Valeurs émises par le countdown pré-partie (4 ticks, 1 par seconde). */
 export type CountdownValue = 3 | 2 | 1 | 0;
 
+/** Phase de navigation partagée par les 3 écrans (miroir de `BorneNavState` Python). */
+export type BorneNav =
+  | "splash"
+  | "menu"
+  | "identification"
+  | "boutique"
+  | "settings"
+  | "leaderboard"
+  | "in_game"
+  | "game_over";
+
 // ─────────────────────────────────────────────────────────────
 // Server → Client
 // ─────────────────────────────────────────────────────────────
@@ -22,6 +33,17 @@ export interface MatchStateEvent {
   readonly type: "match:state";
   readonly status: MatchStatus;
   readonly sessionId: string;
+}
+
+/**
+ * État de navigation partagé, broadcasté par la borne. C'est le canal qui
+ * synchronise splash/menu/identification/boutique… entre les 3 écrans.
+ * `sessionId` est non-null une fois une partie démarrée (`nav: "in_game"`).
+ */
+export interface NavStateEvent {
+  readonly type: "nav:state";
+  readonly nav: BorneNav;
+  readonly sessionId: string | null;
 }
 
 export interface CountdownTickEvent {
@@ -49,6 +71,7 @@ export interface GameOverEvent {
 
 /** Union discriminée de tous les events émis par le serveur. */
 export type WsServerEvent =
+  | NavStateEvent
   | MatchStateEvent
   | CountdownTickEvent
   | ScoreUpdateEvent
@@ -60,6 +83,7 @@ export function isServerEvent(payload: unknown): payload is WsServerEvent {
   if (!payload || typeof payload !== "object") return false;
   const type = (payload as { type?: unknown }).type;
   return (
+    type === "nav:state" ||
     type === "match:state" ||
     type === "countdown:tick" ||
     type === "score:update" ||
@@ -84,5 +108,26 @@ export interface AbandonCommand {
   readonly type: "cmd:abandon";
 }
 
-/** Intentions UI envoyées au back pour piloter le `SessionStatus`. */
-export type ClientCommand = PauseCommand | ResumeCommand | AbandonCommand;
+/**
+ * Actions de navigation envoyées au backend (qui décide les transitions).
+ * Miroir des events du front `gameMachine`, désormais arbitrés côté serveur.
+ */
+export type NavAction =
+  | "PRESS_A"
+  | "START_GAME"
+  | "OPEN_LEADERBOARD"
+  | "OPEN_BOUTIQUE"
+  | "OPEN_SETTINGS"
+  | "BACK_TO_MENU"
+  | "PLAYERS_VALIDATED"
+  | "REPLAY";
+
+/** Intention de navigation envoyée sur le bus borne. */
+export interface IntentCommand {
+  readonly type: "intent";
+  readonly action: NavAction;
+  readonly payload?: Record<string, unknown>;
+}
+
+/** Messages client → serveur : intentions de navigation + contrôles de match. */
+export type ClientCommand = IntentCommand | PauseCommand | ResumeCommand | AbandonCommand;

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { bindMatchSyncToGameStore } from "./bindToGameStore";
 import { MatchSyncAdapter } from "./MatchSyncAdapter";
 import type { GameStore } from "@core/gameStore";
-import type { GameEvent, MachineSnapshot } from "@core/gameMachine.types";
+import type { GameContext, GameStateValue, MachineSnapshot } from "@core/gameMachine.types";
 
 class MockSocket {
   static readonly OPEN = 1;
@@ -29,12 +29,13 @@ class MockSocket {
   }
 }
 
+type Applied = { value: GameStateValue; patch?: Partial<GameContext> };
+
 function fakeStore(initial: MachineSnapshot["value"]): GameStore & {
-  __sent: GameEvent[];
-  __setState: (value: MachineSnapshot["value"]) => void;
+  __applied: Applied[];
 } {
   let value = initial;
-  const sent: GameEvent[] = [];
+  const applied: Applied[] = [];
   return {
     getState: () => ({
       value,
@@ -47,14 +48,13 @@ function fakeStore(initial: MachineSnapshot["value"]): GameStore & {
         finalDurationMs: null,
       },
     }),
-    send: (event: GameEvent) => {
-      sent.push(event);
-    },
-    subscribe: () => () => {},
-    __sent: sent,
-    __setState: (v) => {
+    send: () => {},
+    applyServerState: (v, patch) => {
+      applied.push({ value: v, patch });
       value = v;
     },
+    subscribe: () => () => {},
+    __applied: applied,
   };
 }
 
@@ -67,106 +67,102 @@ function setupSync(): { sync: MatchSyncAdapter; socket: MockSocket } {
       return socket as unknown as WebSocket;
     },
   });
-  sync.connect("s1");
+  sync.connectBorne("borne-1");
   socket!.triggerOpen();
   return { sync, socket: socket! };
 }
 
-describe("bindMatchSyncToGameStore — match:state mapping", () => {
-  it("playing + match:state paused → PAUSE", () => {
+describe("bindMatchSyncToGameStore — nav:state mapping", () => {
+  it.each([
+    ["splash", "splash"],
+    ["menu", "menu"],
+    ["identification", "identification"],
+    ["boutique", "cosmetics"],
+    ["settings", "settings"],
+    ["leaderboard", "leaderboard"],
+    ["in_game", "playing"],
+    ["game_over", "gameOver"],
+  ] as const)("nav %s → état %s", (nav, expected) => {
+    const { sync, socket } = setupSync();
+    const store = fakeStore("splash");
+    bindMatchSyncToGameStore(sync, store);
+    socket.triggerMessage({ type: "nav:state", nav, sessionId: null });
+    expect(store.__applied).toEqual([{ value: expected, patch: { sessionId: null } }]);
+  });
+
+  it("propage le sessionId du nav:state", () => {
+    const { sync, socket } = setupSync();
+    const store = fakeStore("identification");
+    bindMatchSyncToGameStore(sync, store);
+    socket.triggerMessage({ type: "nav:state", nav: "in_game", sessionId: "sess-9" });
+    expect(store.__applied).toEqual([{ value: "playing", patch: { sessionId: "sess-9" } }]);
+  });
+});
+
+describe("bindMatchSyncToGameStore — match:state (sous-phase de jeu)", () => {
+  it("playing + match:state paused → paused", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("playing");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "paused",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([{ type: "PAUSE" }]);
+    socket.triggerMessage({ type: "match:state", status: "paused", sessionId: "s1" });
+    expect(store.__applied).toEqual([{ value: "paused", patch: { sessionId: "s1" } }]);
   });
 
-  it("paused + match:state playing → RESUME", () => {
+  it("paused + match:state playing → playing", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("paused");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "playing",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([{ type: "RESUME" }]);
+    socket.triggerMessage({ type: "match:state", status: "playing", sessionId: "s1" });
+    expect(store.__applied).toEqual([{ value: "playing", patch: { sessionId: "s1" } }]);
   });
 
-  it("playing + match:state over → GAME_OVER", () => {
+  it("playing + match:state over → gameOver", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("playing");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "over",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([{ type: "GAME_OVER" }]);
+    socket.triggerMessage({ type: "match:state", status: "over", sessionId: "s1" });
+    expect(store.__applied).toEqual([{ value: "gameOver", patch: { sessionId: "s1" } }]);
   });
 
-  it("paused + match:state over → GAME_OVER (abandon depuis pause)", () => {
+  it("nav:state in_game puis match:state paused → établit playing puis paused", () => {
     const { sync, socket } = setupSync();
-    const store = fakeStore("paused");
+    const store = fakeStore("identification");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "over",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([{ type: "GAME_OVER" }]);
+    socket.triggerMessage({ type: "nav:state", nav: "in_game", sessionId: "s1" });
+    socket.triggerMessage({ type: "match:state", status: "paused", sessionId: "s1" });
+    expect(store.__applied).toEqual([
+      { value: "playing", patch: { sessionId: "s1" } },
+      { value: "paused", patch: { sessionId: "s1" } },
+    ]);
   });
 });
 
 describe("bindMatchSyncToGameStore — events ignorés", () => {
-  it("ignore match:state ready/waiting (transitions locales)", () => {
+  it("ignore match:state hors phase de jeu (ex: en identification)", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("identification");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "ready",
-      sessionId: "s1",
-    });
-    socket.triggerMessage({
-      type: "match:state",
-      status: "waiting",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([]);
+    socket.triggerMessage({ type: "match:state", status: "playing", sessionId: "s1" });
+    socket.triggerMessage({ type: "match:state", status: "paused", sessionId: "s1" });
+    expect(store.__applied).toEqual([]);
   });
 
-  it("ignore match:state playing si on n'est pas en paused", () => {
+  it("ignore match:state waiting", () => {
     const { sync, socket } = setupSync();
-    const store = fakeStore("identification");
+    const store = fakeStore("playing");
     bindMatchSyncToGameStore(sync, store);
-    socket.triggerMessage({
-      type: "match:state",
-      status: "playing",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([]);
+    socket.triggerMessage({ type: "match:state", status: "waiting", sessionId: "s1" });
+    expect(store.__applied).toEqual([]);
   });
 
-  it("ignore countdown:tick (consommé par l'overlay countdown)", () => {
+  it("ignore countdown:tick / score:update / ball:lost", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("playing");
     bindMatchSyncToGameStore(sync, store);
     socket.triggerMessage({ type: "countdown:tick", value: 3 });
-    expect(store.__sent).toEqual([]);
-  });
-
-  it("ignore score:update et ball:lost (consommés par le HUD)", () => {
-    const { sync, socket } = setupSync();
-    const store = fakeStore("playing");
-    bindMatchSyncToGameStore(sync, store);
     socket.triggerMessage({ type: "score:update", score: 100, combo: 1 });
     socket.triggerMessage({ type: "ball:lost", livesRemaining: 2 });
-    expect(store.__sent).toEqual([]);
+    expect(store.__applied).toEqual([]);
   });
 });
 
@@ -176,11 +172,7 @@ describe("bindMatchSyncToGameStore — unsubscribe", () => {
     const store = fakeStore("playing");
     const unbind = bindMatchSyncToGameStore(sync, store);
     unbind();
-    socket.triggerMessage({
-      type: "match:state",
-      status: "paused",
-      sessionId: "s1",
-    });
-    expect(store.__sent).toEqual([]);
+    socket.triggerMessage({ type: "match:state", status: "paused", sessionId: "s1" });
+    expect(store.__applied).toEqual([]);
   });
 });

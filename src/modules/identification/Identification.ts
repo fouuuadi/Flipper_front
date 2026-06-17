@@ -1,8 +1,6 @@
 import { Button, PseudoInput } from "@modules/ui";
-import { gameStore } from "@core/gameStore";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
-import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
-import { ApiError, createSession, readySession } from "./api";
+import { matchSync } from "@services/matchSync";
 import { validatePseudo } from "./validation";
 import "./identification.css";
 
@@ -14,11 +12,11 @@ interface PlayerSlot {
 /**
  * Écran d'identification des joueurs (solo / 1v1).
  *
- * Solo : 1 input → POST /sessions + /ready → emit PLAYERS_VALIDATED.
- * 1v1  : 2 inputs séquentiels → emit PLAYERS_VALIDATED (mock back, cf. #59 back).
- *
- * Le composant lit la SM uniquement pour vérifier qu'on est en état `identification`
- * et envoie l'event `PLAYERS_VALIDATED` à la sortie. Aucun état parallèle.
+ * L'écran ne fait que collecter le(s) pseudo(s) puis dispatcher l'intent
+ * `PLAYERS_VALIDATED` sur le bus borne. C'est le **backend** qui crée la
+ * session et pilote la suite (ready → countdown → playing), rebroadcastée en
+ * `nav:state: in_game` / `match:state` ; le passage à l'écran de jeu est alors
+ * appliqué par le follower (`bindMatchSyncToGameStore`, branché au boot).
  */
 export class Identification {
   private readonly root: HTMLElement;
@@ -147,10 +145,10 @@ export class Identification {
     this.submitButton.setDisabled(!allOk || this.submitting);
   }
 
-  private async submit(): Promise<void> {
+  private submit(): void {
     if (this.submitting) return;
 
-    // Validation finale avant network : on affiche les erreurs cette fois.
+    // Validation finale avant envoi : on affiche les erreurs cette fois.
     const tags: PlayerTag[] = [];
     let firstError = true;
     for (const slot of this.slots) {
@@ -168,59 +166,19 @@ export class Identification {
       tags.push(res.normalized);
     }
 
+    // Le backend crée la session et pilote la suite (ready → countdown →
+    // playing), rebroadcastée sur le bus borne. On envoie juste l'intention ;
+    // l'écran de jeu prendra le relais quand `nav:state: in_game` arrivera.
     this.submitting = true;
-    this.submitButton.setLabel("Connexion…");
+    this.submitButton.setLabel("Lancement…");
     this.submitButton.setDisabled(true);
     this.setGlobalError(null);
 
-    try {
-      if (this.mode === "solo") {
-        const session = await createSession({
-          pseudo: tags[0],
-          mode: "solo",
-          room_code: null,
-        });
-        await readySession(session.session_id);
-        // Ouvre le WS et branche les events match:state sur la SM avant la
-        // transition, pour qu'un pause/abandon arrivant dans la milliseconde
-        // qui suit ne soit pas perdu.
-        bindMatchSyncToGameStore(matchSync, gameStore);
-        matchSync.connect(session.session_id);
-        // Le serveur normalise le pseudo — on remplace par sa valeur de vérité.
-        gameStore.send({
-          type: "PLAYERS_VALIDATED",
-          mode: "solo",
-          players: [session.pseudo as PlayerTag],
-          sessionId: session.session_id,
-        });
-      } else {
-        // 1v1 : matchmaking back pas dispo (issue #59 back). Mock front,
-        // pas de session backend → pas de WS à ouvrir, sessionId null.
-        gameStore.send({
-          type: "PLAYERS_VALIDATED",
-          mode: "1v1",
-          players: tags,
-          sessionId: null,
-        });
-      }
-    } catch (err) {
-      this.setGlobalError(this.formatError(err));
-      this.submitButton.setLabel("Lancer la partie");
-      this.submitting = false;
-      this.recomputeReady();
-    }
-  }
-
-  private formatError(err: unknown): string {
-    if (err instanceof ApiError) {
-      const reqId = err.requestId ? ` [reqId: ${err.requestId}]` : "";
-      if (err.status === 404) return `Session introuvable. Réessaie.${reqId}`;
-      if (err.code === "ValidationError" || err.code === "InvalidPseudoError") {
-        return `Pseudo refusé par le serveur : ${err.message}${reqId}`;
-      }
-      return `Erreur serveur (${err.status}) : ${err.message}${reqId}`;
-    }
-    return "Connexion impossible. Vérifie que le serveur tourne.";
+    matchSync.dispatch({
+      type: "intent",
+      action: "PLAYERS_VALIDATED",
+      payload: { pseudo: tags[0], mode: this.mode, players: tags },
+    });
   }
 
   private setGlobalError(message: string | null): void {

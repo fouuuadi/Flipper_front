@@ -1,5 +1,7 @@
 import { Button } from "@modules/ui";
 import { gameStore } from "@core/gameStore";
+import { dispatchIntent } from "@core/keyboardDispatcher";
+import { matchSync } from "@services/matchSync";
 import type { GameMode } from "@core/gameMachine.types";
 import {
   LocalStorageLeaderboardStore,
@@ -78,7 +80,7 @@ export class Leaderboard {
     this.backButton = new Button({
       label: "Retour menu",
       variant: "ghost",
-      onClick: () => gameStore.send({ type: "BACK_TO_MENU" }),
+      onClick: () => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
     });
     this.backButton.mount(actions);
     card.appendChild(actions);

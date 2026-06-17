@@ -7,13 +7,20 @@
  */
 
 import { initialContext, initialState, transition } from "./gameMachine";
-import type { GameEvent, MachineSnapshot } from "./gameMachine.types";
+import type { GameContext, GameEvent, GameStateValue, MachineSnapshot } from "./gameMachine.types";
 
 export type GameStoreListener = (snapshot: MachineSnapshot) => void;
 
 export interface GameStore {
   getState(): MachineSnapshot;
   send(event: GameEvent): void;
+  /**
+   * Applique directement un état imposé par le backend (mode « follower »),
+   * sans passer par `transition()`. Le contexte est **fusionné** (patch
+   * partiel) pour préserver les infos locales déjà connues (ex: joueurs saisis
+   * à l'identification) tout en laissant le backend piloter la valeur d'état.
+   */
+  applyServerState(value: GameStateValue, contextPatch?: Partial<GameContext>): void;
   subscribe(listener: GameStoreListener): () => void;
 }
 
@@ -45,6 +52,14 @@ export function createGameStore(): GameStore {
     listeners.forEach((l) => l(snapshot));
   }
 
+  function applyServerState(value: GameStateValue, contextPatch?: Partial<GameContext>): void {
+    snapshot = {
+      value,
+      context: contextPatch ? { ...snapshot.context, ...contextPatch } : snapshot.context,
+    };
+    listeners.forEach((l) => l(snapshot));
+  }
+
   function subscribe(listener: GameStoreListener): () => void {
     listeners.add(listener);
     listener(snapshot);
@@ -53,7 +68,7 @@ export function createGameStore(): GameStore {
     };
   }
 
-  return { getState, send, subscribe };
+  return { getState, send, applyServerState, subscribe };
 }
 
 /** Instance singleton consommée par l'app playfield. */

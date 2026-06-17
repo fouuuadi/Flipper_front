@@ -1,4 +1,4 @@
-import { MatchSyncAdapter, type MatchStatus, type WsServerEvent } from "@services/matchSync";
+import type { MatchSyncAdapter, MatchStatus, WsServerEvent } from "@services/matchSync";
 import { attachCountdownOverlay } from "@modules/countdown";
 import { MatchTimer, formatElapsedMs } from "@modules/matchTimer";
 import "./backglass.css";
@@ -14,7 +14,7 @@ interface HudState {
 }
 
 const INITIAL_STATE: HudState = {
-  status: "waiting-session",
+  status: "waiting",
   score: 0,
   combo: 0,
   lives: DEFAULT_LIVES,
@@ -39,7 +39,7 @@ export class BackglassApp {
   private readonly overlayEl: HTMLElement;
   private state: HudState = { ...INITIAL_STATE };
   private detachCountdown: (() => void) | null = null;
-  private sync: MatchSyncAdapter | null = null;
+  private unsubscribe: (() => void) | null = null;
   private readonly matchTimer = new MatchTimer();
   private unsubscribeTimer: (() => void) | null = null;
 
@@ -91,24 +91,13 @@ export class BackglassApp {
   }
 
   /**
-   * Démarre l'app : lit le `session_id` depuis l'URL, connecte le matchSync
-   * et abonne le rendu aux events. Sans `session_id`, reste sur l'écran
-   * d'attente jusqu'à ce que l'utilisateur recharge avec le bon paramètre.
+   * Démarre le HUD sur le bus borne **partagé** (connecté au boot). L'app n'est
+   * montée que pendant la phase de jeu (`playing`/`paused`/`gameOver`) : à ce
+   * stade une partie est en cours, le countdown et les `match:state` suivent.
    */
-  start(sessionIdOverride?: string | null): void {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = sessionIdOverride ?? params.get("session_id");
-    if (!sessionId) {
-      this.state = { ...INITIAL_STATE, status: "waiting-session" };
-      this.render();
-      return;
-    }
-
-    this.sync = new MatchSyncAdapter();
-    this.detachCountdown = attachCountdownOverlay(this.sync, this.root);
-    this.sync.onEvent((event) => this.handleEvent(event));
-    this.sync.connect(sessionId);
-    // En attendant le 1er match:state broadcast, on affiche "Connecté…".
+  start(sync: MatchSyncAdapter): void {
+    this.detachCountdown = attachCountdownOverlay(sync, this.root);
+    this.unsubscribe = sync.onEvent((event) => this.handleEvent(event));
     this.state = { ...INITIAL_STATE, status: "waiting" };
     this.unsubscribeTimer = this.matchTimer.subscribe((elapsed) => {
       this.timerEl.textContent = formatElapsedMs(elapsed);
@@ -122,8 +111,10 @@ export class BackglassApp {
     this.unsubscribeTimer?.();
     this.unsubscribeTimer = null;
     this.matchTimer.reset();
-    this.sync?.disconnect();
-    this.sync = null;
+    // Ne PAS déconnecter le bus borne : il est partagé et permanent. On retire
+    // juste notre abonnement aux events.
+    this.unsubscribe?.();
+    this.unsubscribe = null;
     this.root.remove();
   }
 

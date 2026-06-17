@@ -1,4 +1,4 @@
-import { MatchSyncAdapter, type WsServerEvent } from "@services/matchSync";
+import type { MatchSyncAdapter, WsServerEvent } from "@services/matchSync";
 import "./dmd.css";
 
 type DmdMessage = {
@@ -9,8 +9,8 @@ type DmdMessage = {
   readonly durationMs: number | null;
 };
 
-const STATUS_DISCONNECTED: DmdMessage = {
-  text: "WAITING SESSION",
+const STATUS_IDLE: DmdMessage = {
+  text: "FLIPHETIC",
   priority: 0,
   durationMs: null,
 };
@@ -33,9 +33,9 @@ const STATUS_OVER: DmdMessage = { text: "GAME OVER", priority: 40, durationMs: n
 export class DmdApp {
   private readonly root: HTMLElement;
   private readonly screen: HTMLElement;
-  private currentPersistent: DmdMessage = STATUS_DISCONNECTED;
+  private currentPersistent: DmdMessage = STATUS_IDLE;
   private transientTimer: ReturnType<typeof setTimeout> | null = null;
-  private sync: MatchSyncAdapter | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   constructor(host: HTMLElement) {
     this.root = document.createElement("section");
@@ -50,20 +50,13 @@ export class DmdApp {
     this.root.appendChild(frame);
     host.appendChild(this.root);
 
-    this.renderMessage(STATUS_DISCONNECTED);
+    this.renderMessage(STATUS_IDLE);
   }
 
-  start(): void {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
-    if (!sessionId) {
-      this.setPersistent(STATUS_DISCONNECTED);
-      return;
-    }
-    this.sync = new MatchSyncAdapter();
-    this.sync.onEvent((event) => this.handleEvent(event));
-    this.sync.connect(sessionId);
-    this.setPersistent({ text: "CONNECTING", priority: 1, durationMs: null });
+  /** Démarre l'affichage sur le bus borne partagé (connecté au boot). */
+  start(sync: MatchSyncAdapter): void {
+    this.unsubscribe = sync.onEvent((event) => this.handleEvent(event));
+    this.setPersistent(STATUS_IDLE);
   }
 
   stop(): void {
@@ -71,11 +64,20 @@ export class DmdApp {
       clearTimeout(this.transientTimer);
       this.transientTimer = null;
     }
-    this.sync?.disconnect();
-    this.sync = null;
+    // Bus borne partagé : on ne déconnecte pas, on retire juste notre abonnement.
+    this.unsubscribe?.();
+    this.unsubscribe = null;
   }
 
   private handleEvent(event: WsServerEvent): void {
+    if (event.type === "nav:state") {
+      // Hors partie → écran d'attente. En `in_game`/`game_over`, on laisse les
+      // match:state / score / countdown piloter l'affichage.
+      if (event.nav !== "in_game" && event.nav !== "game_over") {
+        this.setPersistent(STATUS_IDLE);
+      }
+      return;
+    }
     if (event.type === "match:state") {
       switch (event.status) {
         case "waiting":

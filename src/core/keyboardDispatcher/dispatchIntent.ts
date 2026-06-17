@@ -1,44 +1,53 @@
-import type { GameStore } from "@core/gameStore";
 import type { GameEvent } from "@core/gameMachine.types";
-import type { MatchSyncAdapter } from "@services/matchSync";
+import type { MatchSyncAdapter, NavAction } from "@services/matchSync";
 
 export interface DispatchIntentDeps {
-  readonly store: Pick<GameStore, "getState" | "send">;
   readonly sync: Pick<MatchSyncAdapter, "dispatch">;
 }
 
 /**
- * Route une intention utilisateur (touche clavier, bouton…) vers la bonne
- * destination :
+ * Route une intention utilisateur (touche clavier, bouton…) vers le **backend**,
+ * qui est désormais le seul décideur. Le front ne mute plus jamais son store
+ * localement : il attend le `nav:state` / `match:state` rebroadcasté.
  *
- *   - `PAUSE` / `RESUME` / `ABANDON` **avec** session back → dispatch
- *     `cmd:*` sur le WS matchSync. Le back broadcastera `match:state` et
- *     `bindMatchSyncToGameStore` se chargera d'appliquer la transition à
- *     la SM. Ne touche pas directement à `gameStore` dans ce cas, pour
- *     éviter la double-transition.
- *   - Tous les autres events (ou les mêmes hors session, ex: 1v1 mock) →
- *     `gameStore.send` direct.
+ *   - `PAUSE` / `RESUME` / `ABANDON` → `cmd:*` (contrôles de match).
+ *   - navigation (`PRESS_A`, `START_GAME`, `OPEN_*`, `BACK_TO_MENU`, `REPLAY`)
+ *     → `intent` avec l'action correspondante.
  *
- * Centralisé ici pour que le `KeyboardDispatcher` et l'overlay `Pause`
- * partagent exactement la même logique de routage.
+ * `PLAYERS_VALIDATED` (qui porte un payload pseudo/mode) est dispatché
+ * directement par l'écran d'identification, pas via cette fonction clavier.
  */
-export function dispatchIntent(event: GameEvent, deps: DispatchIntentDeps): void {
-  const sessionId = deps.store.getState().context.sessionId;
+const NAV_ACTIONS: Partial<Record<GameEvent["type"], NavAction>> = {
+  PRESS_A: "PRESS_A",
+  START_GAME: "START_GAME",
+  OPEN_LEADERBOARD: "OPEN_LEADERBOARD",
+  OPEN_COSMETICS: "OPEN_BOUTIQUE",
+  OPEN_SETTINGS: "OPEN_SETTINGS",
+  BACK_TO_MENU: "BACK_TO_MENU",
+  REPLAY: "REPLAY",
+};
 
-  if (sessionId !== null) {
-    if (event.type === "PAUSE") {
+export function dispatchIntent(event: GameEvent, deps: DispatchIntentDeps): void {
+  switch (event.type) {
+    case "PAUSE":
       deps.sync.dispatch({ type: "cmd:pause" });
       return;
-    }
-    if (event.type === "RESUME") {
+    case "RESUME":
       deps.sync.dispatch({ type: "cmd:resume" });
       return;
-    }
-    if (event.type === "ABANDON") {
+    case "ABANDON":
       deps.sync.dispatch({ type: "cmd:abandon" });
       return;
-    }
   }
 
-  deps.store.send(event);
+  const action = NAV_ACTIONS[event.type];
+  if (action) {
+    deps.sync.dispatch({ type: "intent", action });
+    return;
+  }
+
+  // Events locaux non routables au clavier (SET_FINAL_DURATION, PLAYERS_VALIDATED).
+  if (import.meta.env.DEV) {
+    console.warn(`[dispatchIntent] event non routable vers le backend: ${event.type}`);
+  }
 }

@@ -119,6 +119,29 @@ describe("MatchSyncAdapter — connect / disconnect", () => {
     expect(first?.readyState).toBe(MockWebSocket.CLOSED);
     expect(lastSocket?.url).toContain("session_id=s2");
   });
+
+  it("connectBorne ouvre une WS sur ?borne_id=", () => {
+    const sync = new MatchSyncAdapter({
+      baseWsUrl: "ws://test:8080/ws",
+      socketFactory: factory,
+    });
+    sync.connectBorne("borne-42");
+    expect(lastSocket?.url).toBe("ws://test:8080/ws?borne_id=borne-42");
+  });
+
+  it("connectBorne reconnecte sur le même canal après une fermeture", () => {
+    const sync = new MatchSyncAdapter({
+      baseWsUrl: "ws://t/ws",
+      socketFactory: factory,
+    });
+    sync.connectBorne("borne-42");
+    const first = lastSocket;
+    first?.triggerOpen();
+    first?.close();
+    vi.advanceTimersByTime(1000);
+    expect(lastSocket).not.toBe(first);
+    expect(lastSocket?.url).toContain("borne_id=borne-42");
+  });
 });
 
 describe("MatchSyncAdapter — onEvent (server → client)", () => {
