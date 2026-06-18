@@ -65,7 +65,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     const restitution = options.restitution ?? 0.5;
 
     let colliderDesc: RAPIER.ColliderDesc;
-    if (shape === "box") {
+    if (shape === "trimesh") {
+      // Collider statique calé exactement sur la géométrie réelle d'un mesh
+      // (ex. le "Plane" Blender) — vertices/indices sont déjà en repère monde.
+      const vertices = options.vertices ?? new Float32Array();
+      const indices = options.indices ?? new Uint32Array();
+      colliderDesc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+    } else if (shape === "box") {
       const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
       colliderDesc = RAPIER.ColliderDesc.cuboid(ext.x, ext.y, ext.z);
     } else {

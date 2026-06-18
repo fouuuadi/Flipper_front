@@ -99,14 +99,15 @@ async function bootstrap() {
   new ScreenRouter(document.body, gameStore, factories).start();
 
   // 6. Scène 3D en arrière-plan (le canvas est sous tous les overlays UI).
-  const { sceneManager, leftFlipper, rightFlipper, launcher } = await createPlayfieldScene();
+  const { sceneManager, leftFlipper, rightFlipper, launcher, physics } = await createPlayfieldScene();
 
   // 6bis. Clavier gameplay (flippers + lanceur) — source unique, active
   //       uniquement en `playing`.
   bindGameplayInput(gameStore, { leftFlipper, rightFlipper, launcher });
 
-  // 7. Charger la table Blender et brancher les bridges flipper.
-  loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
+  // 7. Charger la table Blender, brancher les bridges flipper, et remplacer
+  //    le sol approximatif par le collider exact du "Plane" Blender.
+  loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper, physics)
     .then(({ bridges }) => {
       sceneManager.onUpdate(() => {
         for (const bridge of bridges) bridge.update();

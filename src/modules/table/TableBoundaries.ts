@@ -31,7 +31,14 @@ export class TableBoundaries {
   private readonly wallThickness = 0.14;
   private readonly railHeight = 0.2;
   private readonly railThickness = 0.1;
-  private readonly playfieldPitch = THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
+  // [BLENDER] Géométrie d'origine définie dans le repère "table par défaut"
+  // (centrée à z=0, inclinaison positive, +z = côté drain). La table Blender
+  // utilise le repère inverse : centrée à z≈1.12, inclinaison négative, et
+  // c'est -z qui est le côté drain (cf. Flipper.ts / createPlayfieldScene.ts).
+  // On garde les specs de murs telles quelles (écrites dans l'ancien repère)
+  // et on les remappe ici via `toBlenderZ`, plutôt que de tout réécrire.
+  private readonly blenderTableCenterZ = 1.12;
+  private readonly playfieldPitch = -THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
 
   private readonly halfWidth = PLAYFIELD_WIDTH / 2;
   private readonly halfLength = PLAYFIELD_HEIGHT / 2;
@@ -40,12 +47,21 @@ export class TableBoundaries {
     this.world = world;
   }
 
-  private yOnPlayfield(z: number, height: number): number {
-    return 0.12 + height / 2 - Math.tan(this.playfieldPitch) * z;
+  private toBlenderZ(z: number): number {
+    return this.blenderTableCenterZ - z;
+  }
+
+  private yOnPlayfield(blenderZ: number, height: number): number {
+    return (
+      0.33 +
+      height / 2 +
+      Math.tan(Math.abs(this.playfieldPitch)) * (blenderZ - this.blenderTableCenterZ)
+    );
   }
 
   private createWall(spec: WallSpec): void {
-    const position = new THREE.Vector3(spec.x, this.yOnPlayfield(spec.z, spec.height), spec.z);
+    const blenderZ = this.toBlenderZ(spec.z);
+    const position = new THREE.Vector3(spec.x, this.yOnPlayfield(blenderZ, spec.height), blenderZ);
     const yaw = spec.yaw ?? 0;
 
     const mesh = new THREE.Mesh(

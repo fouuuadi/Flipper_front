@@ -31,11 +31,10 @@ export class Flipper {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    // Position des pivots en bas de table, côté drain
-    const xOffset = side === "left" ? -1.02 : 1.02;
-    const zPosition = 4.2;
-    this.playfieldPitch = THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
-    const yPosition = 0.14 - Math.tan(this.playfieldPitch) * zPosition;
+    const xOffset = side === "left" ? 0.82 : -0.68;
+    const zPosition = -2.33;
+    const yPosition = side === "left" ? 0.43 : 0.4;
+    this.playfieldPitch = -THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
 
     this.restAngle = side === "left" ? 0.18 : -0.18;
     this.activeAngle = side === "left" ? 0.78 : -0.78;
@@ -85,7 +84,7 @@ export class Flipper {
     world.createImpulseJoint(jointData, pivot, this.rigidBody, true);
   }
 
-  /** Active le flipper (touche maintenue). L'input est câblé en dehors. */
+  /** Active le flipper (touche pressée). */
   press(): void {
     this.isActive = true;
   }
