@@ -99,7 +99,12 @@ const factories: ScreenFactoryMap = {
       },
     };
   },
-  identification: navScreen(() => new Identification()),
+  // L'identification câble sa propre nav borne (roulette de pseudo).
+  identification: (screenHost) => {
+    const identification = new Identification();
+    identification.mount(screenHost);
+    return { stop: () => identification.unmount() };
+  },
   leaderboard: navScreen(() => new Leaderboard()),
   cosmetics: navScreen(() => new CosmeticsStore()),
   settings: navScreen(() => new Settings()),
