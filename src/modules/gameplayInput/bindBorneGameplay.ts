@@ -31,8 +31,7 @@ export function bindBorneGameplay(
     }
     switch (event.type) {
       case "control:flipper": {
-        const flipper =
-          event.side === "left" ? controls.leftFlipper : controls.rightFlipper;
+        const flipper = event.side === "left" ? controls.leftFlipper : controls.rightFlipper;
         if (event.action === "press") {
           if (store.getState().value !== "playing") return;
           flipper.press();
