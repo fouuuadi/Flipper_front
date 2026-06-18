@@ -147,7 +147,7 @@ export function loadBlenderTable(
             shape: "trimesh",
             vertices,
             indices,
-            friction: 0.7,
+            friction: 0.25, // plateau lisse type pinball — la balle doit rouler, pas freiner
             restitution: 0.0,
           });
           console.log(`✅ Sol physique remplacé par le collider exact de "${planeMesh.name}"`);

@@ -17,12 +17,17 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private readonly fixedDt = 1 / 60;
   private accumulator = 0;
 
-  async init(): Promise<void> {
+  // [BLENDER] `gravity` optionnelle : permet de simuler l'inclinaison réelle
+  // d'un flipper (le plateau Blender "Plane" peut être géométriquement plat,
+  // sans rotation bakée) en penchant directement le vecteur de gravité plutôt
+  // que la géométrie — la balle "dégouline" alors naturellement vers le bas
+  // de la table (cf. createPlayfieldScene.ts).
+  async init(gravity?: Vec3): Promise<void> {
     if (this.world) return;
 
     await RAPIER.init();
 
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    this.world = new RAPIER.World(gravity ?? { x: 0, y: -9.81, z: 0 });
 
     this.accumulator = 0;
   }

@@ -40,7 +40,13 @@ sceneManager.camera.lookAt(0, 0, 1.5);
   //sceneManager.camera.lookAt(0, 0, 0);
 
   const physics = new RapierPhysicsAdapter();
-  await physics.init();
+  const tiltRad = THREE.MathUtils.degToRad(PLAYFIELD_TILT_DEG);
+  const gravityMagnitude = 9.81;
+  await physics.init({
+    x: 0,
+    y: -gravityMagnitude * Math.cos(tiltRad),
+    z: -gravityMagnitude * Math.sin(tiltRad),
+  });
 
   const world = physics.getWorld();
 
@@ -55,7 +61,7 @@ sceneManager.camera.lookAt(0, 0, 1.5);
     isStatic: true,
     shape: "box",
     halfExtents: { x: 3.0, y: 0.2, z: 6.0 },
-    friction: 0.7,
+    friction: 0.25,
     restitution: 0.0,
   });
 
