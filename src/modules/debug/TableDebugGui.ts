@@ -78,14 +78,32 @@ export function createTableDebugGui({
   // et restent éditables au slider pour un calage fin.
   const refreshProjection = (): void => camera.updateProjectionMatrix();
   const camFolder = gui.addFolder("Caméra · Position");
-  camFolder.add(camera.position, "x", -50, 50, 0.1).listen().onChange(() => controls.update());
-  camFolder.add(camera.position, "y", -50, 50, 0.1).listen().onChange(() => controls.update());
-  camFolder.add(camera.position, "z", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camFolder
+    .add(camera.position, "x", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
+  camFolder
+    .add(camera.position, "y", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
+  camFolder
+    .add(camera.position, "z", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
 
   const camTarget = gui.addFolder("Caméra · Point visé (target)");
-  camTarget.add(controls.target, "x", -50, 50, 0.1).listen().onChange(() => controls.update());
-  camTarget.add(controls.target, "y", -50, 50, 0.1).listen().onChange(() => controls.update());
-  camTarget.add(controls.target, "z", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camTarget
+    .add(controls.target, "x", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
+  camTarget
+    .add(controls.target, "y", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
+  camTarget
+    .add(controls.target, "z", -50, 50, 0.1)
+    .listen()
+    .onChange(() => controls.update());
 
   const camLens = gui.addFolder("Caméra · Objectif");
   camLens.add(camera, "fov", 10, 120, 1).onChange(refreshProjection);
