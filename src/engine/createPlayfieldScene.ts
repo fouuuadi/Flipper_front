@@ -43,7 +43,9 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
   // à la scène et ne servent qu'à la physique.
   const playfield = new Playfield();
 
-  sceneManager.camera.position.set(0, 3, 10);
+  // Cadrage calé via la GUI debug 3D (DEV) puis figé. fov/near/far restent les
+  // défauts de SceneManager (75 / 0.1 / 1000).
+  sceneManager.camera.position.set(0, 29.0003, -0.9883);
   sceneManager.camera.lookAt(0, 0, 0);
 
   const physics = new RapierPhysicsAdapter();
