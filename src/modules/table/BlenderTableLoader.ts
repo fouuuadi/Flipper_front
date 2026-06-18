@@ -5,6 +5,8 @@ import type { Flipper } from "@modules/flipper/Flipper";
 
 export interface BlenderTableResult {
   bridges: BlenderFlipperBridge[];
+  /** Racine de la table chargée (`gltf.scene`), pour ajustement de transform. */
+  tableRoot: THREE.Object3D;
 }
 
 /**
@@ -39,7 +41,7 @@ export function loadBlenderTable(
           bridges.push(new BlenderFlipperBridge(rightFlipper, flipperRightMesh));
         }
 
-        resolve({ bridges });
+        resolve({ bridges, tableRoot: gltf.scene });
       },
       undefined,
       (error) => reject(error),

@@ -90,10 +90,18 @@ async function bootstrap() {
 
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
-    .then(({ bridges }) => {
+    .then(({ bridges, tableRoot }) => {
       sceneManager.onUpdate(() => {
         for (const bridge of bridges) bridge.update();
       });
+
+      // GUI de dépannage 3D (positionnement table) — DEV uniquement, jamais
+      // embarqué dans le build borne/prod.
+      if (import.meta.env.DEV) {
+        void import("@modules/debug/TableDebugGui").then(({ createTableDebugGui }) =>
+          createTableDebugGui({ sceneManager, tableRoot }),
+        );
+      }
     })
     .catch((err) => {
       console.error("Impossible de charger la table Blender :", err);
