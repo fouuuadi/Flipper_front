@@ -6,46 +6,17 @@ Le projet est organisé en architecture modulaire par feature et contient actuel
 
 ---
 
-## Assets 3D & Git LFS
+## Assets 3D
 
-> ⚠️ **À faire une fois avant de cloner / committer des modèles 3D.**
+Les modèles 3D (`.glb`, `.gltf`, `.fbx`, `.bin`) sont commités **directement dans
+git** comme blobs normaux. Aucun outil à installer : un `git clone` / `git pull`
+classique récupère les binaires tels quels.
 
-Les modèles 3D (`.glb`, `.gltf`, `.fbx`, `.bin`) sont versionnés via **Git LFS**
-(cf. `.gitattributes`). Ce sont des binaires de plusieurs dizaines de Mo : sans
-LFS, chaque version reste dans l'historique git et alourdit chaque clone pour
-toute l'équipe.
-
-Installe Git LFS une fois sur ta machine :
-
-```bash
-# macOS
-brew install git-lfs
-
-# Windows
-#   - inclus avec Git for Windows (https://git-scm.com/download/win)
-#   - sinon : winget install GitHub.GitLFS
-#     ou télécharger l'installeur depuis https://git-lfs.com
-
-# Linux
-sudo apt install git-lfs       # Debian/Ubuntu
-sudo dnf install git-lfs       # Fedora
-sudo pacman -S git-lfs         # Arch
-
-# puis, une fois par machine (tous OS) :
-git lfs install
-```
-
-**Si tu committes un `.glb` sans avoir fait `git lfs install`**, le filtre est
-silencieusement ignoré et le binaire repart en blob git normal (ce qu'on veut
-éviter). En cas de doute : `git lfs status` après avoir stagé ton fichier.
-
-> ⚠️ **`git lfs install` doit être fait AVANT de cloner.** Sinon tu récupères le
-> pointeur LFS (~130 octets) au lieu du modèle 3D, et l'app ne charge pas la
-> table. Si tu as déjà cloné sans LFS : `git lfs install && git lfs pull`.
->
-> Note : `tableMarioGalaxy.glb` est désormais suivi par LFS. La conversion a été
-> faite sans réécrire l'historique — l'ancien blob reste dans les commits passés,
-> mais toutes les versions futures passent par LFS.
+> **Pourquoi pas Git LFS ?** On l'avait mis en place, mais LFS exige que *chaque*
+> machine ait fait `git lfs install` avant le clone. La borne de déploiement
+> n'avait pas LFS configuré : elle ne récupérait que le pointeur (~130 octets) au
+> lieu du modèle, donc le binaire n'était jamais mis à jour côté borne. On stocke
+> donc les modèles en brut, quitte à alourdir le repo.
 
 ---
 
