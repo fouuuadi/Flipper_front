@@ -17,6 +17,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private readonly fixedDt = 1 / 60;
   private accumulator = 0;
 
+  // [DEBUG] File d'événements Rapier + table handle de collider -> id lisible,
+  // pour logger en console si la balle touche (ou pas) un collider donné
+  // (ex. flipper) — sans ça impossible de savoir si le souci est "pas de
+  // détection de collision" ou "détection ok mais réponse trop faible".
+  private eventQueue: RAPIER.EventQueue | null = null;
+  private colliderNames = new Map<number, string>();
+
   // [BLENDER] `gravity` optionnelle : permet de simuler l'inclinaison réelle
   // d'un flipper (le plateau Blender "Plane" peut être géométriquement plat,
   // sans rotation bakée) en penchant directement le vecteur de gravité plutôt
@@ -30,6 +37,8 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.world = new RAPIER.World(gravity ?? { x: 0, y: -9.81, z: 0 });
 
     this.accumulator = 0;
+    // [DEBUG] cf. step() : permet de drainer les événements de collision.
+    this.eventQueue = new RAPIER.EventQueue(true);
   }
 
   addBody(options: BodyOptions): BodyId {
@@ -88,7 +97,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       .setFriction(friction)
       .setRestitution(restitution)
       // .setDensity(density)
-      .setSensor(false);
+      .setSensor(false)
+      // [DEBUG] active les événements de collision pour pouvoir logger les
+      // contacts réels (cf. step()) — coût négligeable pour ce prototype.
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
 
     const collider = world.createCollider(colliderDesc, body);
 
@@ -97,6 +109,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     if (typeof options.angularDamping === "number") body.setAngularDamping(options.angularDamping);
 
     this.handles.set(id, { body, collider });
+    this.colliderNames.set(collider.handle, id);
     return id;
   }
 
@@ -111,7 +124,17 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.handles.delete(id);
   }
 
-  step(deltaTime: number): void {
+  // [FLIPPER] `onSubstep` est appelé juste avant CHAQUE world.step() (et pas
+  // une seule fois par frame visuelle). Pourquoi : un corps kinematicPositionBased
+  // (les flippers) ne bouge que lorsqu'on lui donne une nouvelle cible via
+  // setNextKinematicRotation ; si l'appli tourne sous 60 FPS, plusieurs
+  // world.step() s'enchaînent dans la même frame pour rattraper le retard
+  // (cf. maxSubSteps ci-dessous), mais sans ce hook le flipper ne recevait sa
+  // nouvelle cible qu'une fois par frame — les sous-pas suivants le voyaient
+  // donc "immobile" (vitesse effective ≈ 0 pour Rapier), ce qui diluait
+  // l'impact transmis à la balle (sensation de "piqûre" au lieu d'un vrai coup)
+  // et pouvait aussi le faire visuellement "sauter"/se désynchroniser ("se tordre").
+  step(deltaTime: number, onSubstep?: (fixedDt: number) => void): void {
     const world = this.getWorld();
 
     const clampedDelta = Math.min(deltaTime, 0.1);
@@ -121,7 +144,24 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     let subSteps = 0;
 
     while (this.accumulator >= this.fixedDt && subSteps < maxSubSteps) {
-      world.step();
+      onSubstep?.(this.fixedDt);
+      if (this.eventQueue) {
+        world.step(this.eventQueue);
+        // [DEBUG] Log les contacts ball <-> flipper qui démarrent, pour savoir
+        // si Rapier détecte bien la collision (à retirer une fois confirmé).
+        this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+          if (!started) return;
+          const name1 = this.colliderNames.get(handle1) ?? `#${handle1}`;
+          const name2 = this.colliderNames.get(handle2) ?? `#${handle2}`;
+          const involvesBall = name1.includes("ball") || name2.includes("ball");
+          const involvesFlipper = name1.includes("flipper") || name2.includes("flipper");
+          if (involvesBall) {
+            console.log(`💥 Collision détectée : "${name1}" <-> "${name2}"${involvesFlipper ? " ⚡ (flipper !)" : ""}`);
+          }
+        });
+      } else {
+        world.step();
+      }
       this.accumulator -= this.fixedDt;
       subSteps++;
     }
@@ -231,6 +271,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       restitution: 0.0,
       isStatic: false,
     });
+  }
+
+  // [DEBUG] Permet d'enregistrer un nom lisible pour un collider créé HORS de
+  // addBody() (ex. le collider du flipper, créé directement dans Flipper.ts),
+  // pour que les logs de collision dans step() puissent l'identifier aussi.
+  registerColliderName(handle: number, name: string): void {
+    this.colliderNames.set(handle, name);
   }
 
   // Méthode publique pour accéder à un body (debug)

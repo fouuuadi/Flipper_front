@@ -151,6 +151,16 @@ export function loadBlenderTable(
             restitution: 0.0,
           });
           console.log(`✅ Sol physique remplacé par le collider exact de "${planeMesh.name}"`);
+
+          // Diagnostic : hauteur réelle du sol près des flippers (z≈-2.33),
+          // pour vérifier qu'elle correspond bien à la hauteur (y) utilisée
+          // par les colliders de flippers dans Flipper.ts.
+          const box = new THREE.Box3().setFromBufferAttribute(
+            new THREE.BufferAttribute(vertices, 3),
+          );
+          console.log(
+            `📏 Bounding box du sol "Plane" (monde) : y min=${box.min.y.toFixed(3)} max=${box.max.y.toFixed(3)} | z min=${box.min.z.toFixed(3)} max=${box.max.z.toFixed(3)}`,
+          );
         } else {
           console.warn(
             '⚠️ "Plane" introuvable dans le GLB (même en recherche tolérante) — le sol de secours approximatif reste actif.',

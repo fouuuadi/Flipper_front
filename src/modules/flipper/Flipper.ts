@@ -8,6 +8,15 @@ export class Flipper {
   mesh: THREE.Mesh;
   rigidBody: RAPIER.RigidBody;
   collider: RAPIER.Collider;
+  readonly side: FlipperSide;
+
+  // [DEBUG] Wireframe affichant la forme/position EXACTE du collider physique
+  // du flipper, pour vérifier visuellement s'il est bien aligné avec le vrai
+  // mesh Blender (sans ça, impossible de savoir pourquoi la balle "passe à
+  // travers" sans accès au navigateur).
+  private readonly colliderDebugMesh: THREE.Mesh;
+  private readonly colliderLocalOffset: THREE.Vector3;
+  private readonly bodyPosition: THREE.Vector3;
 
   private isActive = false;
   private angle = 0;
@@ -18,6 +27,7 @@ export class Flipper {
   private readonly playfieldPitch: number;
 
   constructor(world: RAPIER.World, side: FlipperSide) {
+    this.side = side;
     const flipperLength = 0.86;
     const flipperHeight = 0.18;
     const flipperDepth = 0.28;
@@ -58,15 +68,38 @@ export class Flipper {
 
     this.rigidBody = world.createRigidBody(rigidBodyDesc);
 
+    // Le collider est volontairement bien plus "épais"/"large" que le visuel
+    // (et décalé vers le bas) : ni la hauteur exacte du sol Blender au niveau
+    // des flippers, ni l'étendue réelle de la palette (longueur/profondeur)
+    // ne sont garanties identiques aux valeurs estimées ici, donc on élargit
+    // largement la zone de contact pour être sûr que la balle ne puisse
+    // jamais "passer par-dessus" / en-dessous / à côté.
+    const colliderLength = flipperLength * 1.3;
+    const colliderHeight = 0.6;
+    const colliderDepth = flipperDepth * 1.5;
+    const colliderYOffset = -0.2;
+    this.colliderLocalOffset = new THREE.Vector3(localOffsetX, colliderYOffset, 0);
     const colliderDesc = RAPIER.ColliderDesc.cuboid(
-      flipperLength / 2,
-      flipperHeight / 2,
-      flipperDepth / 2,
+      colliderLength / 2,
+      colliderHeight / 2,
+      colliderDepth / 2,
     )
-      .setTranslation(localOffsetX, 0, 0)
+      .setTranslation(this.colliderLocalOffset.x, this.colliderLocalOffset.y, this.colliderLocalOffset.z)
       .setFriction(0.55)
-      .setRestitution(0.2);
+      .setRestitution(0.35) // un vrai flipper "claque" la balle, pas un contact mou
+      // [DEBUG] nécessaire pour que RapierPhysicsAdapter puisse logger les
+      // collisions ball <-> flipper (sinon Rapier ne génère aucun événement).
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
+
+    this.bodyPosition = new THREE.Vector3(xOffset, yPosition, zPosition);
+    const debugGeometry = new THREE.BoxGeometry(colliderLength, colliderHeight, colliderDepth);
+    const debugMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+      depthTest: false,
+    });
+    this.colliderDebugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
 
     const pivotDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(xOffset, yPosition, zPosition);
 
@@ -82,6 +115,15 @@ export class Flipper {
     jointData.limits = [this.minLimit, this.maxLimit];
 
     world.createImpulseJoint(jointData, pivot, this.rigidBody, true);
+
+    // [DEBUG] Position initiale du wireframe (avant le premier update()).
+    const restQuat = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(this.playfieldPitch, this.angle, 0, "XYZ"),
+    );
+    this.colliderDebugMesh.position
+      .copy(this.bodyPosition)
+      .add(this.colliderLocalOffset.clone().applyQuaternion(restQuat));
+    this.colliderDebugMesh.quaternion.copy(restQuat);
   }
 
   /** Active le flipper (touche pressée). */
@@ -95,7 +137,7 @@ export class Flipper {
   }
 
   update(deltaTime: number) {
-    const speed = 16;
+    const speed = 22; // plus rapide = "claque" la balle comme un vrai flipper, pas une simple poussée
     const target = this.isActive ? this.activeAngle : this.restAngle;
     const delta = target - this.angle;
     const step = Math.sign(delta) * Math.min(Math.abs(delta), speed * deltaTime);
@@ -113,9 +155,21 @@ export class Flipper {
     this.rigidBody.setNextKinematicRotation(rotation);
 
     this.mesh.rotation.set(this.playfieldPitch, this.angle, 0, "XYZ");
+
+    // [DEBUG] Le collider réel est un cuboïde décalé localement
+    // (colliderLocalOffset) DANS le repère du body avant rotation ; on
+    // reproduit donc ici exactement la même composition (offset puis
+    // rotation) pour que le wireframe affiche la vraie position physique.
+    const offsetWorld = this.colliderLocalOffset.clone().applyQuaternion(threeQuat);
+    this.colliderDebugMesh.position.copy(this.bodyPosition).add(offsetWorld);
+    this.colliderDebugMesh.quaternion.copy(threeQuat);
   }
 
   addTo(scene: THREE.Scene) {
-    scene.add(this.mesh);
+    // this.mesh (boîte rouge pleine) n'a jamais été ajoutée à la scène
+    // (le vrai visuel est le mesh Blender, synchronisé via BlenderFlipperBridge) ;
+    // on ne touche pas à ce comportement existant.
+    // Seul le wireframe de debug du collider est ajouté ici.
+    scene.add(this.colliderDebugMesh);
   }
 }

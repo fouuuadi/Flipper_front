@@ -77,17 +77,32 @@ sceneManager.camera.lookAt(0, 0, 1.5);
 
   const leftFlipper = new Flipper(world, "left");
   const rightFlipper = new Flipper(world, "right");
+  // [DEBUG] Affiche le wireframe vert du collider physique réel de chaque
+  // flipper, pour vérifier visuellement s'il est bien aligné avec le mesh
+  // Blender visible — à retirer une fois l'alignement confirmé.
+  leftFlipper.addTo(sceneManager.scene);
+  rightFlipper.addTo(sceneManager.scene);
+  // [DEBUG] Permet aux logs de collision (RapierPhysicsAdapter.step) d'identifier
+  // ces colliders, créés directement par Flipper.ts (donc hors de addBody()).
+  physics.registerColliderName(leftFlipper.collider.handle, "flipper-left");
+  physics.registerColliderName(rightFlipper.collider.handle, "flipper-right");
   const tableBoundaries = new TableBoundaries(world);
   // Ici on désactive les murs procéduraux, la table Blender contient ses
   // propres meshes de murs (_wall_one, _wall_two, ...)
   const launcher = new Launcher(ball);
 
   sceneManager.onUpdate((deltaTime) => {
-    physics.step(deltaTime);
+    // [FLIPPER] On met à jour les flippers à CHAQUE sous-pas physique (via le
+    // hook onSubstep), pas une seule fois par frame visuelle : sinon, dès que
+    // le FPS descend sous 60 (cf. plusieurs sous-pas par frame pour rattraper
+    // le retard), le flipper recevait la même cible figée sur 2-5 sous-pas
+    // d'affilée → vitesse effective quasi nulle pour Rapier sur ces sous-pas,
+    // d'où un impact trop faible sur la balle ("piqûre" au lieu d'un vrai coup).
+    physics.step(deltaTime, (fixedDt) => {
+      leftFlipper.update(fixedDt);
+      rightFlipper.update(fixedDt);
+    });
     ball.updateFromPhysics();
-
-    leftFlipper.update(deltaTime);
-    rightFlipper.update(deltaTime);
 
     launcher.update(deltaTime);
   });
