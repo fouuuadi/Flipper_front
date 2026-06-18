@@ -3,6 +3,7 @@ import { gameStore } from "@core/gameStore";
 import { dispatchIntent } from "@core/keyboardDispatcher";
 import { matchSync } from "@services/matchSync";
 import type { GameMode } from "@core/gameMachine.types";
+import { menuAudio } from "@services/menuAudio";
 import {
   LocalStorageLeaderboardStore,
   type LeaderboardEntry,
@@ -16,7 +17,7 @@ type ViewState =
   | { readonly kind: "loaded"; readonly entries: ReadonlyArray<LeaderboardEntry> }
   | { readonly kind: "error"; readonly message: string };
 
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 12;
 
 /**
  * Écran leaderboard.
@@ -42,6 +43,11 @@ export class Leaderboard {
 
     this.root = document.createElement("section");
     this.root.className = "leaderboard-scene";
+
+    const spotlight = document.createElement("div");
+    spotlight.className = "leaderboard-spotlight";
+    spotlight.setAttribute("aria-hidden", "true");
+    this.root.appendChild(spotlight);
 
     const card = document.createElement("div");
     card.className = "leaderboard-card";
@@ -88,6 +94,7 @@ export class Leaderboard {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    menuAudio.playMenu();
     // Onglet par défaut = mode joué le plus récemment (si on arrive de gameOver).
     const ctxMode = gameStore.getState().context.mode;
     this.setMode(ctxMode ?? "solo");
@@ -160,6 +167,11 @@ export class Leaderboard {
     rank.textContent = "#";
     header.appendChild(rank);
 
+    const avatar = document.createElement("span");
+    avatar.className = "leaderboard-avatar";
+    avatar.textContent = "";
+    header.appendChild(avatar);
+
     const pseudo = document.createElement("span");
     pseudo.className = "leaderboard-pseudo";
     pseudo.textContent = "Joueur";
@@ -177,11 +189,19 @@ export class Leaderboard {
     const row = document.createElement("div");
     row.className = "leaderboard-row";
     if (entry.rank === 1) row.classList.add("leaderboard-row--first");
+    if (entry.rank === 2) row.classList.add("leaderboard-row--second");
+    if (entry.rank === 3) row.classList.add("leaderboard-row--third");
 
     const rank = document.createElement("span");
     rank.className = "leaderboard-rank";
-    rank.textContent = `#${entry.rank}`;
+    rank.textContent = String(entry.rank);
     row.appendChild(rank);
+
+    const avatar = document.createElement("span");
+    avatar.className = "leaderboard-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = this.avatarForRank(entry.rank);
+    row.appendChild(avatar);
 
     const pseudo = document.createElement("span");
     pseudo.className = "leaderboard-pseudo";
@@ -194,5 +214,12 @@ export class Leaderboard {
     row.appendChild(score);
 
     this.listEl.appendChild(row);
+  }
+
+  private avatarForRank(rank: number): string {
+    if (rank === 1) return "M";
+    if (rank === 2) return "L";
+    if (rank === 3) return "S";
+    return "★";
   }
 }

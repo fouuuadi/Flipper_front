@@ -9,6 +9,8 @@
 import { initialContext, initialState, transition } from "./gameMachine";
 import type { GameContext, GameEvent, GameStateValue, MachineSnapshot } from "./gameMachine.types";
 
+const SNAPSHOT_STORAGE_KEY = "flipper.gameSnapshot";
+
 export type GameStoreListener = (snapshot: MachineSnapshot) => void;
 
 export interface GameStore {
@@ -28,7 +30,7 @@ export interface GameStore {
  * Factory exportée pour permettre la création d'instances isolées en test.
  */
 export function createGameStore(): GameStore {
-  let snapshot: MachineSnapshot = {
+  let snapshot: MachineSnapshot = readPersistedSnapshot() ?? {
     value: initialState,
     context: { ...initialContext },
   };
@@ -49,6 +51,7 @@ export function createGameStore(): GameStore {
       return;
     }
     snapshot = next;
+    persistSnapshot(snapshot);
     listeners.forEach((l) => l(snapshot));
   }
 
@@ -57,6 +60,7 @@ export function createGameStore(): GameStore {
       value,
       context: contextPatch ? { ...snapshot.context, ...contextPatch } : snapshot.context,
     };
+    persistSnapshot(snapshot);
     listeners.forEach((l) => l(snapshot));
   }
 
@@ -69,6 +73,24 @@ export function createGameStore(): GameStore {
   }
 
   return { getState, send, applyServerState, subscribe };
+}
+
+function readPersistedSnapshot(): MachineSnapshot | null {
+  if (typeof sessionStorage === "undefined") return null;
+  const raw = sessionStorage.getItem(SNAPSHOT_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as MachineSnapshot;
+    if (!parsed || typeof parsed.value !== "string" || !parsed.context) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistSnapshot(snapshot: MachineSnapshot): void {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
 }
 
 /** Instance singleton consommée par l'app playfield. */

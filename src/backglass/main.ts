@@ -4,6 +4,7 @@ import { gameStore } from "@core/gameStore";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 
 import { BackglassApp } from "@modules/backglass";
 import { CosmeticsStore } from "@modules/cosmetics";
@@ -64,6 +65,8 @@ const factories: ScreenFactoryMap = {
 };
 
 if (host) {
+  menuAudio.startClickFeedback();
+
   // Mode follower : on branche le bus borne sur la SM et on ouvre la connexion
   // permanente au boot. Le KeyboardDispatcher relaie aussi les inputs en intents.
   bindMatchSyncToGameStore(matchSync, gameStore);

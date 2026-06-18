@@ -66,6 +66,7 @@ export type GameEvent =
   | { type: "OPEN_LEADERBOARD" }
   | { type: "OPEN_COSMETICS" }
   | { type: "OPEN_SETTINGS" }
+  | { type: "BACK_TO_SPLASH" }
   | { type: "BACK_TO_MENU" }
   | { type: "REPLAY" }
   /**

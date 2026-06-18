@@ -118,6 +118,7 @@ export type NavAction =
   | "OPEN_LEADERBOARD"
   | "OPEN_BOUTIQUE"
   | "OPEN_SETTINGS"
+  | "BACK_TO_SPLASH"
   | "BACK_TO_MENU"
   | "PLAYERS_VALIDATED"
   | "REPLAY";

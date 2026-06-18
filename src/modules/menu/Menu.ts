@@ -1,5 +1,6 @@
 import { dispatchIntent } from "@core/keyboardDispatcher";
 import { matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
@@ -80,6 +81,7 @@ export class Menu {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    menuAudio.playMenu();
     this.initThree();
     this.bindDomEvents();
     this.loadWorld();
@@ -327,6 +329,7 @@ export class Menu {
   }
 
   private activateMenuButton(button: MenuButtonMesh): void {
+    menuAudio.playClick();
     this.selectedMenuButton = button;
     window.setTimeout(() => {
       switch (button.userData.action) {
@@ -343,7 +346,7 @@ export class Menu {
           dispatchIntent({ type: "OPEN_SETTINGS" }, { sync: matchSync });
           return;
         case "quit":
-          window.close();
+          dispatchIntent({ type: "BACK_TO_SPLASH" }, { sync: matchSync });
           return;
       }
     }, 80);
