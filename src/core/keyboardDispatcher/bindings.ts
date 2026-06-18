@@ -50,6 +50,7 @@ export const BINDINGS: readonly KeyBinding[] = [
   { state: "menu", key: "l", event: "OPEN_LEADERBOARD", label: "Ouvrir le leaderboard" },
   { state: "menu", key: "b", event: "OPEN_COSMETICS", label: "Ouvrir la boutique" },
   { state: "menu", key: "p", event: "OPEN_SETTINGS", label: "Ouvrir les parametres" },
+  { state: "menu", key: "Escape", event: "BACK_TO_SPLASH", label: "Retour au splash" },
 
   // identification — pas de binding global ; l'Input.ts gère sa saisie
 

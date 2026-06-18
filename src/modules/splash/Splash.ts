@@ -1,4 +1,5 @@
 import "./splash.css";
+import { menuAudio } from "@services/menuAudio";
 
 const SPLASH_TEMPLATE = `
   <div class="stars" aria-hidden="true"></div>
@@ -11,11 +12,11 @@ const SPLASH_TEMPLATE = `
 
   <div class="title">
     <div class="word mario">
-      <span class="letter letter-m">M</span>
-      <span class="letter letter-a-mario">A</span>
-      <span class="letter letter-r">R</span>
+      <span class="letter letter-m">H</span>
+      <span class="letter letter-a-mario">E</span>
+      <span class="letter letter-r">T</span>
       <span class="letter letter-i">I</span>
-      <span class="letter letter-o">O</span>
+      <span class="letter letter-o">C</span>
     </div>
     <div class="word galaxy">
       <span class="letter letter-g">G</span>
@@ -54,6 +55,7 @@ export class Splash {
     this.root.className = "splash-scene";
     this.root.innerHTML = SPLASH_TEMPLATE;
     host.appendChild(this.root);
+    menuAudio.playSplash();
   }
 
   unmount(): void {
@@ -63,6 +65,7 @@ export class Splash {
     // Animation de sortie 400 ms, puis remove (gardé pour préserver le
     // fondu visuel — l'écran suivant se monte par-dessus pendant la transition).
     root.classList.add("splash-scene--exiting");
+    menuAudio.playMenu();
     window.setTimeout(() => root.remove(), EXIT_TRANSITION_MS);
   }
 }

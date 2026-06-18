@@ -48,6 +48,10 @@ const transitions: TransitionTable = {
     OPEN_LEADERBOARD: () => ({ value: "leaderboard" }),
     OPEN_COSMETICS: () => ({ value: "cosmetics" }),
     OPEN_SETTINGS: () => ({ value: "settings" }),
+    BACK_TO_SPLASH: () => ({
+      value: "splash",
+      context: { ...initialContext },
+    }),
   },
   identification: {
     PLAYERS_VALIDATED: (_ctx, event) => {

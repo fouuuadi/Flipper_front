@@ -1,16 +1,28 @@
 import { dispatchIntent } from "@core/keyboardDispatcher";
 import { matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 import "./settings.css";
 
 interface SettingSlider {
   readonly title: string;
   readonly description: string;
-  readonly value: number;
+  readonly getValue: () => number;
+  readonly onInput: (value: number) => void;
 }
 
 const SLIDERS: readonly SettingSlider[] = [
-  { title: "SFX", description: "Effets sonores", value: 78 },
-  { title: "MUSIQUE", description: "Volume de la musique", value: 65 },
+  {
+    title: "SFX",
+    description: "Effets sonores",
+    getValue: () => menuAudio.getSfxVolume(),
+    onInput: (value) => menuAudio.setSfxVolume(value),
+  },
+  {
+    title: "MUSIQUE",
+    description: "Volume de la musique",
+    getValue: () => menuAudio.getMusicVolume(),
+    onInput: (value) => menuAudio.setMusicVolume(value),
+  },
 ];
 
 export class Settings {
@@ -27,6 +39,7 @@ export class Settings {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    menuAudio.playMenu();
   }
 
   unmount(): void {
@@ -101,24 +114,26 @@ export class Settings {
     slider.type = "range";
     slider.min = "0";
     slider.max = "100";
-    slider.value = String(setting.value);
+    slider.value = String(setting.getValue());
     slider.setAttribute("aria-label", setting.description);
+    slider.addEventListener("input", () => setting.onInput(Number(slider.value)));
     row.appendChild(slider);
 
     return row;
   }
 
   private createToggleRow(): HTMLElement {
-    const row = this.createRow("VIBRATION", "Retour haptique");
+    const row = this.createRow("MUTE", "Couper la musique");
     row.classList.add("settings-toggle-row");
 
     const label = document.createElement("label");
     label.className = "settings-toggle";
-    label.setAttribute("aria-label", "Activer ou desactiver la vibration");
+    label.setAttribute("aria-label", "Couper ou remettre la musique");
 
     const input = document.createElement("input");
     input.type = "checkbox";
-    input.checked = true;
+    input.checked = menuAudio.isMuted();
+    input.addEventListener("change", () => menuAudio.setMuted(input.checked));
     label.appendChild(input);
 
     const track = document.createElement("span");

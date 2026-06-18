@@ -1,5 +1,6 @@
 import { dispatchIntent } from "@core/keyboardDispatcher";
 import { matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 import "./cosmetics.css";
 
 interface SkinItem {
@@ -38,6 +39,7 @@ export class CosmeticsStore {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    menuAudio.playMenu();
   }
 
   unmount(): void {

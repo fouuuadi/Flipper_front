@@ -1,6 +1,8 @@
 import { Button, PseudoInput } from "@modules/ui";
+import { dispatchIntent } from "@core/keyboardDispatcher";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 import { validatePseudo } from "./validation";
 import "./identification.css";
 
@@ -10,13 +12,10 @@ interface PlayerSlot {
 }
 
 /**
- * Écran d'identification des joueurs (solo / 1v1).
+ * Ecran d'identification des joueurs (solo / 1v1).
  *
- * L'écran ne fait que collecter le(s) pseudo(s) puis dispatcher l'intent
- * `PLAYERS_VALIDATED` sur le bus borne. C'est le **backend** qui crée la
- * session et pilote la suite (ready → countdown → playing), rebroadcastée en
- * `nav:state: in_game` / `match:state` ; le passage à l'écran de jeu est alors
- * appliqué par le follower (`bindMatchSyncToGameStore`, branché au boot).
+ * L'ecran collecte le(s) pseudo(s) puis dispatch l'intent PLAYERS_VALIDATED
+ * sur le bus borne. Le backend cree la session et pilote la suite.
  */
 export class Identification {
   private readonly root: HTMLElement;
@@ -31,6 +30,21 @@ export class Identification {
   constructor() {
     this.root = document.createElement("section");
     this.root.className = "identification-scene";
+
+    const backButton = document.createElement("button");
+    backButton.className = "identification-back-button";
+    backButton.type = "button";
+    backButton.setAttribute("aria-label", "Retour au menu");
+    backButton.addEventListener("click", () =>
+      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+    );
+
+    const backArrow = document.createElement("img");
+    backArrow.src = "/images/cosmetics/Fleche.png";
+    backArrow.alt = "";
+    backArrow.setAttribute("aria-hidden", "true");
+    backButton.appendChild(backArrow);
+    this.root.appendChild(backButton);
 
     const card = document.createElement("div");
     card.className = "identification-card";
@@ -89,6 +103,7 @@ export class Identification {
 
   mount(host: HTMLElement = document.body): void {
     host.appendChild(this.root);
+    menuAudio.playMenu();
     this.slots[0]?.input.focus();
   }
 
@@ -137,7 +152,6 @@ export class Identification {
         slot.input.setError(null);
         slot.validated = res.normalized;
       } else {
-        // Pas d'erreur affichée tant que l'utilisateur n'a pas tenté de soumettre.
         slot.validated = null;
         allOk = false;
       }
@@ -148,7 +162,6 @@ export class Identification {
   private submit(): void {
     if (this.submitting) return;
 
-    // Validation finale avant envoi : on affiche les erreurs cette fois.
     const tags: PlayerTag[] = [];
     let firstError = true;
     for (const slot of this.slots) {
@@ -166,11 +179,8 @@ export class Identification {
       tags.push(res.normalized);
     }
 
-    // Le backend crée la session et pilote la suite (ready → countdown →
-    // playing), rebroadcastée sur le bus borne. On envoie juste l'intention ;
-    // l'écran de jeu prendra le relais quand `nav:state: in_game` arrivera.
     this.submitting = true;
-    this.submitButton.setLabel("Lancement…");
+    this.submitButton.setLabel("Lancement...");
     this.submitButton.setDisabled(true);
     this.setGlobalError(null);
 

@@ -4,7 +4,7 @@
   z-index: 1450;
   height: 100vh;
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto auto;
   gap: clamp(10px, 1.4vh, 20px);
   padding: clamp(12px, 1.8vh, 20px);
   overflow: hidden;
@@ -177,9 +177,9 @@
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(260px, 1.15fr) repeat(4, minmax(180px, 1fr));
+  grid-template-rows: repeat(2, clamp(168px, 21vh, 230px));
   gap: 16px;
   align-items: stretch;
-  min-height: 0;
   margin-bottom: 0;
 }
 
@@ -193,7 +193,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: clamp(14px, 2vh, 24px);
+  min-height: 0;
   padding: 14px;
   border: 3px solid #59ff7a;
   border-radius: 28px;
@@ -209,15 +211,17 @@
 }
 
 .cosmetics-featured-skin {
-  width: clamp(96px, 13vh, 140px);
-  height: clamp(96px, 13vh, 140px);
+  width: clamp(112px, 16vh, 156px);
+  height: clamp(112px, 16vh, 156px);
   display: grid;
   place-items: center;
+  margin-top: clamp(16px, 3vh, 34px);
 }
 
 .cosmetics-skin-card {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: minmax(74px, 1fr) auto auto;
+  align-items: center;
   min-height: 0;
   padding: clamp(8px, 1.2vh, 12px);
   border: 3px solid #2278ff;
@@ -237,11 +241,13 @@
 }
 
 .cosmetics-skin-preview {
-  width: clamp(60px, 8vh, 85px);
-  height: clamp(60px, 8vh, 85px);
+  width: clamp(72px, 9vh, 96px);
+  height: clamp(72px, 9vh, 96px);
   display: grid;
   place-items: center;
-  margin: auto;
+  align-self: center;
+  justify-self: center;
+  margin: 0;
 }
 
 .cosmetics-featured-skin img,
@@ -257,6 +263,7 @@
 .cosmetics-featured-card h2 {
   margin: clamp(4px, 0.8vh, 8px) 0;
   text-align: center;
+  line-height: 1.05;
 }
 
 .cosmetics-placeholder {
@@ -297,7 +304,8 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  min-height: clamp(64px, 8vh, 85px);
+  justify-items: stretch;
+  min-height: clamp(68px, 8vh, 85px);
   border: 3px solid #1d6fff;
   border-radius: 24px;
   overflow: hidden;
@@ -306,7 +314,10 @@
 }
 
 .cosmetics-nav-item {
-  min-height: clamp(56px, 7vh, 75px);
+  min-height: clamp(60px, 7vh, 75px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 22px;
   background: transparent;
@@ -321,8 +332,8 @@
 }
 
 .cosmetics-play-button img {
-  width: clamp(64px, 9vh, 100px);
-  height: clamp(64px, 9vh, 100px);
+  width: clamp(58px, 8.4vh, 92px);
+  height: clamp(58px, 8.4vh, 92px);
   object-fit: contain;
   transition: 0.25s;
 }
@@ -339,6 +350,7 @@
 
   .cosmetics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
   }
 
   .cosmetics-featured-card {

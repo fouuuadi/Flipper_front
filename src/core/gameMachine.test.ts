@@ -57,6 +57,12 @@ describe("gameMachine — menu transitions", () => {
     expect(next?.value).toBe("settings");
   });
 
+  it("menu + BACK_TO_SPLASH → splash + context reset", () => {
+    const next = transition(snapshotAt("menu"), { type: "BACK_TO_SPLASH" });
+    expect(next?.value).toBe("splash");
+    expect(next?.context).toEqual(initialContext);
+  });
+
   it("menu + RESUME → no transition (invalid)", () => {
     const next = transition(snapshotAt("menu"), { type: "RESUME" });
     expect(next).toBeNull();
@@ -265,6 +271,7 @@ describe("gameMachine — guard against arbitrary jumps", () => {
     { type: "OPEN_LEADERBOARD" as const },
     { type: "OPEN_COSMETICS" as const },
     { type: "OPEN_SETTINGS" as const },
+    { type: "BACK_TO_SPLASH" as const },
     { type: "BACK_TO_MENU" as const },
     { type: "REPLAY" as const },
   ];
