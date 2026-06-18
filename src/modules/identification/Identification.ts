@@ -1,5 +1,7 @@
 import { Button, PseudoInput } from "@modules/ui";
 import { dispatchIntent } from "@core/keyboardDispatcher";
+import { gameStore } from "@core/gameStore";
+import { dispatchDevLocalCommand } from "@core/devLocalSync";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
@@ -36,7 +38,7 @@ export class Identification {
     backButton.type = "button";
     backButton.setAttribute("aria-label", "Retour au menu");
     backButton.addEventListener("click", () =>
-      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+      dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync, store: gameStore }),
     );
 
     const backArrow = document.createElement("img");
@@ -184,11 +186,15 @@ export class Identification {
     this.submitButton.setDisabled(true);
     this.setGlobalError(null);
 
-    matchSync.dispatch({
+    const command = {
       type: "intent",
       action: "PLAYERS_VALIDATED",
       payload: { pseudo: tags[0], mode: this.mode, players: tags },
-    });
+    } as const;
+
+    if (!dispatchDevLocalCommand(command, gameStore)) {
+      matchSync.dispatch(command);
+    }
   }
 
   private setGlobalError(message: string | null): void {

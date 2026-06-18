@@ -22,7 +22,9 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     await RAPIER.init();
 
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    // La table Blender est modélisée à plat. On ajoute une composante vers le
+    // drain pour retrouver le comportement d'un plateau légèrement incliné.
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: -2.2 });
 
     this.accumulator = 0;
   }

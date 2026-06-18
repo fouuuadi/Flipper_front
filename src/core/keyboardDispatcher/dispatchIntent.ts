@@ -1,8 +1,11 @@
 import type { GameEvent } from "@core/gameMachine.types";
+import type { GameStore } from "@core/gameStore";
+import { dispatchDevLocalCommand } from "@core/devLocalSync";
 import type { MatchSyncAdapter, NavAction } from "@services/matchSync";
 
 export interface DispatchIntentDeps {
   readonly sync: Pick<MatchSyncAdapter, "dispatch">;
+  readonly store?: GameStore;
 }
 
 /**
@@ -31,19 +34,19 @@ const NAV_ACTIONS: Partial<Record<GameEvent["type"], NavAction>> = {
 export function dispatchIntent(event: GameEvent, deps: DispatchIntentDeps): void {
   switch (event.type) {
     case "PAUSE":
-      deps.sync.dispatch({ type: "cmd:pause" });
+      dispatchCommand({ type: "cmd:pause" }, deps);
       return;
     case "RESUME":
-      deps.sync.dispatch({ type: "cmd:resume" });
+      dispatchCommand({ type: "cmd:resume" }, deps);
       return;
     case "ABANDON":
-      deps.sync.dispatch({ type: "cmd:abandon" });
+      dispatchCommand({ type: "cmd:abandon" }, deps);
       return;
   }
 
   const action = NAV_ACTIONS[event.type];
   if (action) {
-    deps.sync.dispatch({ type: "intent", action });
+    dispatchCommand({ type: "intent", action }, deps);
     return;
   }
 
@@ -51,4 +54,12 @@ export function dispatchIntent(event: GameEvent, deps: DispatchIntentDeps): void
   if (import.meta.env.DEV) {
     console.warn(`[dispatchIntent] event non routable vers le backend: ${event.type}`);
   }
+}
+
+function dispatchCommand(
+  command: Parameters<Pick<MatchSyncAdapter, "dispatch">["dispatch"]>[0],
+  deps: DispatchIntentDeps,
+): void {
+  if (deps.store && dispatchDevLocalCommand(command, deps.store)) return;
+  deps.sync.dispatch(command);
 }

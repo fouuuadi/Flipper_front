@@ -22,7 +22,7 @@ export class Launcher {
     this.mesh = new THREE.Mesh(geometry, material);
 
     // Position
-    this.mesh.position.set(3, -0.5, 5);
+    this.mesh.position.set(-7.6, 4.9, -13.4);
 
     // Inclinaison
     // léger angle vers la table
@@ -49,9 +49,9 @@ export class Launcher {
     this.power = normalized;
     this.chargeTime = 0;
 
-    // Impulsion vers le haut de la table (axe -z)
-    const force = this.power * 10;
-    this.ball.applyImpulse({ x: 0, y: 0, z: -force });
+    // Impulsion vers le haut de la nouvelle table Blender (axe +z).
+    const force = 8 + this.power * 18;
+    this.ball.applyImpulse({ x: 0, y: 0, z: force });
   }
 
   update(deltaTime: number) {
