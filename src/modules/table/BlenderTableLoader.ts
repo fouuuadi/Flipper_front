@@ -25,6 +25,9 @@ export function loadBlenderTable(
     loader.load(
       "/models/tableMarioGalaxy.glb",
       (gltf) => {
+        // Transform calé via la GUI debug 3D (DEV) puis figé ici.
+        gltf.scene.position.set(1, 3.5, -3);
+        gltf.scene.scale.setScalar(3);
         scene.add(gltf.scene);
 
         const flipperLeftMesh = gltf.scene.getObjectByName("flipper_left") ?? null;

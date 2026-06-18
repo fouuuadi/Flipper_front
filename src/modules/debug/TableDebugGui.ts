@@ -72,16 +72,45 @@ export function createTableDebugGui({
     .name("scale")
     .onChange((v: number) => tableRoot.scale.setScalar(v));
 
+  // --- Caméra ---
+  // position / target sont en `.listen()` : ils reflètent en direct les
+  // déplacements faits à la souris via OrbitControls (orbit / pan / zoom),
+  // et restent éditables au slider pour un calage fin.
+  const refreshProjection = (): void => camera.updateProjectionMatrix();
+  const camFolder = gui.addFolder("Caméra · Position");
+  camFolder.add(camera.position, "x", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camFolder.add(camera.position, "y", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camFolder.add(camera.position, "z", -50, 50, 0.1).listen().onChange(() => controls.update());
+
+  const camTarget = gui.addFolder("Caméra · Point visé (target)");
+  camTarget.add(controls.target, "x", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camTarget.add(controls.target, "y", -50, 50, 0.1).listen().onChange(() => controls.update());
+  camTarget.add(controls.target, "z", -50, 50, 0.1).listen().onChange(() => controls.update());
+
+  const camLens = gui.addFolder("Caméra · Objectif");
+  camLens.add(camera, "fov", 10, 120, 1).onChange(refreshProjection);
+  camLens.add(camera, "near", 0.01, 10, 0.01).onChange(refreshProjection);
+  camLens.add(camera, "far", 10, 5000, 10).onChange(refreshProjection);
+
   // --- Helpers ---
   const helpers = gui.addFolder("Helpers");
   helpers.add(gridHelper, "visible").name("grille");
   helpers.add(axesHelper, "visible").name("axes");
   helpers.add(controls, "enabled").name("OrbitControls");
 
-  // --- Export du transform ---
+  // --- Export ---
   const fmt = (n: number): string => n.toFixed(3);
+  const copyToClipboard = async (label: string, snippet: string): Promise<void> => {
+    console.log(`[Debug 3D] ${label} :\n${snippet}`);
+    try {
+      await navigator.clipboard.writeText(snippet);
+      console.log("[Debug 3D] ✓ copié dans le presse-papier");
+    } catch {
+      console.warn("[Debug 3D] presse-papier indisponible — copie depuis la console ci-dessus");
+    }
+  };
   const actions = {
-    copier: async (): Promise<void> => {
+    copierTable: async (): Promise<void> => {
       const p = tableRoot.position;
       const r = tableRoot.rotation;
       const s = tableRoot.scale;
@@ -90,16 +119,25 @@ export function createTableDebugGui({
         `tableRoot.rotation.set(${fmt(r.x)}, ${fmt(r.y)}, ${fmt(r.z)}); // radians`,
         `tableRoot.scale.setScalar(${fmt(s.x)});`,
       ].join("\n");
-      console.log("[Debug 3D] transform table :\n" + snippet);
-      try {
-        await navigator.clipboard.writeText(snippet);
-        console.log("[Debug 3D] ✓ copié dans le presse-papier");
-      } catch {
-        console.warn("[Debug 3D] presse-papier indisponible — copie depuis la console ci-dessus");
-      }
+      await copyToClipboard("transform table", snippet);
+    },
+    copierCamera: async (): Promise<void> => {
+      const p = camera.position;
+      const t = controls.target;
+      // Prêt à coller dans SceneManager (pas d'OrbitControls en prod → lookAt).
+      const snippet = [
+        `this.camera.fov = ${fmt(camera.fov)};`,
+        `this.camera.near = ${fmt(camera.near)};`,
+        `this.camera.far = ${fmt(camera.far)};`,
+        `this.camera.position.set(${fmt(p.x)}, ${fmt(p.y)}, ${fmt(p.z)});`,
+        `this.camera.lookAt(${fmt(t.x)}, ${fmt(t.y)}, ${fmt(t.z)});`,
+        `this.camera.updateProjectionMatrix();`,
+      ].join("\n");
+      await copyToClipboard("setup caméra", snippet);
     },
   };
-  gui.add(actions, "copier").name("📋 Copier le transform");
+  gui.add(actions, "copierTable").name("📋 Copier le transform table");
+  gui.add(actions, "copierCamera").name("📷 Copier le setup caméra");
 
   // OrbitControls a besoin d'un update par frame (damping).
   const tick = (): void => {
