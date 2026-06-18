@@ -69,6 +69,22 @@ export interface GameOverEvent {
   readonly finalScore: number;
 }
 
+/**
+ * Entrées physiques de la borne relayées par le backend (boutons ESP32). En dev
+ * elles sont remplacées par le clavier ; le playfield les consomme de la même
+ * façon, sans savoir d'où elles viennent.
+ */
+export interface ControlFlipperEvent {
+  readonly type: "control:flipper";
+  readonly side: "left" | "right";
+  readonly action: "press" | "release";
+}
+
+export interface ControlPlungerEvent {
+  readonly type: "control:plunger";
+  readonly action: "charge" | "release";
+}
+
 /** Union discriminée de tous les events émis par le serveur. */
 export type WsServerEvent =
   | NavStateEvent
@@ -76,7 +92,9 @@ export type WsServerEvent =
   | CountdownTickEvent
   | ScoreUpdateEvent
   | BallLostEvent
-  | GameOverEvent;
+  | GameOverEvent
+  | ControlFlipperEvent
+  | ControlPlungerEvent;
 
 /** Type guard pratique pour les consommateurs. */
 export function isServerEvent(payload: unknown): payload is WsServerEvent {
@@ -88,7 +106,9 @@ export function isServerEvent(payload: unknown): payload is WsServerEvent {
     type === "countdown:tick" ||
     type === "score:update" ||
     type === "ball:lost" ||
-    type === "game:over"
+    type === "game:over" ||
+    type === "control:flipper" ||
+    type === "control:plunger"
   );
 }
 

@@ -8,7 +8,7 @@ import { applyDevBoot } from "@core/devBoot";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
-import { bindGameplayInput } from "@modules/gameplayInput";
+import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
@@ -87,9 +87,15 @@ async function bootstrap() {
   // 6. Scène 3D en arrière-plan (le canvas est sous tous les overlays UI).
   const { sceneManager, leftFlipper, rightFlipper, launcher } = await createPlayfieldScene();
 
-  // 6bis. Clavier gameplay (flippers + lanceur) — source unique, active
-  //       uniquement en `playing`.
-  bindGameplayInput(gameStore, { leftFlipper, rightFlipper, launcher });
+  // 6bis. Sources gameplay (flippers + lanceur), actives uniquement en
+  //       `playing`. Le playfield est un client borne par nature, donc on
+  //       écoute toujours les boutons physiques relayés par le backend
+  //       (`bindBorneGameplay`) ; le clavier ne s'ajoute qu'en dev.
+  const gameplayControls = { leftFlipper, rightFlipper, launcher };
+  bindBorneGameplay(gameStore, gameplayControls, matchSync);
+  if (import.meta.env.DEV) {
+    bindGameplayInput(gameStore, gameplayControls);
+  }
 
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
