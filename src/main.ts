@@ -11,6 +11,7 @@ import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindGameplayInput } from "@modules/gameplayInput";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 
 import { Splash } from "@modules/splash";
 import { Pause } from "@modules/pause";
@@ -52,6 +53,8 @@ const factories: ScreenFactoryMap = {
 };
 
 async function bootstrap() {
+  menuAudio.startClickFeedback();
+
   // 0. Bypass de dev (`?boot=playing`) : bascule la SM avant tout abonnement
   //    pour que MatchTimer et ScreenRouter reçoivent l'état cible dès leur
   //    subscribe initial. No-op sans le query param et en prod.

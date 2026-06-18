@@ -1,5 +1,6 @@
 const SPLASH_TRACK = "/audio/Menu/HeticGalaxy.mp3";
 const MENU_TRACK = "/audio/Menu/SMG_Menu.mp3";
+const CLICK_TRACK = "/audio/Menu/Click.wav";
 const MUSIC_VOLUME_KEY = "flipper.menu.musicVolume";
 const SFX_VOLUME_KEY = "flipper.menu.sfxVolume";
 const MUSIC_MUTED_KEY = "flipper.menu.musicMuted";
@@ -11,6 +12,7 @@ class MenuAudioController {
   private current: TrackKind | null = null;
   private pending: { kind: TrackKind; src: string } | null = null;
   private unlockBound = false;
+  private clickFeedbackBound = false;
 
   playSplash(): void {
     this.play("splash", SPLASH_TRACK);
@@ -18,6 +20,27 @@ class MenuAudioController {
 
   playMenu(): void {
     this.play("menu", MENU_TRACK);
+  }
+
+  playClick(): void {
+    const audio = new Audio(CLICK_TRACK);
+    audio.volume = this.getSfxVolume() / 100;
+    void audio.play().catch(() => {});
+  }
+
+  startClickFeedback(): void {
+    if (this.clickFeedbackBound || typeof document === "undefined") return;
+    this.clickFeedbackBound = true;
+
+    document.addEventListener(
+      "click",
+      (event) => {
+        if (!(event.target instanceof Element)) return;
+        if (!event.target.closest("button")) return;
+        this.playClick();
+      },
+      true,
+    );
   }
 
   stop(): void {

@@ -329,6 +329,7 @@ export class Menu {
   }
 
   private activateMenuButton(button: MenuButtonMesh): void {
+    menuAudio.playClick();
     this.selectedMenuButton = button;
     window.setTimeout(() => {
       switch (button.userData.action) {
