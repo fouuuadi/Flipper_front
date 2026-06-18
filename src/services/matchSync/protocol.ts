@@ -85,6 +85,14 @@ export interface ControlPlungerEvent {
   readonly action: "charge" | "release";
 }
 
+/** Bouton d'interface de la borne. Le front l'oriente selon l'écran courant. */
+export type NavButton = "confirm" | "back" | "left" | "right" | "help";
+
+export interface ControlNavEvent {
+  readonly type: "control:nav";
+  readonly button: NavButton;
+}
+
 /** Union discriminée de tous les events émis par le serveur. */
 export type WsServerEvent =
   | NavStateEvent
@@ -94,7 +102,8 @@ export type WsServerEvent =
   | BallLostEvent
   | GameOverEvent
   | ControlFlipperEvent
-  | ControlPlungerEvent;
+  | ControlPlungerEvent
+  | ControlNavEvent;
 
 /** Type guard pratique pour les consommateurs. */
 export function isServerEvent(payload: unknown): payload is WsServerEvent {
@@ -108,7 +117,8 @@ export function isServerEvent(payload: unknown): payload is WsServerEvent {
     type === "ball:lost" ||
     type === "game:over" ||
     type === "control:flipper" ||
-    type === "control:plunger"
+    type === "control:plunger" ||
+    type === "control:nav"
   );
 }
 

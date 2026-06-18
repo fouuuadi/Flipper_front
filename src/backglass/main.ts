@@ -1,8 +1,9 @@
 import "../styles/global.css";
 
 import { gameStore } from "@core/gameStore";
-import { KeyboardDispatcher } from "@core/keyboardDispatcher";
+import { KeyboardDispatcher, dispatchIntent } from "@core/keyboardDispatcher";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
+import { bindScreenNav } from "@modules/screenNav";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
 
@@ -32,12 +33,37 @@ const factories: ScreenFactoryMap = {
   splash: (screenHost) => {
     const splash = new Splash();
     splash.mount(screenHost);
-    return { stop: () => splash.unmount() };
+    // Bouton vert (ou n'importe quelle touche en dev) → on entre dans le menu.
+    const unbindNav = bindScreenNav(
+      { confirm: () => dispatchIntent({ type: "PRESS_A" }, { sync: matchSync }) },
+      { sync: matchSync },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        splash.unmount();
+      },
+    };
   },
   menu: (screenHost) => {
     const menu = new Menu();
     menu.mount(screenHost);
-    return { stop: () => menu.unmount() };
+    // Navigation au curseur : gauche/droite défilent, vert valide, rouge revient.
+    const unbindNav = bindScreenNav(
+      {
+        left: () => menu.moveCursor(-1),
+        right: () => menu.moveCursor(1),
+        confirm: () => menu.confirmCursor(),
+        back: () => dispatchIntent({ type: "BACK_TO_SPLASH" }, { sync: matchSync }),
+      },
+      { sync: matchSync, keyboard: true },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        menu.unmount();
+      },
+    };
   },
   identification: (screenHost) => {
     const identification = new Identification();
