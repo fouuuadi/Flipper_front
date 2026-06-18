@@ -1,0 +1,59 @@
+.controls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 8, 24, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.controls-overlay[hidden] {
+  display: none;
+}
+
+.controls-overlay-card {
+  min-width: min(36rem, 90vw);
+  padding: 2rem 2.5rem;
+  background: rgba(8, 20, 52, 0.96);
+  border: 2px solid rgba(80, 130, 255, 0.5);
+  border-radius: 1rem;
+  box-shadow: 0 0 3rem rgba(79, 155, 255, 0.4);
+  color: #e6efff;
+}
+
+.controls-overlay-title {
+  margin: 0 0 1.25rem;
+  text-align: center;
+  font-size: 2rem;
+  letter-spacing: 0.05em;
+}
+
+.controls-overlay-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.controls-overlay-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(80, 130, 255, 0.18);
+  font-size: 1.05rem;
+}
+
+.controls-overlay-table td:first-child {
+  font-weight: 700;
+  color: #9bc2ff;
+}
+
+.controls-overlay-table td:nth-child(2) {
+  color: rgba(207, 224, 255, 0.6);
+  font-variant: small-caps;
+}
+
+.controls-overlay-hint {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.95rem;
+  color: rgba(207, 224, 255, 0.6);
+}

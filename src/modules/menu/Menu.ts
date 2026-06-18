@@ -304,9 +304,7 @@ export class Menu {
    */
   moveCursor(delta: number): void {
     if (this.menuButtons.length === 0) return;
-    const current = this.hoveredMenuButton
-      ? this.menuButtons.indexOf(this.hoveredMenuButton)
-      : -1;
+    const current = this.hoveredMenuButton ? this.menuButtons.indexOf(this.hoveredMenuButton) : -1;
     const count = this.menuButtons.length;
     const next = (((current + delta) % count) + count) % count;
     this.hoveredMenuButton = this.menuButtons[next];

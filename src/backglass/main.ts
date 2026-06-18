@@ -4,6 +4,7 @@ import { gameStore } from "@core/gameStore";
 import { KeyboardDispatcher, dispatchIntent } from "@core/keyboardDispatcher";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
 import { bindScreenNav } from "@modules/screenNav";
+import { ControlsOverlay } from "@modules/controls";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
 
@@ -124,4 +125,9 @@ if (host) {
   matchSync.connectBorne();
   new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();
   new ScreenRouter(host, gameStore, factories).start();
+
+  // Écran « contrôles » global, togglé par le bouton orange (help) ou la touche H.
+  const controlsOverlay = new ControlsOverlay();
+  controlsOverlay.mount(host);
+  bindScreenNav({ help: () => controlsOverlay.toggle() }, { sync: matchSync, keyboard: true });
 }

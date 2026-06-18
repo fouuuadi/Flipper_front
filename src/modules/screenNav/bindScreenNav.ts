@@ -15,6 +15,7 @@ export interface BindScreenNavOptions {
 const KEY_TO_NAV: Readonly<Record<string, NavButton>> = {
   ArrowLeft: "left",
   ArrowRight: "right",
+  KeyH: "help",
 };
 
 /**
@@ -26,10 +27,7 @@ const KEY_TO_NAV: Readonly<Record<string, NavButton>> = {
  * L'écran fournit ses handlers (`confirm`, `left`, `right`, `back`, `help`) ; il
  * ne sait pas d'où vient l'appui. Retourne un cleanup.
  */
-export function bindScreenNav(
-  handlers: NavHandlers,
-  options: BindScreenNavOptions,
-): () => void {
+export function bindScreenNav(handlers: NavHandlers, options: BindScreenNavOptions): () => void {
   const { sync, keyboard = false } = options;
   const cleanups: Array<() => void> = [];
 
