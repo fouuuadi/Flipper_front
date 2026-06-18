@@ -291,6 +291,30 @@ export class Menu {
     });
 
     this.scene.add(menuButtonGroup);
+
+    // Curseur initial sur le 1er bouton (JOUER) : la borne / le clavier
+    // naviguent au curseur, on réutilise le surlignage du hover.
+    this.hoveredMenuButton = this.menuButtons[0] ?? null;
+  }
+
+  /**
+   * Déplace le curseur de `delta` crans (−1 gauche, +1 droite), avec bouclage.
+   * Piloté par les boutons borne (`control:nav` left/right) et les flèches en
+   * dev. Réutilise `hoveredMenuButton` comme curseur (déjà surligné au rendu).
+   */
+  moveCursor(delta: number): void {
+    if (this.menuButtons.length === 0) return;
+    const current = this.hoveredMenuButton ? this.menuButtons.indexOf(this.hoveredMenuButton) : -1;
+    const count = this.menuButtons.length;
+    const next = (((current + delta) % count) + count) % count;
+    this.hoveredMenuButton = this.menuButtons[next];
+    menuAudio.playClick();
+  }
+
+  /** Valide l'option sous le curseur (équivalent d'un clic). */
+  confirmCursor(): void {
+    const target = this.hoveredMenuButton ?? this.menuButtons[0];
+    if (target) this.activateMenuButton(target);
   }
 
   private create3DButton(spec: MenuButtonSpec): MenuButtonMesh {

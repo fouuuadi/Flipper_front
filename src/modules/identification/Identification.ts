@@ -3,6 +3,8 @@ import { dispatchIntent } from "@core/keyboardDispatcher";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
+import { bindScreenNav } from "@modules/screenNav";
+import { PseudoRoulette } from "./PseudoRoulette";
 import { validatePseudo } from "./validation";
 import "./identification.css";
 
@@ -26,6 +28,8 @@ export class Identification {
   private slots: PlayerSlot[] = [];
   private mode: GameMode = "solo";
   private submitting = false;
+  private readonly roulette: PseudoRoulette;
+  private unbindNav: (() => void) | null = null;
 
   constructor() {
     this.root = document.createElement("section");
@@ -59,6 +63,14 @@ export class Identification {
     subtitle.className = "identification-subtitle";
     subtitle.textContent = "Choisis ton mode puis entre ton pseudo";
     card.appendChild(subtitle);
+
+    // Saisie aux boutons de la borne (et flèches en dev) : roulette de lettres.
+    // Le champ texte ci-dessous reste pour une saisie clavier rapide en dev.
+    this.roulette = new PseudoRoulette({
+      onComplete: (pseudo) => this.submitPseudo(pseudo),
+      onCancel: () => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+    });
+    this.roulette.mount(card);
 
     const modeRow = document.createElement("div");
     modeRow.className = "identification-modes";
@@ -105,14 +117,47 @@ export class Identification {
     host.appendChild(this.root);
     menuAudio.playMenu();
     this.slots[0]?.input.focus();
+    // La roulette gère elle-même son `back` (effacer / annuler), donc cet écran
+    // câble toute sa navigation borne (pas via `navScreen`).
+    this.unbindNav = bindScreenNav(
+      {
+        left: () => this.roulette.moveChar(-1),
+        right: () => this.roulette.moveChar(1),
+        confirm: () => this.roulette.confirm(),
+        back: () => this.roulette.back(),
+      },
+      { sync: matchSync, keyboard: true },
+    );
   }
 
   unmount(): void {
+    this.unbindNav?.();
+    this.unbindNav = null;
+    this.roulette.unmount();
     this.slots.forEach((s) => s.input.unmount());
     this.modeButtons.solo.unmount();
     this.modeButtons["1v1"].unmount();
     this.submitButton.unmount();
     this.root.remove();
+  }
+
+  /** Soumission depuis la roulette borne : pseudo solo déjà composé. */
+  private submitPseudo(pseudo: string): void {
+    if (this.submitting) return;
+    const res = validatePseudo(pseudo);
+    if (!res.ok) {
+      this.setGlobalError(res.error);
+      return;
+    }
+    this.submitting = true;
+    this.submitButton.setLabel("Lancement...");
+    this.submitButton.setDisabled(true);
+    this.setGlobalError(null);
+    matchSync.dispatch({
+      type: "intent",
+      action: "PLAYERS_VALIDATED",
+      payload: { pseudo: res.normalized, mode: "solo", players: [res.normalized] },
+    });
   }
 
   private setMode(mode: GameMode): void {
