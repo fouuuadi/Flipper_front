@@ -29,6 +29,40 @@ const backglassHud: ScreenFactory = (screenHost) => {
   return { stop: () => app.stop() };
 };
 
+// Écran secondaire : le bouton rouge (back) revient au menu. L'écran garde sa
+// propre UI pour le reste (clavier / clic) ; la roulette d'identification
+// affinera son `back` (effacer une lettre) au lot suivant.
+const navScreen =
+  (create: () => { mount: (host: HTMLElement) => void; unmount: () => void }): ScreenFactory =>
+  (screenHost) => {
+    const screen = create();
+    screen.mount(screenHost);
+    const unbindNav = bindScreenNav(
+      { back: () => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }) },
+      { sync: matchSync },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        screen.unmount();
+      },
+    };
+  };
+
+// États de jeu : le HUD backglass + le bouton rouge (back) contextuel.
+const hudWithBack =
+  (back: () => void): ScreenFactory =>
+  (screenHost, ctx) => {
+    const hud = backglassHud(screenHost, ctx);
+    const unbindNav = bindScreenNav({ back }, { sync: matchSync });
+    return {
+      stop: () => {
+        unbindNav();
+        hud.stop();
+      },
+    };
+  };
+
 const factories: ScreenFactoryMap = {
   splash: (screenHost) => {
     const splash = new Splash();
@@ -65,29 +99,15 @@ const factories: ScreenFactoryMap = {
       },
     };
   },
-  identification: (screenHost) => {
-    const identification = new Identification();
-    identification.mount(screenHost);
-    return { stop: () => identification.unmount() };
-  },
-  leaderboard: (screenHost) => {
-    const leaderboard = new Leaderboard();
-    leaderboard.mount(screenHost);
-    return { stop: () => leaderboard.unmount() };
-  },
-  cosmetics: (screenHost) => {
-    const cosmetics = new CosmeticsStore();
-    cosmetics.mount(screenHost);
-    return { stop: () => cosmetics.unmount() };
-  },
-  settings: (screenHost) => {
-    const settings = new Settings();
-    settings.mount(screenHost);
-    return { stop: () => settings.unmount() };
-  },
-  playing: backglassHud,
-  paused: backglassHud,
-  gameOver: backglassHud,
+  identification: navScreen(() => new Identification()),
+  leaderboard: navScreen(() => new Leaderboard()),
+  cosmetics: navScreen(() => new CosmeticsStore()),
+  settings: navScreen(() => new Settings()),
+  // En jeu : rouge → pause. En pause : rouge → reprendre (abandonner = option
+  // validée au vert). Game over : rouge → retour menu.
+  playing: hudWithBack(() => dispatchIntent({ type: "PAUSE" }, { sync: matchSync })),
+  paused: hudWithBack(() => dispatchIntent({ type: "RESUME" }, { sync: matchSync })),
+  gameOver: hudWithBack(() => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync })),
 };
 
 if (host) {
