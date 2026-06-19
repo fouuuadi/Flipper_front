@@ -85,9 +85,14 @@ export function createBlenderPhysicsColliders(
       return;
     }
 
-    if (!(object instanceof THREE.Mesh)) return;
+    // Certains noeuds Blender (ex. Champignion_a/b) ont plusieurs primitives/matériaux :
+    // le GLTFLoader les charge alors comme un Group contenant plusieurs Mesh enfants
+    // au lieu d'un Mesh unique. On fusionne toutes les géométries du sous-arbre pour
+    // créer un seul collider couvrant l'objet entier (sinon il reste traversable).
+    const meshes = object instanceof THREE.Mesh ? [object] : collectMeshes(object);
+    if (meshes.length === 0) return;
 
-    const geometry = extractWorldGeometry(object);
+    const geometry = extractWorldGeometryFromMeshes(meshes);
     if (!geometry) return;
 
     const collider =
@@ -325,6 +330,63 @@ function extractWorldGeometry(mesh: THREE.Mesh): {
   const indices = mesh.geometry.index
     ? copyIndex(mesh.geometry.index)
     : createSequentialIndices(position.count);
+
+  const helperGeometry = new THREE.BufferGeometry();
+  helperGeometry.setAttribute("position", new THREE.BufferAttribute(vertices.slice(), 3));
+  helperGeometry.setIndex(new THREE.BufferAttribute(indices.slice(), 1));
+
+  return { vertices, indices, helperGeometry };
+}
+
+function collectMeshes(object: THREE.Object3D): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = [];
+  object.traverse((child) => {
+    if (child instanceof THREE.Mesh) meshes.push(child);
+  });
+  return meshes;
+}
+
+function extractWorldGeometryFromMeshes(meshes: THREE.Mesh[]): {
+  vertices: Float32Array;
+  indices: Uint32Array;
+  helperGeometry: THREE.BufferGeometry;
+} | null {
+  const vertexChunks: Float32Array[] = [];
+  const indexChunks: Uint32Array[] = [];
+  let vertexOffset = 0;
+
+  for (const mesh of meshes) {
+    const geometry = extractWorldGeometry(mesh);
+    if (!geometry) continue;
+
+    vertexChunks.push(geometry.vertices);
+
+    const offsetIndices = new Uint32Array(geometry.indices.length);
+    for (let i = 0; i < geometry.indices.length; i += 1) {
+      offsetIndices[i] = geometry.indices[i] + vertexOffset;
+    }
+    indexChunks.push(offsetIndices);
+
+    vertexOffset += geometry.vertices.length / 3;
+  }
+
+  const totalVertexLength = vertexChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  if (totalVertexLength < 9) return null;
+
+  const vertices = new Float32Array(totalVertexLength);
+  let vertexCursor = 0;
+  for (const chunk of vertexChunks) {
+    vertices.set(chunk, vertexCursor);
+    vertexCursor += chunk.length;
+  }
+
+  const totalIndexLength = indexChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const indices = new Uint32Array(totalIndexLength);
+  let indexCursor = 0;
+  for (const chunk of indexChunks) {
+    indices.set(chunk, indexCursor);
+    indexCursor += chunk.length;
+  }
 
   const helperGeometry = new THREE.BufferGeometry();
   helperGeometry.setAttribute("position", new THREE.BufferAttribute(vertices.slice(), 3));
