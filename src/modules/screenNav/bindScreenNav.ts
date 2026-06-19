@@ -33,7 +33,12 @@ export function bindScreenNav(handlers: NavHandlers, options: BindScreenNavOptio
 
   cleanups.push(
     sync.onEvent((event) => {
-      if (event.type === "control:nav") handlers[event.button]?.();
+      if (event.type !== "control:nav") return;
+      const handled = Boolean(handlers[event.button]);
+      console.info(
+        `[borne-input] nav '${event.button}' → ${handled ? "traité par cet écran" : "aucun handler ici"}`,
+      );
+      handlers[event.button]?.();
     }),
   );
 
