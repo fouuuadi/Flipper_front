@@ -18,9 +18,21 @@ interface BurstEffect {
   duration: number;
 }
 
+interface TunnelTeleport {
+  from: string;
+  to: string;
+  elapsed: number;
+  duration: number;
+  entryVelocity: THREE.Vector3;
+}
+
 const PLANET_BUMPERS = new Set(["Planet_Glace", "Planet_Terre", "Planet_Volcan"]);
 const RAMP_BOOSTS = new Set(["Rampe", "Ramp_2"]);
 const SPINNERS = new Set(["Champignion_a", "Champignion_b"]);
+const TUNNEL_PAIRS: Record<string, string> = {
+  Tunel_b: "Tunel_c",
+  Tunel_c: "Tunel_b",
+};
 
 export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
@@ -32,6 +44,8 @@ export class TableInteractions {
   private elapsed = 0;
   private shakeTime = 0;
   private previousShake = new THREE.Vector3();
+  private tunnelTeleport: TunnelTeleport | null = null;
+  private tunnelCooldownUntil = 0;
 
   constructor(
     private readonly physics: RapierPhysicsAdapter,
@@ -57,6 +71,7 @@ export class TableInteractions {
     this.updateSpins(deltaTime);
     this.updateBursts(deltaTime);
     this.updateShake(deltaTime);
+    this.updateTunnelTeleport(deltaTime);
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
@@ -81,6 +96,8 @@ export class TableInteractions {
     } else if (name === "Bump") {
       this.bumpFrom(name, 2.2, 0.28);
       this.startShake();
+    } else if (name in TUNNEL_PAIRS) {
+      this.startTunnelTeleport(name);
     }
   }
 
@@ -234,6 +251,110 @@ export class TableInteractions {
       0,
     );
     this.camera.position.add(this.previousShake);
+  }
+
+  private updateTunnelTeleport(deltaTime: number): void {
+    const body = this.ball.getBody();
+    if (!body) return;
+
+    if (this.tunnelTeleport) {
+      this.tunnelTeleport.elapsed += deltaTime;
+      const fromCenter = this.colliders[this.tunnelTeleport.from]?.center;
+      if (!fromCenter) {
+        this.tunnelTeleport = null;
+        return;
+      }
+
+      const position = body.translation();
+      const pull = fromCenter.clone().sub(new THREE.Vector3(position.x, position.y, position.z));
+      pull.y = 0;
+      const pullDistance = pull.length();
+      if (pullDistance > 0.01) pull.normalize();
+
+      body.setLinvel(
+        {
+          x: pull.x * 5.4,
+          y: Math.max(body.linvel().y, 0),
+          z: pull.z * 5.4,
+        },
+        true,
+      );
+
+      if (this.tunnelTeleport.elapsed >= this.tunnelTeleport.duration || pullDistance < 0.16) {
+        this.finishTunnelTeleport();
+      }
+      return;
+    }
+
+    if (this.elapsed < this.tunnelCooldownUntil) return;
+
+    const position = body.translation();
+    for (const tunnelName of Object.keys(TUNNEL_PAIRS)) {
+      const center = this.colliders[tunnelName]?.center;
+      if (!center) continue;
+
+      const distanceXZ = Math.hypot(position.x - center.x, position.z - center.z);
+      if (distanceXZ <= 0.72) {
+        this.startTunnelTeleport(tunnelName);
+        return;
+      }
+    }
+  }
+
+  private startTunnelTeleport(from: string): void {
+    if (this.tunnelTeleport || this.elapsed < this.tunnelCooldownUntil) return;
+
+    const to = TUNNEL_PAIRS[from];
+    if (!to || !this.colliders[from] || !this.colliders[to]) return;
+
+    const velocity = this.ball.getBody()?.linvel();
+    this.tunnelTeleport = {
+      from,
+      to,
+      elapsed: 0,
+      duration: 0.18,
+      entryVelocity: velocity
+        ? new THREE.Vector3(velocity.x, velocity.y, velocity.z)
+        : new THREE.Vector3(0, 0, 1),
+    };
+    this.cooldowns.set(from, this.elapsed);
+  }
+
+  private finishTunnelTeleport(): void {
+    const teleport = this.tunnelTeleport;
+    const body = this.ball.getBody();
+    const destination = teleport ? this.colliders[teleport.to]?.center : null;
+    if (!teleport || !body || !destination) {
+      this.tunnelTeleport = null;
+      return;
+    }
+
+    const direction = new THREE.Vector3(teleport.entryVelocity.x, 0, teleport.entryVelocity.z);
+    if (direction.lengthSq() < 0.01) {
+      const source = this.colliders[teleport.from]?.center ?? destination;
+      direction.copy(destination).sub(source);
+      direction.y = 0;
+    }
+    if (direction.lengthSq() < 0.01) direction.set(0, 0, 1);
+    direction.normalize();
+
+    const speed = Math.max(Math.hypot(teleport.entryVelocity.x, teleport.entryVelocity.z), 4.8);
+    const exitPosition = destination.clone().addScaledVector(direction, 0.92);
+    exitPosition.y = Math.max(body.translation().y, destination.y + 0.22);
+
+    body.setTranslation({ x: exitPosition.x, y: exitPosition.y, z: exitPosition.z }, true);
+    body.setLinvel(
+      {
+        x: direction.x * speed,
+        y: Math.max(teleport.entryVelocity.y, 0.08),
+        z: direction.z * speed,
+      },
+      true,
+    );
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+    this.tunnelTeleport = null;
+    this.tunnelCooldownUntil = this.elapsed + 0.72;
   }
 
   private findVisual(name: string): THREE.Object3D | null {
