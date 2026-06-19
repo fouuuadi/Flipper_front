@@ -17,6 +17,8 @@ export class Pause {
   private readonly root: HTMLElement;
   private readonly resumeButton: Button;
   private readonly abandonButton: Button;
+  // Curseur de navigation aux boutons : 0 = reprendre, 1 = abandonner.
+  private cursor = 0;
 
   constructor() {
     this.root = document.createElement("section");
@@ -67,6 +69,19 @@ export class Pause {
     this.resumeButton.unmount();
     this.abandonButton.unmount();
     this.root.remove();
+  }
+
+  /** Déplace le curseur entre Reprendre (0) et Abandonner (1), avec bouclage. */
+  moveCursor(delta: number): void {
+    this.cursor = (((this.cursor + delta) % 2) + 2) % 2;
+    this.resumeButton.setVariant(this.cursor === 0 ? "primary" : "ghost");
+    this.abandonButton.setVariant(this.cursor === 1 ? "primary" : "ghost");
+  }
+
+  /** Valide l'option sous le curseur. */
+  confirm(): void {
+    if (this.cursor === 0) this.requestResume();
+    else this.requestAbandon();
   }
 
   private requestResume(): void {
