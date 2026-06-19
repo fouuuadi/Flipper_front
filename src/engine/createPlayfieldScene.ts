@@ -14,6 +14,8 @@ export interface PlayfieldScene {
   readonly rightFlipper: Flipper;
   readonly launcher: Launcher;
   readonly world: RAPIER.World;
+  readonly ball: Ball;
+  readonly physics: RapierPhysicsAdapter;
 }
 
 /**
@@ -105,5 +107,5 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
     sceneManager.dispose();
   });
 
-  return { sceneManager, leftFlipper, rightFlipper, launcher, world };
+  return { sceneManager, leftFlipper, rightFlipper, launcher, world, ball, physics };
 }

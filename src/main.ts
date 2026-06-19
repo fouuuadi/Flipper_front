@@ -2,6 +2,7 @@ import "./styles/global.css";
 
 import { createPlayfieldScene } from "@engine/createPlayfieldScene";
 import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
+import { Slingshot } from "@modules/slingshot";
 
 import { gameStore } from "@core/gameStore";
 import { applyDevBoot } from "@core/devBoot";
@@ -103,7 +104,8 @@ async function bootstrap() {
   new ScreenRouter(document.body, gameStore, factories).start();
 
   // 6. Scène 3D en arrière-plan (le canvas est sous tous les overlays UI).
-  const { sceneManager, leftFlipper, rightFlipper, launcher, world } = await createPlayfieldScene();
+  const { sceneManager, leftFlipper, rightFlipper, launcher, world, ball, physics } =
+    await createPlayfieldScene();
 
   // 6bis. Sources gameplay (flippers + lanceur), actives uniquement en
   //       `playing`. Le playfield est un client borne par nature, donc on
@@ -117,10 +119,20 @@ async function bootstrap() {
 
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper, world)
-    .then(({ bridges, tableRoot }) => {
+    .then(({ bridges, tableRoot, colliders }) => {
       sceneManager.onUpdate(() => {
         for (const bridge of bridges) bridge.update();
       });
+
+      // 7bis. Slingshot actif : repousse la bille avec une impulsion
+      //       réactive façon ressort dès que le triangle Blender est trouvé.
+      const slingshotCollider = colliders["Slingshot_triangle"];
+      if (slingshotCollider) {
+        const slingshot = new Slingshot(physics, ball, slingshotCollider);
+        sceneManager.onUpdate((deltaTime) => slingshot.update(deltaTime));
+      } else if (import.meta.env.DEV) {
+        console.warn('⚠️ "Slingshot_triangle" introuvable, slingshot actif désactivé');
+      }
 
       // GUI de dépannage 3D (positionnement table) — DEV uniquement, jamais
       // embarqué dans le build borne/prod.

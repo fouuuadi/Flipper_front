@@ -7,6 +7,8 @@ type BodyHandle = {
   collider?: RAPIER.Collider;
 };
 
+type CollisionListener = (handle1: number, handle2: number, started: boolean) => void;
+
 export class RapierPhysicsAdapter implements PhysicsAdapter {
   private nextId = 0;
 
@@ -17,6 +19,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private readonly fixedDt = 1 / 120;
   private accumulator = 0;
 
+  // File d'événements de collision (ex. déclenchement du slingshot) : drainée
+  // après chaque sous-pas de simulation pour ne perdre aucun événement.
+  private eventQueue: RAPIER.EventQueue | null = null;
+  private collisionListeners: CollisionListener[] = [];
+
   async init(): Promise<void> {
     if (this.world) return;
 
@@ -25,8 +32,18 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     // La table Blender est modélisée à plat. On ajoute une composante vers le
     // drain pour retrouver le comportement d'un plateau légèrement incliné.
     this.world = new RAPIER.World({ x: 0, y: -9.81, z: -1.45 });
+    this.eventQueue = new RAPIER.EventQueue(true);
 
     this.accumulator = 0;
+  }
+
+  /**
+   * Enregistre un écouteur d'événements de collision (début/fin de contact
+   * entre deux colliders). Utilisé par ex. par le `Slingshot` pour détecter
+   * le contact avec la bille sans dépendre de la seule restitution passive.
+   */
+  onCollision(listener: CollisionListener): void {
+    this.collisionListeners.push(listener);
   }
 
   addBody(options: BodyOptions): BodyId {
@@ -115,7 +132,12 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     let subSteps = 0;
 
     while (this.accumulator >= this.fixedDt && subSteps < maxSubSteps) {
-      world.step();
+      if (this.eventQueue) {
+        world.step(this.eventQueue);
+        this.drainCollisionEvents(this.eventQueue);
+      } else {
+        world.step();
+      }
       this.accumulator -= this.fixedDt;
       subSteps++;
     }
@@ -123,6 +145,19 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     if (subSteps === maxSubSteps) {
       this.accumulator = 0;
     }
+  }
+
+  private drainCollisionEvents(eventQueue: RAPIER.EventQueue): void {
+    if (this.collisionListeners.length === 0) {
+      eventQueue.clear();
+      return;
+    }
+
+    eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      for (const listener of this.collisionListeners) {
+        listener(handle1, handle2, started);
+      }
+    });
   }
 
   dispose(): void {
@@ -133,6 +168,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     }
 
     this.handles.clear();
+
+    this.eventQueue?.free();
+    this.eventQueue = null;
+    this.collisionListeners = [];
 
     this.world = null;
     this.nextId = 0;
@@ -231,6 +270,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   getBody(id: BodyId): RAPIER.RigidBody | null {
     const handle = this.handles.get(id);
     return handle?.body ?? null;
+  }
+
+  // Méthode publique pour accéder au collider d'un body (ex. détection de
+  // collision ciblée comme le slingshot).
+  getCollider(id: BodyId): RAPIER.Collider | null {
+    const handle = this.handles.get(id);
+    return handle?.collider ?? null;
   }
 
   // Exposer le monde Rapier pour les interactions directes
