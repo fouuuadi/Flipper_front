@@ -1,12 +1,10 @@
 import type { PlayerTag } from "@core/gameMachine.types";
 
 /**
- * Pseudo input accepté par le serveur (cf. Flipper_back FRONTEND_INTEGRATION.md §4).
- * 3 alphanum, suivi optionnellement de "#" + 5 alphanum.
+ * Pseudo accepté par le serveur : exactement 3 caractères alphanumériques
+ * (style initiales de borne d'arcade). Plus de hashtag.
  */
-export const PSEUDO_INPUT_PATTERN = /^[A-Za-z0-9]{3}(#[A-Za-z0-9]{5})?$/;
-
-const DEFAULT_HASHTAG = "HETIC";
+export const PSEUDO_INPUT_PATTERN = /^[A-Za-z0-9]{3}$/;
 
 export type ValidationResult =
   | { readonly ok: true; readonly normalized: PlayerTag }
@@ -28,10 +26,8 @@ export function validatePseudo(input: string): ValidationResult {
   if (!PSEUDO_INPUT_PATTERN.test(trimmed)) {
     return {
       ok: false,
-      error: "Format : 3 caractères (lettres/chiffres), optionnellement suivis de #XXXXX",
+      error: "Format : 3 caractères (lettres/chiffres)",
     };
   }
-  const upper = trimmed.toUpperCase();
-  const normalized = upper.includes("#") ? upper : `${upper}#${DEFAULT_HASHTAG}`;
-  return { ok: true, normalized: normalized as PlayerTag };
+  return { ok: true, normalized: trimmed.toUpperCase() as PlayerTag };
 }
