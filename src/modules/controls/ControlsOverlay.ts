@@ -17,7 +17,7 @@ const CONTROLS: readonly ControlRow[] = [
   { button: "Gauche / Droite", key: "← →", action: "Naviguer (menu, roulette)" },
   { button: "Noir gauche / droit", key: "Shift G / D", action: "Flippers gauche / droit" },
   { button: "Plunger", key: "Espace", action: "Lancer la bille" },
-  { button: "Orange", key: "H", action: "Afficher / masquer cet écran" },
+  { button: "Orange", key: "H", action: "En jeu : pause / reprendre · sinon : cet écran" },
 ];
 
 /**

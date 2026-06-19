@@ -126,8 +126,23 @@ if (host) {
   new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();
   new ScreenRouter(host, gameStore, factories).start();
 
-  // Écran « contrôles » global, togglé par le bouton orange (help) ou la touche H.
+  // Bouton orange (help) : en jeu → pause ; en pause → reprise (le backend
+  // relance un compte à rebours 3-2-1) ; hors jeu → overlay des contrôles.
   const controlsOverlay = new ControlsOverlay();
   controlsOverlay.mount(host);
-  bindScreenNav({ help: () => controlsOverlay.toggle() }, { sync: matchSync, keyboard: true });
+  bindScreenNav(
+    {
+      help: () => {
+        const state = gameStore.getState().value;
+        if (state === "playing") {
+          dispatchIntent({ type: "PAUSE" }, { sync: matchSync });
+        } else if (state === "paused") {
+          dispatchIntent({ type: "RESUME" }, { sync: matchSync });
+        } else {
+          controlsOverlay.toggle();
+        }
+      },
+    },
+    { sync: matchSync, keyboard: true },
+  );
 }
