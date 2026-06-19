@@ -2,7 +2,10 @@ import type * as THREE from "three";
 import type RAPIER from "@dimforge/rapier3d-compat";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { BlenderFlipperBridge } from "./BlenderFlipperBridge";
-import { createBlenderPhysicsColliders, type NamedPhysicsCollider } from "./BlenderPhysicsColliders";
+import {
+  createBlenderPhysicsColliders,
+  type NamedPhysicsCollider,
+} from "./BlenderPhysicsColliders";
 import type { Flipper } from "@modules/flipper/Flipper";
 
 export interface BlenderTableResult {

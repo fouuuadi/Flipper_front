@@ -245,11 +245,7 @@ export class TableInteractions {
 
     this.shakeTime = Math.max(0, this.shakeTime - deltaTime);
     const strength = (this.shakeTime / 0.24) * 0.08;
-    this.previousShake.set(
-      (Math.random() - 0.5) * strength,
-      (Math.random() - 0.5) * strength,
-      0,
-    );
+    this.previousShake.set((Math.random() - 0.5) * strength, (Math.random() - 0.5) * strength, 0);
     this.camera.position.add(this.previousShake);
   }
 
@@ -372,7 +368,10 @@ export class TableInteractions {
 function normalizeName(name: string): string {
   return name
     .normalize("NFKC")
-    .replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
+    .replace(
+      /[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g,
+      "",
+    )
     .replace(/^_+/, "")
     .toLowerCase();
 }

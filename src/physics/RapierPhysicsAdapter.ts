@@ -92,10 +92,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       colliderDesc = RAPIER.ColliderDesc.ball(radius);
     }
 
-    colliderDesc = colliderDesc
-      .setFriction(friction)
-      .setRestitution(restitution)
-      .setSensor(false);
+    colliderDesc = colliderDesc.setFriction(friction).setRestitution(restitution).setSensor(false);
 
     if (!options.isStatic && typeof options.mass === "number") {
       colliderDesc = colliderDesc.setDensity(densityForMass(options.mass, shape, options));

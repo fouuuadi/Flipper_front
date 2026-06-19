@@ -190,7 +190,10 @@ export function createBlenderPhysicsColliders(
 function normalizeColliderName(name: string): string {
   const compactName = name
     .normalize("NFKC")
-    .replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
+    .replace(
+      /[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g,
+      "",
+    )
     .trim();
 
   return compactName.replace(/^_+(wall_)/i, "$1");
@@ -340,13 +343,7 @@ function applyBoxSizeExpansion(size: THREE.Vector3, name: string): void {
   const expansion = BOX_SIZE_EXPANSIONS[name];
   if (!expansion) return;
 
-  size.add(
-    new THREE.Vector3(
-      expansion.x ?? 0,
-      expansion.y ?? 0,
-      expansion.z ?? 0,
-    ),
-  );
+  size.add(new THREE.Vector3(expansion.x ?? 0, expansion.y ?? 0, expansion.z ?? 0));
 }
 
 function applyBoxSizeOverride(size: THREE.Vector3, name: string): void {
@@ -362,13 +359,7 @@ function applyBoxPositionOffset(position: THREE.Vector3, name: string): void {
   const offset = BOX_POSITION_OFFSETS[name];
   if (!offset) return;
 
-  position.add(
-    new THREE.Vector3(
-      offset.x ?? 0,
-      offset.y ?? 0,
-      offset.z ?? 0,
-    ),
-  );
+  position.add(new THREE.Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
 }
 
 function extractWorldGeometry(mesh: THREE.Mesh): {
@@ -612,7 +603,11 @@ function createAabbHelper(size: THREE.Vector3, center: THREE.Vector3, name: stri
   return group;
 }
 
-function createDebugLabel(text: string, position: THREE.Vector3, referenceSize: number): THREE.Sprite {
+function createDebugLabel(
+  text: string,
+  position: THREE.Vector3,
+  referenceSize: number,
+): THREE.Sprite {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) {

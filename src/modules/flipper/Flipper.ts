@@ -168,10 +168,7 @@ export class Flipper {
       this.rigidBody,
     );
 
-    debugGeometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(debugPositions, 3),
-    );
+    debugGeometry.setAttribute("position", new THREE.Float32BufferAttribute(debugPositions, 3));
     if (debugIndices.length > 0) {
       debugGeometry.setIndex(debugIndices);
     }
