@@ -14,7 +14,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private handles = new Map<BodyId, BodyHandle>();
 
   // Fréquence de mise à jour du moteur physique
-  private readonly fixedDt = 1 / 60;
+  private readonly fixedDt = 1 / 120;
   private accumulator = 0;
 
   async init(): Promise<void> {
@@ -24,7 +24,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
 
     // La table Blender est modélisée à plat. On ajoute une composante vers le
     // drain pour retrouver le comportement d'un plateau légèrement incliné.
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: -2.2 });
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: -1.45 });
 
     this.accumulator = 0;
   }
@@ -78,8 +78,11 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     colliderDesc = colliderDesc
       .setFriction(friction)
       .setRestitution(restitution)
-      // .setDensity(density)
       .setSensor(false);
+
+    if (!options.isStatic && typeof options.mass === "number") {
+      colliderDesc = colliderDesc.setDensity(densityForMass(options.mass, shape, options));
+    }
 
     const collider = world.createCollider(colliderDesc, body);
 
@@ -240,4 +243,16 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.nextId += 1;
     return `body-${this.nextId}`;
   }
+}
+
+function densityForMass(mass: number, shape: "sphere" | "box", options: BodyOptions): number {
+  if (shape === "box") {
+    const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
+    const volume = ext.x * 2 * ext.y * 2 * ext.z * 2;
+    return mass / Math.max(volume, 0.0001);
+  }
+
+  const radius = options.radius ?? 1;
+  const volume = (4 / 3) * Math.PI * radius ** 3;
+  return mass / Math.max(volume, 0.0001);
 }

@@ -6,8 +6,7 @@ export class Launcher {
   // State
   private isCharging: boolean = false;
   private chargeTime: number = 0;
-  private maxCharge: number = 2;
-  private power: number = 0;
+  private maxCharge: number = 1.4;
 
   private ball: Ball;
 
@@ -46,11 +45,11 @@ export class Launcher {
     this.isCharging = false;
 
     const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
-    this.power = normalized;
+    const easedPower = normalized * normalized;
     this.chargeTime = 0;
 
     // Impulsion vers le haut de la nouvelle table Blender (axe +z).
-    const force = 8 + this.power * 18;
+    const force = 0.35 + easedPower * 1.35;
     this.ball.applyImpulse({ x: 0, y: 0, z: force });
   }
 
@@ -62,7 +61,7 @@ export class Launcher {
 
     // animation
     const compression = this.chargeTime / this.maxCharge;
-    this.mesh.position.z = this.initialZ + compression * 1;
+    this.mesh.position.z = this.initialZ + compression * 0.75;
   }
 
   addTo(scene: THREE.Scene) {
