@@ -102,6 +102,9 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     }
 
     const collider = world.createCollider(colliderDesc, body);
+    if (!options.isStatic) {
+      collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    }
 
     // pertes de vitesse : plus la résistance est élevé, plus la balle ralentit au fil du temps.
     if (typeof options.linearDamping === "number") body.setLinearDamping(options.linearDamping);

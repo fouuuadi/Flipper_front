@@ -55,7 +55,17 @@ export interface NamedPhysicsCollider {
 }
 
 /** Noms de colliders dont on a besoin de garder une référence après coup (ex. Slingshot actif). */
-const TRACKED_COLLIDERS = new Set(["Slingshot_triangle"]);
+const TRACKED_COLLIDERS = new Set([
+  "Slingshot_triangle",
+  "Planet_Glace",
+  "Planet_Terre",
+  "Planet_Volcan",
+  "Rampe",
+  "Ramp_2",
+  "Champignion_a",
+  "Champignion_b",
+  "Bump",
+]);
 
 export function createBlenderPhysicsColliders(
   root: THREE.Object3D,
@@ -432,7 +442,7 @@ function createTriMeshCollider(
   name: string,
 ): RAPIER.ColliderDesc | null {
   return RAPIER.ColliderDesc.trimesh(geometry.vertices, makeDoubleSidedIndices(geometry.indices))
-    .setFriction(name === "Plane" ? 0.55 : 0.42)
+    .setFriction(frictionFor(name))
     .setRestitution(restitutionFor(name));
 }
 
@@ -658,9 +668,16 @@ function makeDoubleSidedIndices(indices: Uint32Array): Uint32Array {
 
 function restitutionFor(name: string): number {
   if (name === "Bump" || name.startsWith("Champignion_")) return 0.9;
-  if (name.startsWith("Planet_")) return 0.5;
+  if (name.startsWith("Planet_")) return 0.2;
+  if (name === "Rampe" || name === "Ramp_2") return 0.0;
   if (name === "Plane") return 0.08;
   return 0.3;
+}
+
+function frictionFor(name: string): number {
+  if (name === "Plane") return 0.55;
+  if (name === "Rampe" || name === "Ramp_2") return 0.08;
+  return 0.42;
 }
 
 function helperColor(kind: ColliderKind): number {

@@ -113,8 +113,9 @@ export class Slingshot {
     // Direction principale : du centre du triangle vers le point de contact.
     // Ça repousse la bille "vers l'endroit d'où elle est venue" plutôt que de
     // suivre une normale de solveur parfois instable sur un convex hull fin.
-    const pushDirection = contactPoint
-      ? contactPoint.clone().sub(this.center)
+    const resolvedContactPoint = contactPoint as THREE.Vector3 | null;
+    const pushDirection = resolvedContactPoint
+      ? resolvedContactPoint.clone().sub(this.center)
       : normal.clone();
 
     if (pushDirection.lengthSq() < 1e-6) pushDirection.copy(normal);

@@ -2,6 +2,7 @@ import "./styles/global.css";
 
 import { createPlayfieldScene } from "@engine/createPlayfieldScene";
 import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
+import { TableInteractions } from "@modules/table/TableInteractions";
 import { Slingshot } from "@modules/slingshot";
 
 import { gameStore } from "@core/gameStore";
@@ -12,6 +13,7 @@ import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
 import { bindScreenNav } from "@modules/screenNav";
+import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
@@ -136,6 +138,22 @@ async function bootstrap() {
 
       // GUI de dépannage 3D (positionnement table) — DEV uniquement, jamais
       // embarqué dans le build borne/prod.
+      const tableInteractions = new TableInteractions(
+        physics,
+        ball,
+        colliders,
+        tableRoot,
+        sceneManager.scene,
+        sceneManager.camera,
+      );
+      sceneManager.onUpdate((deltaTime) => tableInteractions.update(deltaTime));
+
+      const gameFlow = new GameFlow(physics, ball, colliders, matchSync, () => {
+        gameStore.send({ type: "GAME_OVER" });
+      });
+      sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
+      matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
+
       if (import.meta.env.DEV) {
         void import("@modules/debug/TableDebugGui").then(({ createTableDebugGui }) =>
           createTableDebugGui({ sceneManager, tableRoot }),

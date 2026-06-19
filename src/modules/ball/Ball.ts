@@ -11,6 +11,7 @@ export interface BallOptions {
   restitution?: number;
   linearDamping?: number;
   angularDamping?: number;
+  maxLinearSpeed?: number;
   initialPosition?: Vec3;
 }
 
@@ -20,12 +21,14 @@ export class Ball {
   private readonly physics: RapierPhysicsAdapter;
   private readonly bodyId: BodyId;
   private readonly initialPosition: Vec3;
+  private readonly maxLinearSpeed: number;
 
   constructor(physics: RapierPhysicsAdapter, options: BallOptions = {}) {
     const radius = options.radius ?? 0.12;
 
     this.physics = physics;
     this.initialPosition = options.initialPosition ?? { x: 0, y: 1.5, z: 3 };
+    this.maxLinearSpeed = options.maxLinearSpeed ?? 10;
 
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
     const material = new THREE.MeshStandardMaterial({
@@ -66,11 +69,29 @@ export class Ball {
     const body = this.physics.getBody(this.bodyId);
     if (!body) return;
 
+    this.clampLinearVelocity(body);
+
     const position = body.translation();
     const rotation = body.rotation();
 
     this.mesh.position.set(position.x, position.y, position.z);
     this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+  }
+
+  private clampLinearVelocity(body: RAPIER.RigidBody): void {
+    const velocity = body.linvel();
+    const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2);
+    if (speed <= this.maxLinearSpeed) return;
+
+    const scale = this.maxLinearSpeed / speed;
+    body.setLinvel(
+      {
+        x: velocity.x * scale,
+        y: velocity.y * scale,
+        z: velocity.z * scale,
+      },
+      true,
+    );
   }
 
   /** Applique une impulsion (ex. propulsion par le lanceur, kick du slingshot) sur le corps. */
