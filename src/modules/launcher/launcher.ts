@@ -1,19 +1,49 @@
 import * as THREE from "three";
 import type { Ball } from "@modules/ball";
 
+export interface LauncherOptions {
+  /** Durée (s) de maintien d'Espace pour atteindre la puissance maximale. */
+  maxCharge?: number;
+  /** Demi-largeur (axe X) de la zone de lancement, en unités monde. */
+  zoneHalfWidth?: number;
+  /** Étendue de la zone vers l'arrière (butée du plunger). */
+  zoneBackMargin?: number;
+  /** Étendue de la zone vers l'avant (sortie du couloir vers le plateau). */
+  zoneFrontMargin?: number;
+}
+
+/**
+ * Plunger (lanceur à ressort) sans asset 3D dédié : la bille passe sous le
+ * tunnel de lancement donc le plunger n'est jamais visible, seul le
+ * comportement physique compte.
+ *
+ * - Maintenir Espace compresse le ressort : la puissance accumulée croît avec
+ *   la durée de l'appui, jusqu'à `maxCharge`.
+ * - Relâcher Espace frappe la bille avec une impulsion vers l'avant (axe +z
+ *   du couloir), proportionnelle (de façon non-linéaire, façon ressort réel)
+ *   à la puissance accumulée.
+ * - Le plunger n'agit (ni charge, ni frappe) que si la bille est physiquement
+ *   présente dans le couloir de lancement.
+ */
 export class Launcher {
   mesh: THREE.Mesh;
   // State
   private isCharging: boolean = false;
   private chargeTime: number = 0;
-  private maxCharge: number = 1.4;
+  private readonly maxCharge: number;
+
+  private readonly zoneCenter: THREE.Vector2;
+  private readonly zoneHalfWidth: number;
+  private readonly zoneBackMargin: number;
+  private readonly zoneFrontMargin: number;
 
   private ball: Ball;
 
   private initialZ: number;
   // Constructor
-  constructor(ball: Ball) {
+  constructor(ball: Ball, options: LauncherOptions = {}) {
     this.ball = ball;
+    this.maxCharge = options.maxCharge ?? 1.4;
 
     const geometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 16);
     const material = new THREE.MeshStandardMaterial({ color: 0x888888 });
@@ -32,10 +62,34 @@ export class Launcher {
     this.mesh.receiveShadow = true;
 
     this.initialZ = this.mesh.position.z;
+
+    // Zone de lancement : couloir étroit autour du plunger. La bille y
+    // démarre (cf. `initialPosition` de `Ball`) et doit y rester pour que le
+    // plunger puisse charger/frapper.
+    this.zoneCenter = new THREE.Vector2(this.mesh.position.x, this.mesh.position.z);
+    this.zoneHalfWidth = options.zoneHalfWidth ?? 0.45;
+    this.zoneBackMargin = options.zoneBackMargin ?? 0.6;
+    this.zoneFrontMargin = options.zoneFrontMargin ?? 3.2;
+  }
+
+  /** Vrai si la bille est actuellement dans le couloir de lancement. */
+  isBallInLaunchZone(): boolean {
+    const position = this.ball.mesh.position;
+
+    const dx = Math.abs(position.x - this.zoneCenter.x);
+    if (dx > this.zoneHalfWidth) return false;
+
+    const dz = position.z - this.zoneCenter.y;
+    return dz >= -this.zoneBackMargin && dz <= this.zoneFrontMargin;
   }
 
   /** Début de la charge (touche maintenue). L'input est câblé en dehors. */
   startCharge(): void {
+    if (this.isCharging) return;
+    // Pas de charge si la bille n'est pas dans le couloir : on ne veut pas
+    // qu'Espace ait un effet quelconque ailleurs sur le plateau.
+    if (!this.isBallInLaunchZone()) return;
+
     this.isCharging = true;
   }
 
@@ -45,21 +99,39 @@ export class Launcher {
     this.isCharging = false;
 
     const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
-    const easedPower = normalized * normalized;
     this.chargeTime = 0;
 
+    // Si la bille a quitté le couloir pendant la charge (cas limite), on
+    // n'applique aucune frappe : le plunger n'agit que sur une bille présente.
+    if (!this.isBallInLaunchZone()) return;
+
+    // Courbe non-linéaire (quadratique) : un ressort réel restitue son
+    // énergie de façon progressive puis de plus en plus franche, pas
+    // linéairement avec le temps de compression.
+    const easedPower = normalized * normalized;
+
     // Impulsion vers le haut de la nouvelle table Blender (axe +z).
-    const force = 0.35 + easedPower * 1.35;
+    // Puissance augmentée pour qu'une charge à fond envoie la bille bien plus
+    // haut dans le couloir / sur le plateau.
+    const force = 0.55 + easedPower * 2.95;
     this.ball.applyImpulse({ x: 0, y: 0, z: force });
   }
 
   update(deltaTime: number) {
     if (this.isCharging) {
-      this.chargeTime += deltaTime;
-      this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
+      // Sécurité : si la bille sort du couloir en cours de charge, on
+      // annule proprement (le plunger ne doit agir que sur une bille présente).
+      if (!this.isBallInLaunchZone()) {
+        this.isCharging = false;
+        this.chargeTime = 0;
+      } else {
+        this.chargeTime += deltaTime;
+        this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
+      }
     }
 
-    // animation
+    // animation (la compression visuelle n'est jamais rendue, cf. docstring,
+    // mais reste utile pour du debug / une future GUI).
     const compression = this.chargeTime / this.maxCharge;
     this.mesh.position.z = this.initialZ + compression * 0.75;
   }
