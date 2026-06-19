@@ -44,7 +44,11 @@ const MIN_BOX_SIZE = 0.12;
 const BOX_SIZE_OVERRIDES: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
   wall_two: { x: 0.42 },
 };
+const BOX_SIZE_EXPANSIONS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
+  wall_one: { z: 1.1 },
+};
 const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
+  wall_one: { z: 0.45 },
   wall_two: { x: -1.0 },
 };
 
@@ -65,6 +69,8 @@ const TRACKED_COLLIDERS = new Set([
   "Champignion_a",
   "Champignion_b",
   "Bump",
+  "Tunel_b",
+  "Tunel_c",
 ]);
 
 export function createBlenderPhysicsColliders(
@@ -310,6 +316,7 @@ function createBoxCollider(
     Math.max(Math.abs(localSize.y * worldScale.y), MIN_BOX_SIZE),
     Math.max(Math.abs(localSize.z * worldScale.z), MIN_BOX_SIZE),
   );
+  applyBoxSizeExpansion(size, name);
   applyBoxSizeOverride(size, name);
   applyBoxPositionOffset(worldCenter, name);
 
@@ -327,6 +334,19 @@ function createBoxCollider(
   const helper = createBoxHelper(size, worldCenter, worldRotation, helperColor("wall"), name);
 
   return { collider, helper };
+}
+
+function applyBoxSizeExpansion(size: THREE.Vector3, name: string): void {
+  const expansion = BOX_SIZE_EXPANSIONS[name];
+  if (!expansion) return;
+
+  size.add(
+    new THREE.Vector3(
+      expansion.x ?? 0,
+      expansion.y ?? 0,
+      expansion.z ?? 0,
+    ),
+  );
 }
 
 function applyBoxSizeOverride(size: THREE.Vector3, name: string): void {
