@@ -37,23 +37,61 @@ const MESH_COLLIDERS: Record<string, ColliderKind> = {
   Object_4: "solid",
 };
 
+const BOX_COLLIDERS = new Set(["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"]);
+const EXPECTED_BOX_WALLS = ["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"];
+const TRIMESH_COLLIDERS = new Set(["Tunel_a", "Tunel_b", "Tunel_c"]);
+const MIN_BOX_SIZE = 0.12;
+const BOX_SIZE_OVERRIDES: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
+  wall_two: { x: 0.42 },
+};
+const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
+  wall_two: { x: -1.0 },
+};
+
 export function createBlenderPhysicsColliders(
   root: THREE.Object3D,
   world: RAPIER.World,
   scene?: THREE.Scene,
 ): void {
   root.updateWorldMatrix(true, true);
+  const createdBoxWalls = new Set<string>();
 
   root.traverse((object) => {
-    const colliderName = object.name.trim();
-    const kind = MESH_COLLIDERS[colliderName];
-    if (!kind || !(object instanceof THREE.Mesh)) return;
+    const rawName = object.name;
+    const colliderName = normalizeColliderName(object.name);
+    const kind = MESH_COLLIDERS[colliderName] ?? inferColliderKind(rawName, colliderName);
+    if (import.meta.env.DEV && hasWallName(rawName, colliderName)) {
+      console.info("[BlenderPhysicsColliders] wall candidate", {
+        rawName,
+        normalizedName: colliderName,
+        isMesh: object instanceof THREE.Mesh,
+        mappedKind: kind ?? null,
+      });
+    }
+    if (!kind) return;
+
+    if (usesBoxCollider(rawName, colliderName)) {
+      createdBoxWalls.add(colliderName);
+
+      const boxCollider = createBoxColliderFromObject(object, colliderName);
+      if (!boxCollider) return;
+
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+      world.createCollider(boxCollider.collider, body);
+
+      if (scene) {
+        scene.add(boxCollider.helper);
+      }
+      return;
+    }
+
+    if (!(object instanceof THREE.Mesh)) return;
 
     const geometry = extractWorldGeometry(object);
     if (!geometry) return;
 
     const collider =
-      kind === "round" || kind === "wall" || kind === "solid"
+      (kind === "round" || kind === "solid") && !TRIMESH_COLLIDERS.has(colliderName)
         ? createConvexCollider(geometry, colliderName)
         : createTriMeshCollider(geometry, colliderName);
 
@@ -63,9 +101,207 @@ export function createBlenderPhysicsColliders(
     world.createCollider(collider, body);
 
     if (scene) {
-      scene.add(createGeometryHelper(geometry, helperColor(kind)));
+      scene.add(createGeometryHelper(geometry, helperColor(kind), colliderName));
     }
   });
+
+  for (const wallName of EXPECTED_BOX_WALLS) {
+    if (createdBoxWalls.has(wallName)) continue;
+
+    const wallObject = findWallObject(root, wallName);
+    if (!wallObject) {
+      if (import.meta.env.DEV) {
+        console.warn("[BlenderPhysicsColliders] missing expected wall", wallName);
+      }
+      continue;
+    }
+
+    const fallback = createBoxColliderFromObject(wallObject, wallName);
+    if (!fallback) continue;
+
+    const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+    world.createCollider(fallback.collider, body);
+
+    if (scene) {
+      scene.add(fallback.helper);
+    }
+
+    if (import.meta.env.DEV) {
+      console.warn("[BlenderPhysicsColliders] fallback AABB wall collider", wallName, {
+        rawName: wallObject.name,
+      });
+    }
+  }
+}
+
+function normalizeColliderName(name: string): string {
+  const compactName = name
+    .normalize("NFKC")
+    .replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
+    .trim();
+
+  return compactName.replace(/^_+(wall_)/i, "$1");
+}
+
+function inferColliderKind(rawName: string, normalizedName: string): ColliderKind | undefined {
+  return hasWallName(rawName, normalizedName) ? "wall" : undefined;
+}
+
+function usesBoxCollider(rawName: string, normalizedName: string): boolean {
+  if (BOX_COLLIDERS.has(normalizedName)) return true;
+  if (!hasWallName(rawName, normalizedName)) return false;
+
+  return normalizeColliderName(rawName).toLowerCase() !== "wall_six";
+}
+
+function findWallObject(root: THREE.Object3D, expectedName: string): THREE.Object3D | null {
+  let found: THREE.Object3D | null = null;
+
+  root.traverse((object) => {
+    if (found) return;
+    const normalizedName = normalizeColliderName(object.name).toLowerCase();
+    const rawName = object.name.toLowerCase();
+    if (normalizedName === expectedName || rawName.trim() === expectedName) {
+      found = object;
+    }
+  });
+
+  return found;
+}
+
+function hasWallName(rawName: string, normalizedName: string): boolean {
+  const compactRawName = normalizeColliderName(rawName).toLowerCase();
+  const compactNormalizedName = normalizedName.toLowerCase();
+
+  return (
+    compactRawName.startsWith("wall_") ||
+    compactNormalizedName.startsWith("wall_") ||
+    rawName.toLowerCase().includes("wall_")
+  );
+}
+
+function createAabbCollider(
+  object: THREE.Object3D,
+  name: string,
+): { collider: RAPIER.ColliderDesc; helper: THREE.Group } | null {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return null;
+
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  size.set(
+    Math.max(size.x, MIN_BOX_SIZE),
+    Math.max(size.y, MIN_BOX_SIZE),
+    Math.max(size.z, MIN_BOX_SIZE),
+  );
+
+  const collider = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2)
+    .setTranslation(center.x, center.y, center.z)
+    .setFriction(0.35)
+    .setRestitution(restitutionFor(name));
+
+  const helper = createAabbHelper(size, center, name);
+
+  return { collider, helper };
+}
+
+function createBoxColliderFromObject(
+  object: THREE.Object3D,
+  name: string,
+): { collider: RAPIER.ColliderDesc; helper: THREE.Group } | null {
+  const mesh = object instanceof THREE.Mesh ? object : findBestColliderMesh(object, name);
+  if (!mesh) return createAabbCollider(object, name);
+
+  return createBoxCollider(mesh, name);
+}
+
+function findBestColliderMesh(object: THREE.Object3D, expectedName: string): THREE.Mesh | null {
+  let namedMesh: THREE.Mesh | null = null;
+  let largestMesh: THREE.Mesh | null = null;
+  let largestVolume = 0;
+
+  object.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+
+    child.geometry.computeBoundingBox();
+    const box = child.geometry.boundingBox;
+    if (!box) return;
+
+    const size = box.getSize(new THREE.Vector3());
+    const volume = size.x * size.y * size.z;
+    if (normalizeColliderName(child.name).toLowerCase() === expectedName) {
+      namedMesh = child;
+    }
+
+    if (volume > largestVolume) {
+      largestVolume = volume;
+      largestMesh = child;
+    }
+  });
+
+  return namedMesh ?? largestMesh;
+}
+
+function createBoxCollider(
+  mesh: THREE.Mesh,
+  name: string,
+): { collider: RAPIER.ColliderDesc; helper: THREE.Group } | null {
+  mesh.geometry.computeBoundingBox();
+  const box = mesh.geometry.boundingBox;
+  if (!box) return null;
+
+  const localCenter = box.getCenter(new THREE.Vector3());
+  const localSize = box.getSize(new THREE.Vector3());
+  const worldCenter = localCenter.applyMatrix4(mesh.matrixWorld);
+  const worldScale = new THREE.Vector3();
+  const worldRotation = new THREE.Quaternion();
+  const worldPosition = new THREE.Vector3();
+  mesh.matrixWorld.decompose(worldPosition, worldRotation, worldScale);
+
+  const size = new THREE.Vector3(
+    Math.max(Math.abs(localSize.x * worldScale.x), MIN_BOX_SIZE),
+    Math.max(Math.abs(localSize.y * worldScale.y), MIN_BOX_SIZE),
+    Math.max(Math.abs(localSize.z * worldScale.z), MIN_BOX_SIZE),
+  );
+  applyBoxSizeOverride(size, name);
+  applyBoxPositionOffset(worldCenter, name);
+
+  const collider = RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2)
+    .setTranslation(worldCenter.x, worldCenter.y, worldCenter.z)
+    .setRotation({
+      x: worldRotation.x,
+      y: worldRotation.y,
+      z: worldRotation.z,
+      w: worldRotation.w,
+    })
+    .setFriction(0.35)
+    .setRestitution(restitutionFor(name));
+
+  const helper = createBoxHelper(size, worldCenter, worldRotation, helperColor("wall"), name);
+
+  return { collider, helper };
+}
+
+function applyBoxSizeOverride(size: THREE.Vector3, name: string): void {
+  const override = BOX_SIZE_OVERRIDES[name];
+  if (!override) return;
+
+  if (typeof override.x === "number") size.x = override.x;
+  if (typeof override.y === "number") size.y = override.y;
+  if (typeof override.z === "number") size.z = override.z;
+}
+
+function applyBoxPositionOffset(position: THREE.Vector3, name: string): void {
+  const offset = BOX_POSITION_OFFSETS[name];
+  if (!offset) return;
+
+  position.add(
+    new THREE.Vector3(
+      offset.x ?? 0,
+      offset.y ?? 0,
+      offset.z ?? 0,
+    ),
+  );
 }
 
 function extractWorldGeometry(mesh: THREE.Mesh): {
@@ -120,8 +356,12 @@ function createConvexCollider(
 function createGeometryHelper(
   geometry: { helperGeometry: THREE.BufferGeometry },
   color: number,
-): THREE.Mesh {
-  const helper = new THREE.Mesh(
+  name: string,
+): THREE.Group {
+  const group = new THREE.Group();
+  group.name = `physics-collider:${name}`;
+
+  const surface = new THREE.Mesh(
     geometry.helperGeometry,
     new THREE.MeshBasicMaterial({
       color,
@@ -129,10 +369,167 @@ function createGeometryHelper(
       transparent: true,
       opacity: 0.82,
       depthTest: false,
+      depthWrite: false,
     }),
   );
-  helper.renderOrder = 998;
-  return helper;
+  surface.name = `physics-collider:${name}:wire`;
+  surface.renderOrder = 998;
+  group.add(surface);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry.helperGeometry),
+    new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  edges.name = `physics-collider:${name}:edges`;
+  edges.renderOrder = 999;
+  group.add(edges);
+
+  geometry.helperGeometry.computeBoundingBox();
+  const box = geometry.helperGeometry.boundingBox;
+  if (box) {
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    group.add(createDebugLabel(name, center, Math.max(size.x, size.y, size.z)));
+  }
+
+  return group;
+}
+
+function createBoxHelper(
+  size: THREE.Vector3,
+  center: THREE.Vector3,
+  rotation: THREE.Quaternion,
+  color: number,
+  name: string,
+): THREE.Group {
+  const group = new THREE.Group();
+  group.name = `physics-collider:${name}`;
+  group.position.copy(center);
+  group.quaternion.copy(rotation);
+
+  const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+  const volume = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.28,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  volume.name = `physics-collider:${name}:volume`;
+  volume.renderOrder = 998;
+  group.add(volume);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  edges.name = `physics-collider:${name}:edges`;
+  edges.renderOrder = 999;
+  group.add(edges);
+
+  const labelPosition = new THREE.Vector3(0, size.y / 2 + 0.22, 0);
+  group.add(createDebugLabel(name, labelPosition, Math.max(size.x, size.y, size.z)));
+
+  return group;
+}
+
+function createAabbHelper(size: THREE.Vector3, center: THREE.Vector3, name: string): THREE.Group {
+  const group = new THREE.Group();
+  group.name = `physics-fallback-aabb:${name}`;
+  group.position.copy(center);
+
+  const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+  const volume = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      color: 0xffd000,
+      transparent: true,
+      opacity: 0.22,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  volume.name = `physics-fallback-aabb:${name}:volume`;
+  volume.renderOrder = 1003;
+  group.add(volume);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineBasicMaterial({
+      color: 0xffd000,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  edges.name = `physics-fallback-aabb:${name}:edges`;
+  edges.renderOrder = 1004;
+  group.add(edges);
+
+  const labelPosition = new THREE.Vector3(0, size.y / 2 + 0.62, 0);
+  group.add(createDebugLabel(`FALLBACK ${name}`, labelPosition, Math.max(size.x, size.y, size.z)));
+
+  return group;
+}
+
+function createDebugLabel(text: string, position: THREE.Vector3, referenceSize: number): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    const emptyMaterial = new THREE.SpriteMaterial({ transparent: true, opacity: 0 });
+    const emptySprite = new THREE.Sprite(emptyMaterial);
+    emptySprite.position.copy(position);
+    return emptySprite;
+  }
+
+  const fontSize = 28;
+  context.font = `700 ${fontSize}px sans-serif`;
+  const textWidth = Math.ceil(context.measureText(text).width);
+  canvas.width = Math.max(128, textWidth + 28);
+  canvas.height = 48;
+
+  context.font = `700 ${fontSize}px sans-serif`;
+  context.fillStyle = "rgba(0, 0, 0, 0.72)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "rgba(255, 255, 255, 0.92)";
+  context.lineWidth = 3;
+  context.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
+  context.fillStyle = "#ffffff";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const sprite = new THREE.Sprite(material);
+  const scale = Math.max(0.34, Math.min(referenceSize * 0.16, 0.9));
+  sprite.position.copy(position);
+  sprite.scale.set(scale * (canvas.width / canvas.height), scale, 1);
+  sprite.name = `physics-collider-label:${text}`;
+  sprite.renderOrder = 1000;
+
+  return sprite;
 }
 
 function copyIndex(index: THREE.BufferAttribute | THREE.InterleavedBufferAttribute): Uint32Array {

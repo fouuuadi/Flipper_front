@@ -55,15 +55,18 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
     length: 31,
     width: 17,
     tiltDeg: 0,
+    friction: 0.42,
   });
 
   const ball = new Ball(physics, {
     id: "main-ball",
-    initialPosition: { x: 2.0, y: 4.92, z: -4.8 },
-    radius: 0.24,
-    mass: 0.08,
-    friction: 0.12,
-    restitution: 0.55,
+    initialPosition: { x: -7.6, y: 4.92, z: -11.9 },
+    radius: 0.35,
+    mass: 0.22,
+    friction: 0.04,
+    restitution: 0.34,
+    linearDamping: 0.025,
+    angularDamping: 0.015,
   });
   ball.addTo(sceneManager.scene);
 

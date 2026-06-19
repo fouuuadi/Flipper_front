@@ -8,6 +8,8 @@ export interface BallOptions {
   mass?: number;
   friction?: number;
   restitution?: number;
+  linearDamping?: number;
+  angularDamping?: number;
   initialPosition?: Vec3;
 }
 
@@ -44,8 +46,8 @@ export class Ball {
       isStatic: false,
       friction: options.friction ?? 0.12,
       restitution: options.restitution ?? 0.55,
-      linearDamping: 0.08,
-      angularDamping: 0.08,
+      linearDamping: options.linearDamping ?? 0.02,
+      angularDamping: options.angularDamping ?? 0.015,
     });
 
     this.updateFromPhysics();
