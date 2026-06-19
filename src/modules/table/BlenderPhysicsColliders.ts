@@ -48,13 +48,23 @@ const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z
   wall_two: { x: -1.0 },
 };
 
+export interface NamedPhysicsCollider {
+  collider: RAPIER.Collider;
+  /** Centre (AABB) du collider, en coordonnées monde, utile pour calculer une direction de répulsion. */
+  center: THREE.Vector3;
+}
+
+/** Noms de colliders dont on a besoin de garder une référence après coup (ex. Slingshot actif). */
+const TRACKED_COLLIDERS = new Set(["Slingshot_triangle"]);
+
 export function createBlenderPhysicsColliders(
   root: THREE.Object3D,
   world: RAPIER.World,
   scene?: THREE.Scene,
-): void {
+): Record<string, NamedPhysicsCollider> {
   root.updateWorldMatrix(true, true);
   const createdBoxWalls = new Set<string>();
+  const namedColliders: Record<string, NamedPhysicsCollider> = {};
 
   root.traverse((object) => {
     const rawName = object.name;
@@ -103,7 +113,19 @@ export function createBlenderPhysicsColliders(
     if (!collider) return;
 
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
-    world.createCollider(collider, body);
+    const createdCollider = world.createCollider(collider, body);
+
+    if (TRACKED_COLLIDERS.has(colliderName)) {
+      // Le slingshot a besoin d'événements de collision actifs (pas juste de
+      // la restitution passive) pour déclencher son impulsion réactive.
+      createdCollider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+
+      geometry.helperGeometry.computeBoundingBox();
+      const box = geometry.helperGeometry.boundingBox;
+      const center = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
+
+      namedColliders[colliderName] = { collider: createdCollider, center };
+    }
 
     if (scene) {
       scene.add(createGeometryHelper(geometry, helperColor(kind), colliderName));
@@ -137,6 +159,16 @@ export function createBlenderPhysicsColliders(
       });
     }
   }
+
+  if (import.meta.env.DEV) {
+    for (const trackedName of TRACKED_COLLIDERS) {
+      if (!namedColliders[trackedName]) {
+        console.warn("[BlenderPhysicsColliders] tracked collider introuvable", trackedName);
+      }
+    }
+  }
+
+  return namedColliders;
 }
 
 function normalizeColliderName(name: string): string {

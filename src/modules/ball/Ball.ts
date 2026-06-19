@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type RAPIER from "@dimforge/rapier3d-compat";
 import type { BodyId, Vec3 } from "@physics/PhysicsAdapter";
 import type { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 
@@ -72,12 +73,22 @@ export class Ball {
     this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
   }
 
-  /** Applique une impulsion (ex. propulsion par le lanceur) sur le corps. */
+  /** Applique une impulsion (ex. propulsion par le lanceur, kick du slingshot) sur le corps. */
   applyImpulse(impulse: Vec3): void {
     const body = this.physics.getBody(this.bodyId);
     if (!body) return;
 
     body.applyImpulse(impulse, true);
+  }
+
+  /** Accès direct au rigid-body Rapier (ex. lecture de la vitesse pour le slingshot). */
+  getBody(): RAPIER.RigidBody | null {
+    return this.physics.getBody(this.bodyId);
+  }
+
+  /** Accès direct au collider Rapier (ex. identification dans les événements de collision). */
+  getCollider(): RAPIER.Collider | null {
+    return this.physics.getCollider(this.bodyId);
   }
 
   reset(): void {
