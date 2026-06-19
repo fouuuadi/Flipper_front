@@ -9,6 +9,7 @@ import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/s
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
+import { bindScreenNav } from "@modules/screenNav";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
@@ -43,7 +44,21 @@ const factories: ScreenFactoryMap = {
   paused: (host) => {
     const pause = new Pause();
     pause.mount(host);
-    return { stop: () => pause.unmount() };
+    // Curseur aux boutons borne : gauche/droite choisissent, vert valide.
+    const unbindNav = bindScreenNav(
+      {
+        left: () => pause.moveCursor(-1),
+        right: () => pause.moveCursor(1),
+        confirm: () => pause.confirm(),
+      },
+      { sync: matchSync, keyboard: true },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        pause.unmount();
+      },
+    };
   },
   gameOver: (host) => {
     const go = new GameOver();

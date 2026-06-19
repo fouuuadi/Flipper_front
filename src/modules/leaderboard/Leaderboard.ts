@@ -107,6 +107,11 @@ export class Leaderboard {
     this.root.remove();
   }
 
+  /** Bascule l'onglet solo ↔ 1v1 (boutons borne gauche/droite). */
+  toggleMode(): void {
+    this.setMode(this.mode === "solo" ? "1v1" : "solo");
+  }
+
   private setMode(mode: GameMode): void {
     this.mode = mode;
     this.tabButtons.solo.setVariant(mode === "solo" ? "primary" : "ghost");

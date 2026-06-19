@@ -106,7 +106,25 @@ const factories: ScreenFactoryMap = {
     identification.mount(screenHost);
     return { stop: () => identification.unmount() };
   },
-  leaderboard: navScreen(() => new Leaderboard()),
+  // Leaderboard : gauche/droite basculent l'onglet solo ↔ 1v1, rouge → menu.
+  leaderboard: (screenHost) => {
+    const leaderboard = new Leaderboard();
+    leaderboard.mount(screenHost);
+    const unbindNav = bindScreenNav(
+      {
+        left: () => leaderboard.toggleMode(),
+        right: () => leaderboard.toggleMode(),
+        back: () => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+      },
+      { sync: matchSync, keyboard: true },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        leaderboard.unmount();
+      },
+    };
+  },
   cosmetics: navScreen(() => new CosmeticsStore()),
   settings: navScreen(() => new Settings()),
   // En jeu : rouge → pause. En pause : rouge → reprendre (abandonner = option
