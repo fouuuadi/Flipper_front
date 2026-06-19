@@ -91,6 +91,7 @@ export class Launcher {
     if (!this.isBallInLaunchZone()) return;
 
     this.isCharging = true;
+    this.chargeTime = this.maxCharge;
   }
 
   /** Relâche le lanceur : propulse la bille selon la charge accumulée. */
@@ -98,7 +99,6 @@ export class Launcher {
     if (!this.isCharging) return;
     this.isCharging = false;
 
-    const normalized = Math.min(this.chargeTime / this.maxCharge, 1);
     this.chargeTime = 0;
 
     // Si la bille a quitté le couloir pendant la charge (cas limite), on
@@ -108,16 +108,25 @@ export class Launcher {
     // Courbe non-linéaire (quadratique) : un ressort réel restitue son
     // énergie de façon progressive puis de plus en plus franche, pas
     // linéairement avec le temps de compression.
-    const easedPower = normalized * normalized;
-
     // Impulsion vers le haut de la nouvelle table Blender (axe +z).
     // Puissance augmentée pour qu'une charge à fond envoie la bille bien plus
     // haut dans le couloir / sur le plateau.
-    const force = 0.55 + easedPower * 2.95;
-    this.ball.applyImpulse({ x: 0, y: 0, z: force });
+    const body = this.ball.getBody();
+    if (!body) return;
+
+    const velocity = body.linvel();
+    body.setLinvel(
+      {
+        x: velocity.x * 0.35,
+        y: Math.max(velocity.y, 0),
+        z: Math.max(velocity.z, 15),
+      },
+      true,
+    );
+    this.ball.applyImpulse({ x: 0, y: 0, z: 2.2 });
   }
 
-  update(deltaTime: number) {
+  update(_deltaTime?: number) {
     if (this.isCharging) {
       // Sécurité : si la bille sort du couloir en cours de charge, on
       // annule proprement (le plunger ne doit agir que sur une bille présente).
@@ -125,8 +134,7 @@ export class Launcher {
         this.isCharging = false;
         this.chargeTime = 0;
       } else {
-        this.chargeTime += deltaTime;
-        this.chargeTime = Math.min(this.chargeTime, this.maxCharge);
+        this.chargeTime = this.maxCharge;
       }
     }
 

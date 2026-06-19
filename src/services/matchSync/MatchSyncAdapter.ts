@@ -32,6 +32,7 @@ export class MatchSyncAdapter {
   private readonly listeners = new Set<(event: WsServerEvent) => void>();
   private readonly socketFactory: (url: string) => WebSocket;
   private readonly baseWsUrl: string;
+  private readonly devChannel: BroadcastChannel | null = null;
 
   constructor(
     options: {
@@ -41,6 +42,13 @@ export class MatchSyncAdapter {
   ) {
     this.baseWsUrl = options.baseWsUrl ?? env.wsUrl;
     this.socketFactory = options.socketFactory ?? ((url) => new WebSocket(url));
+
+    if (import.meta.env.DEV && typeof BroadcastChannel !== "undefined") {
+      this.devChannel = new BroadcastChannel("flipper-match-sync-dev");
+      this.devChannel.addEventListener("message", (event) => {
+        if (isServerEvent(event.data)) this.notify(event.data);
+      });
+    }
   }
 
   /** Ouvre la connexion WS pour la session donnée (legacy MATCH_SYNC). */
@@ -97,6 +105,12 @@ export class MatchSyncAdapter {
     };
   }
 
+  /** Publie un event localement et, en dev, aux autres apps ouvertes dans le navigateur. */
+  emitLocal(event: WsServerEvent): void {
+    this.notify(event);
+    this.devChannel?.postMessage(event);
+  }
+
   // ─── internals ────────────────────────────────────────────────────────
 
   private openSocket(): void {
@@ -135,8 +149,12 @@ export class MatchSyncAdapter {
       return;
     }
     if (!isServerEvent(parsed)) return;
+    this.notify(parsed);
+  }
+
+  private notify(event: WsServerEvent): void {
     for (const listener of this.listeners) {
-      listener(parsed);
+      listener(event);
     }
   }
 

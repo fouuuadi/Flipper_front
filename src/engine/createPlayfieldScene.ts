@@ -69,6 +69,7 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
     restitution: 0.34,
     linearDamping: 0.025,
     angularDamping: 0.015,
+    maxLinearSpeed: 18,
   });
   ball.addTo(sceneManager.scene);
 
