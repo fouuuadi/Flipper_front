@@ -1,12 +1,8 @@
 import * as THREE from "three";
+import type RAPIER from "@dimforge/rapier3d-compat";
 import { SceneManager } from "./SceneManager";
 import { Launcher } from "@modules/launcher/launcher";
-import {
-  Playfield,
-  PLAYFIELD_HEIGHT,
-  PLAYFIELD_TILT_DEG,
-  PLAYFIELD_WIDTH,
-} from "@modules/playfield";
+import { Playfield } from "@modules/playfield";
 import { Ball } from "@modules/ball";
 import { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import { Flipper } from "@modules/flipper";
@@ -17,6 +13,9 @@ export interface PlayfieldScene {
   readonly leftFlipper: Flipper;
   readonly rightFlipper: Flipper;
   readonly launcher: Launcher;
+  readonly world: RAPIER.World;
+  readonly ball: Ball;
+  readonly physics: RapierPhysicsAdapter;
 }
 
 /**
@@ -54,24 +53,32 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
   const world = physics.getWorld();
 
   physics.createBounds({
-    y: 0,
-    length: PLAYFIELD_HEIGHT,
-    width: PLAYFIELD_WIDTH,
-    tiltDeg: PLAYFIELD_TILT_DEG,
+    y: 4.36,
+    length: 31,
+    width: 17,
+    tiltDeg: 0,
+    friction: 0.42,
   });
 
   const ball = new Ball(physics, {
     id: "main-ball",
-    initialPosition: { x: 0, y: 1.5, z: 3 },
-    radius: 0.12,
-    mass: 0.08,
-    friction: 0.12,
-    restitution: 0.55,
+    initialPosition: { x: -7.6, y: 4.92, z: -11.9 },
+    radius: 0.35,
+    mass: 0.22,
+    friction: 0.04,
+    restitution: 0.34,
+    linearDamping: 0.025,
+    angularDamping: 0.015,
+    maxLinearSpeed: 18,
   });
   ball.addTo(sceneManager.scene);
 
   const leftFlipper = new Flipper(world, "left");
   const rightFlipper = new Flipper(world, "right");
+  if (import.meta.env.DEV) {
+    leftFlipper.addDebugTo(sceneManager.scene);
+    rightFlipper.addDebugTo(sceneManager.scene);
+  }
   const tableBoundaries = new TableBoundaries(world);
   const launcher = new Launcher(ball);
 
@@ -101,5 +108,5 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
     sceneManager.dispose();
   });
 
-  return { sceneManager, leftFlipper, rightFlipper, launcher };
+  return { sceneManager, leftFlipper, rightFlipper, launcher, world, ball, physics };
 }

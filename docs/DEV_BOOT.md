@@ -31,6 +31,19 @@ que la SM est bien en `playing`).
 
 Sans le query param, l'app démarre normalement sur le splash.
 
+Pour tester les écrans de navigation sans backend/WebSocket, ajouter
+`sync=local` :
+
+```
+http://localhost:5173/apps/backglass/index.html?sync=local
+http://localhost:5173/apps/backglass/index.html?boot=menu&sync=local
+http://localhost:5173/apps/backglass/index.html?boot=identification&sync=local
+```
+
+Dans ce mode dev, les intentions normalement envoyées au backend sont rejouées
+directement dans la state machine locale. Aucune connexion WebSocket n'est
+ouverte.
+
 ## ⚠️ Dev-only
 
 - C'est un **outil de dev**, pas le parcours utilisateur. Les joueurs passent

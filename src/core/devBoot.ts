@@ -14,6 +14,13 @@ export function applyDevBoot(store: GameStore): void {
   if (!boot) return;
 
   switch (boot) {
+    case "menu":
+      store.send({ type: "PRESS_A" }); // splash → menu
+      break;
+    case "identification":
+      store.send({ type: "PRESS_A" }); // splash → menu
+      store.send({ type: "START_GAME" }); // menu → identification
+      break;
     case "playing":
       store.send({ type: "PRESS_A" }); // splash → menu
       store.send({ type: "START_GAME" }); // menu → identification

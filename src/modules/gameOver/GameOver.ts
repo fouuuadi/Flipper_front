@@ -126,7 +126,7 @@ export class GameOver {
    * casserait les 3 écrans). Le backend décide la transition et la rebroadcast.
    */
   private leaveGameSession(event: { type: "REPLAY" | "OPEN_LEADERBOARD" | "BACK_TO_MENU" }): void {
-    dispatchIntent(event, { sync: matchSync });
+    dispatchIntent(event, { sync: matchSync, store: gameStore });
   }
 
   private renderSummary(snapshot: MachineSnapshot): void {

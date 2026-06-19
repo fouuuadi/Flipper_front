@@ -2,14 +2,18 @@ import "./styles/global.css";
 
 import { createPlayfieldScene } from "@engine/createPlayfieldScene";
 import { loadBlenderTable } from "@modules/table/BlenderTableLoader";
+import { TableInteractions } from "@modules/table/TableInteractions";
+import { Slingshot } from "@modules/slingshot";
 
 import { gameStore } from "@core/gameStore";
 import { applyDevBoot } from "@core/devBoot";
+import { isDevLocalSyncEnabled } from "@core/devLocalSync";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
 import { bindScreenNav } from "@modules/screenNav";
+import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
@@ -78,8 +82,10 @@ async function bootstrap() {
   // 1. Mode follower : le backend décide, le front applique. On branche le bus
   //    borne sur la SM (nav:state + match:state) et on ouvre la connexion
   //    permanente au boot — bien avant toute partie.
-  bindMatchSyncToGameStore(matchSync, gameStore);
-  matchSync.connectBorne();
+  if (!isDevLocalSyncEnabled()) {
+    bindMatchSyncToGameStore(matchSync, gameStore);
+    matchSync.connectBorne();
+  }
 
   // 2. Dispatcher clavier global (Échap → PAUSE/RESUME, A → ABANDON, etc.)
   new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();
@@ -100,7 +106,8 @@ async function bootstrap() {
   new ScreenRouter(document.body, gameStore, factories).start();
 
   // 6. Scène 3D en arrière-plan (le canvas est sous tous les overlays UI).
-  const { sceneManager, leftFlipper, rightFlipper, launcher } = await createPlayfieldScene();
+  const { sceneManager, leftFlipper, rightFlipper, launcher, world, ball, physics } =
+    await createPlayfieldScene();
 
   // 6bis. Sources gameplay (flippers + lanceur), actives uniquement en
   //       `playing`. Le playfield est un client borne par nature, donc on
@@ -113,14 +120,40 @@ async function bootstrap() {
   }
 
   // 7. Charger la table Blender et brancher les bridges flipper.
-  loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper)
-    .then(({ bridges, tableRoot }) => {
+  loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper, world)
+    .then(({ bridges, tableRoot, colliders }) => {
       sceneManager.onUpdate(() => {
         for (const bridge of bridges) bridge.update();
       });
 
+      // 7bis. Slingshot actif : repousse la bille avec une impulsion
+      //       réactive façon ressort dès que le triangle Blender est trouvé.
+      const slingshotCollider = colliders["Slingshot_triangle"];
+      if (slingshotCollider) {
+        const slingshot = new Slingshot(physics, ball, slingshotCollider);
+        sceneManager.onUpdate((deltaTime) => slingshot.update(deltaTime));
+      } else if (import.meta.env.DEV) {
+        console.warn('⚠️ "Slingshot_triangle" introuvable, slingshot actif désactivé');
+      }
+
       // GUI de dépannage 3D (positionnement table) — DEV uniquement, jamais
       // embarqué dans le build borne/prod.
+      const tableInteractions = new TableInteractions(
+        physics,
+        ball,
+        colliders,
+        tableRoot,
+        sceneManager.scene,
+        sceneManager.camera,
+      );
+      sceneManager.onUpdate((deltaTime) => tableInteractions.update(deltaTime));
+
+      const gameFlow = new GameFlow(physics, ball, colliders, matchSync, () => {
+        gameStore.send({ type: "GAME_OVER" });
+      });
+      sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
+      matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
+
       if (import.meta.env.DEV) {
         void import("@modules/debug/TableDebugGui").then(({ createTableDebugGui }) =>
           createTableDebugGui({ sceneManager, tableRoot }),

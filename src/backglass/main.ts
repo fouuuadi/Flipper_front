@@ -1,5 +1,7 @@
 import "../styles/global.css";
 
+import { applyDevBoot } from "@core/devBoot";
+import { isDevLocalSyncEnabled } from "@core/devLocalSync";
 import { gameStore } from "@core/gameStore";
 import { KeyboardDispatcher, dispatchIntent } from "@core/keyboardDispatcher";
 import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/screenRouter";
@@ -136,11 +138,14 @@ const factories: ScreenFactoryMap = {
 
 if (host) {
   menuAudio.startClickFeedback();
+  applyDevBoot(gameStore);
 
   // Mode follower : on branche le bus borne sur la SM et on ouvre la connexion
   // permanente au boot. Le KeyboardDispatcher relaie aussi les inputs en intents.
-  bindMatchSyncToGameStore(matchSync, gameStore);
-  matchSync.connectBorne();
+  if (!isDevLocalSyncEnabled()) {
+    bindMatchSyncToGameStore(matchSync, gameStore);
+    matchSync.connectBorne();
+  }
   new KeyboardDispatcher({ store: gameStore, sync: matchSync }).start();
   new ScreenRouter(host, gameStore, factories).start();
 

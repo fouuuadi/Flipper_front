@@ -7,6 +7,8 @@ type BodyHandle = {
   collider?: RAPIER.Collider;
 };
 
+type CollisionListener = (handle1: number, handle2: number, started: boolean) => void;
+
 export class RapierPhysicsAdapter implements PhysicsAdapter {
   private nextId = 0;
 
@@ -14,17 +16,34 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private handles = new Map<BodyId, BodyHandle>();
 
   // Fréquence de mise à jour du moteur physique
-  private readonly fixedDt = 1 / 60;
+  private readonly fixedDt = 1 / 120;
   private accumulator = 0;
+
+  // File d'événements de collision (ex. déclenchement du slingshot) : drainée
+  // après chaque sous-pas de simulation pour ne perdre aucun événement.
+  private eventQueue: RAPIER.EventQueue | null = null;
+  private collisionListeners: CollisionListener[] = [];
 
   async init(): Promise<void> {
     if (this.world) return;
 
     await RAPIER.init();
 
-    this.world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    // La table Blender est modélisée à plat. On ajoute une composante vers le
+    // drain pour retrouver le comportement d'un plateau légèrement incliné.
+    this.world = new RAPIER.World({ x: 0, y: -9.81, z: -1.45 });
+    this.eventQueue = new RAPIER.EventQueue(true);
 
     this.accumulator = 0;
+  }
+
+  /**
+   * Enregistre un écouteur d'événements de collision (début/fin de contact
+   * entre deux colliders). Utilisé par ex. par le `Slingshot` pour détecter
+   * le contact avec la bille sans dépendre de la seule restitution passive.
+   */
+  onCollision(listener: CollisionListener): void {
+    this.collisionListeners.push(listener);
   }
 
   addBody(options: BodyOptions): BodyId {
@@ -73,13 +92,16 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       colliderDesc = RAPIER.ColliderDesc.ball(radius);
     }
 
-    colliderDesc = colliderDesc
-      .setFriction(friction)
-      .setRestitution(restitution)
-      // .setDensity(density)
-      .setSensor(false);
+    colliderDesc = colliderDesc.setFriction(friction).setRestitution(restitution).setSensor(false);
+
+    if (!options.isStatic && typeof options.mass === "number") {
+      colliderDesc = colliderDesc.setDensity(densityForMass(options.mass, shape, options));
+    }
 
     const collider = world.createCollider(colliderDesc, body);
+    if (!options.isStatic) {
+      collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    }
 
     // pertes de vitesse : plus la résistance est élevé, plus la balle ralentit au fil du temps.
     if (typeof options.linearDamping === "number") body.setLinearDamping(options.linearDamping);
@@ -110,7 +132,12 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     let subSteps = 0;
 
     while (this.accumulator >= this.fixedDt && subSteps < maxSubSteps) {
-      world.step();
+      if (this.eventQueue) {
+        world.step(this.eventQueue);
+        this.drainCollisionEvents(this.eventQueue);
+      } else {
+        world.step();
+      }
       this.accumulator -= this.fixedDt;
       subSteps++;
     }
@@ -118,6 +145,19 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     if (subSteps === maxSubSteps) {
       this.accumulator = 0;
     }
+  }
+
+  private drainCollisionEvents(eventQueue: RAPIER.EventQueue): void {
+    if (this.collisionListeners.length === 0) {
+      eventQueue.clear();
+      return;
+    }
+
+    eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      for (const listener of this.collisionListeners) {
+        listener(handle1, handle2, started);
+      }
+    });
   }
 
   dispose(): void {
@@ -128,6 +168,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     }
 
     this.handles.clear();
+
+    this.eventQueue?.free();
+    this.eventQueue = null;
+    this.collisionListeners = [];
 
     this.world = null;
     this.nextId = 0;
@@ -228,6 +272,13 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     return handle?.body ?? null;
   }
 
+  // Méthode publique pour accéder au collider d'un body (ex. détection de
+  // collision ciblée comme le slingshot).
+  getCollider(id: BodyId): RAPIER.Collider | null {
+    const handle = this.handles.get(id);
+    return handle?.collider ?? null;
+  }
+
   // Exposer le monde Rapier pour les interactions directes
   getWorld(): RAPIER.World {
     if (!this.world) throw new Error("RapierPhysicsAdapter: init() doit être appelé avant usage");
@@ -238,4 +289,16 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     this.nextId += 1;
     return `body-${this.nextId}`;
   }
+}
+
+function densityForMass(mass: number, shape: "sphere" | "box", options: BodyOptions): number {
+  if (shape === "box") {
+    const ext = options.halfExtents ?? { x: 1, y: 1, z: 1 };
+    const volume = ext.x * 2 * ext.y * 2 * ext.z * 2;
+    return mass / Math.max(volume, 0.0001);
+  }
+
+  const radius = options.radius ?? 1;
+  const volume = (4 / 3) * Math.PI * radius ** 3;
+  return mass / Math.max(volume, 0.0001);
 }
