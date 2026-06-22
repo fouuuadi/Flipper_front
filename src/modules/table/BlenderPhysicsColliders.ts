@@ -35,9 +35,25 @@ const MESH_COLLIDERS: Record<string, ColliderKind> = {
   "Object_2.002": "solid",
   Object_3: "solid",
   Object_4: "solid",
+  cube_1: "wall",
+  Cube_2: "wall",
+  Cube_3: "wall",
+  Cube_4: "wall",
+  Cube_5: "wall",
 };
 
-const BOX_COLLIDERS = new Set(["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"]);
+const BOX_COLLIDERS = new Set([
+  "wall_one",
+  "wall_two",
+  "wall_three",
+  "wall_four",
+  "wall_five",
+  "cube_1",
+  "Cube_2",
+  "Cube_3",
+  "Cube_4",
+  "Cube_5",
+]);
 const EXPECTED_BOX_WALLS = ["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"];
 const TRIMESH_COLLIDERS = new Set(["Tunel_a", "Tunel_b", "Tunel_c"]);
 const MIN_BOX_SIZE = 0.12;
