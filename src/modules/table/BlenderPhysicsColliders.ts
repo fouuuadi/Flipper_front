@@ -87,6 +87,7 @@ const TRACKED_COLLIDERS = new Set([
   "Bump",
   "Tunel_b",
   "Tunel_c",
+  "Ligne",
 ]);
 
 export function createBlenderPhysicsColliders(

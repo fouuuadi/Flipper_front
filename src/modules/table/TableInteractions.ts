@@ -26,6 +26,17 @@ interface TunnelTeleport {
   entryVelocity: THREE.Vector3;
 }
 
+interface FlashTarget {
+  material: THREE.Material & {
+    color?: THREE.Color;
+    emissive?: THREE.Color;
+    emissiveIntensity?: number;
+  };
+  baseColor: THREE.Color | null;
+  baseEmissive: THREE.Color | null;
+  baseEmissiveIntensity: number;
+}
+
 const PLANET_BUMPERS = new Set(["Planet_Glace", "Planet_Terre", "Planet_Volcan"]);
 const RAMP_BOOSTS = new Set(["Rampe", "Ramp_2"]);
 const SPINNERS = new Set(["Champignion_a", "Champignion_b"]);
@@ -34,12 +45,19 @@ const TUNNEL_PAIRS: Record<string, string> = {
   Tunel_c: "Tunel_b",
 };
 
+const LIGNE_NAME = "Ligne";
+const LIGNE_FLASH_DURATION = 1.4;
+const LIGNE_FLASH_HUE_CYCLES = 2;
+
 export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
   private readonly visuals = new Map<string, THREE.Object3D>();
   private readonly cooldowns = new Map<string, number>();
   private readonly spins: SpinAnimation[] = [];
   private readonly bursts: BurstEffect[] = [];
+  private readonly ligneFlashTargets: FlashTarget[];
+  private ligneFlashElapsed: number | null = null;
+  private readonly ligneFlashColor = new THREE.Color();
 
   private elapsed = 0;
   private shakeTime = 0;
@@ -61,6 +79,9 @@ export class TableInteractions {
       if (visual) this.visuals.set(name, visual);
     }
 
+    const ligneVisual = this.visuals.get(LIGNE_NAME);
+    this.ligneFlashTargets = ligneVisual ? collectFlashTargets(ligneVisual) : [];
+
     this.physics.onCollision((handle1, handle2, started) => {
       this.handleCollision(handle1, handle2, started);
     });
@@ -72,6 +93,7 @@ export class TableInteractions {
     this.updateBursts(deltaTime);
     this.updateShake(deltaTime);
     this.updateTunnelTeleport(deltaTime);
+    this.updateLigneFlash(deltaTime);
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
@@ -98,6 +120,52 @@ export class TableInteractions {
       this.startShake();
     } else if (name in TUNNEL_PAIRS) {
       this.startTunnelTeleport(name);
+    } else if (name === LIGNE_NAME) {
+      this.triggerLigneFlash();
+    }
+  }
+
+  private triggerLigneFlash(): void {
+    if (this.ligneFlashTargets.length === 0) return;
+    this.ligneFlashElapsed = 0;
+  }
+
+  private updateLigneFlash(deltaTime: number): void {
+    if (this.ligneFlashElapsed === null) return;
+
+    this.ligneFlashElapsed += deltaTime;
+    const progress = Math.min(this.ligneFlashElapsed / LIGNE_FLASH_DURATION, 1);
+    // Enveloppe d'intensité : monte puis redescend une seule fois.
+    const pulse = Math.sin(progress * Math.PI);
+    // La teinte tourne sur plusieurs cycles pendant l'animation -> couleurs variées plutôt qu'une seule.
+    const hue = (progress * LIGNE_FLASH_HUE_CYCLES) % 1;
+    this.ligneFlashColor.setHSL(hue, 1, 0.55);
+
+    for (const target of this.ligneFlashTargets) {
+      if (target.material.color && target.baseColor) {
+        target.material.color.copy(target.baseColor).lerp(this.ligneFlashColor, pulse * 0.85);
+      }
+      if (target.material.emissive) {
+        target.material.emissive
+          .copy(target.baseEmissive ?? new THREE.Color(0x000000))
+          .lerp(this.ligneFlashColor, pulse);
+      }
+      if (target.material.emissiveIntensity !== undefined) {
+        target.material.emissiveIntensity = target.baseEmissiveIntensity + pulse * 1.6;
+      }
+    }
+
+    if (progress >= 1) {
+      for (const target of this.ligneFlashTargets) {
+        if (target.material.color && target.baseColor) target.material.color.copy(target.baseColor);
+        if (target.material.emissive) {
+          target.material.emissive.copy(target.baseEmissive ?? new THREE.Color(0x000000));
+        }
+        if (target.material.emissiveIntensity !== undefined) {
+          target.material.emissiveIntensity = target.baseEmissiveIntensity;
+        }
+      }
+      this.ligneFlashElapsed = null;
     }
   }
 
@@ -367,6 +435,33 @@ export class TableInteractions {
 
     return found;
   }
+}
+
+function collectFlashTargets(visual: THREE.Object3D): FlashTarget[] {
+  const targets: FlashTarget[] = [];
+
+  visual.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      const colorMaterial = material as THREE.Material & {
+        color?: THREE.Color;
+        emissive?: THREE.Color;
+        emissiveIntensity?: number;
+      };
+      if (!colorMaterial.color) continue;
+
+      targets.push({
+        material: colorMaterial,
+        baseColor: colorMaterial.color.clone(),
+        baseEmissive: colorMaterial.emissive ? colorMaterial.emissive.clone() : null,
+        baseEmissiveIntensity: colorMaterial.emissiveIntensity ?? 0,
+      });
+    }
+  });
+
+  return targets;
 }
 
 function normalizeName(name: string): string {
