@@ -15,11 +15,12 @@ import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
 import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
-import { menuAudio } from "@services/menuAudio";
 
 import { Splash } from "@modules/splash";
 import { Pause } from "@modules/pause";
 import { GameOver } from "@modules/gameOver";
+import { Leaderboard } from "@modules/leaderboard";
+import { Menu } from "@modules/menu";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI — rôle du PLAYFIELD : il reste sur le splash pendant TOUTE la navigation
@@ -38,9 +39,17 @@ const splashScreen: ScreenFactory = (host) => {
 
 const factories: ScreenFactoryMap = {
   splash: splashScreen,
-  menu: splashScreen,
+  menu: (host) => {
+    const menu = new Menu();
+    menu.mount(host);
+    return { stop: () => menu.unmount() };
+  },
   identification: splashScreen,
-  leaderboard: splashScreen,
+  leaderboard: (host) => {
+    const leaderboard = new Leaderboard();
+    leaderboard.mount(host);
+    return { stop: () => leaderboard.unmount() };
+  },
   cosmetics: splashScreen,
   settings: splashScreen,
   // playing : pas de factory → seule la 3D reste à l'écran.
@@ -57,8 +66,6 @@ const factories: ScreenFactoryMap = {
 };
 
 async function bootstrap() {
-  menuAudio.startClickFeedback();
-
   // 0. Bypass de dev (`?boot=playing`) : bascule la SM avant tout abonnement
   //    pour que MatchTimer et ScreenRouter reçoivent l'état cible dès leur
   //    subscribe initial. No-op sans le query param et en prod.
@@ -137,6 +144,13 @@ async function bootstrap() {
         gameStore.send({ type: "GAME_OVER" });
       });
       sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
+      let previousState = gameStore.getState().value;
+      gameStore.subscribe((snapshot) => {
+        if (previousState === "gameOver" && snapshot.value === "playing") {
+          gameFlow.reset();
+        }
+        previousState = snapshot.value;
+      });
       matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
 
       if (import.meta.env.DEV) {

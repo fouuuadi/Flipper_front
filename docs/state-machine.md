@@ -41,7 +41,7 @@ stateDiagram-v2
     paused --> playing: RESUME
     paused --> menu: ABANDON
 
-    gameOver --> identification: REPLAY
+    gameOver --> playing: REPLAY
     gameOver --> menu: BACK_TO_MENU
     gameOver --> leaderboard: OPEN_LEADERBOARD
 
@@ -77,7 +77,7 @@ stateDiagram-v2
 | `GAME_OVER`          | Logique de partie            | `playing → gameOver`                         |
 | `OPEN_LEADERBOARD`   | Menu / GameOver              | `* → leaderboard`                            |
 | `BACK_TO_MENU`       | Leaderboard / GameOver / Identification | `* → menu`, reset du contexte     |
-| `REPLAY`             | GameOver (bouton Rejouer)    | `gameOver → identification` avec mêmes joueurs |
+| `REPLAY`             | GameOver (bouton Rejouer)    | `gameOver → playing` avec mêmes joueurs        |
 
 ---
 

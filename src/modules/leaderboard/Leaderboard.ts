@@ -86,7 +86,8 @@ export class Leaderboard {
     this.backButton = new Button({
       label: "Retour menu",
       variant: "ghost",
-      onClick: () => dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync }),
+      onClick: () =>
+        dispatchIntent({ type: "BACK_TO_MENU" }, { sync: matchSync, store: gameStore }),
     });
     this.backButton.mount(actions);
     card.appendChild(actions);

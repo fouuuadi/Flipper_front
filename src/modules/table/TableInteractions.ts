@@ -116,14 +116,14 @@ export class TableInteractions {
     if (!name || this.isCoolingDown(name)) return;
 
     if (PLANET_BUMPERS.has(name)) {
-      this.bumpFrom(name, 2.25, 0.18);
+      this.bumpFrom(name, 0.72, 0.06);
     } else if (RAMP_BOOSTS.has(name)) {
       this.boostRamp(name);
     } else if (SPINNERS.has(name)) {
       this.spinMushroom(name);
       this.randomSpinnerKick();
     } else if (name === "Bump") {
-      this.bumpFrom(name, 2.2, 0.28);
+      this.bumpFrom(name, 0.62, 0.05);
       this.startShake();
     } else if (name in TUNNEL_PAIRS) {
       this.startTunnelTeleport(name);
@@ -244,7 +244,7 @@ export class TableInteractions {
 
   private randomSpinnerKick(): void {
     const angle = Math.random() * Math.PI * 2;
-    const impulse = 1.2;
+    const impulse = 0.55;
     this.ball.applyImpulse({
       x: Math.cos(angle) * impulse,
       y: 0.16,
@@ -322,11 +322,7 @@ export class TableInteractions {
 
     this.shakeTime = Math.max(0, this.shakeTime - deltaTime);
     const strength = (this.shakeTime / 0.24) * 0.08;
-    this.previousShake.set(
-      (Math.random() - 0.5) * strength,
-      (Math.random() - 0.5) * strength,
-      0,
-    );
+    this.previousShake.set((Math.random() - 0.5) * strength, (Math.random() - 0.5) * strength, 0);
     this.camera.position.add(this.previousShake);
   }
 
@@ -372,7 +368,10 @@ export class TableInteractions {
 
       const distanceXZ = Math.hypot(position.x - center.x, position.z - center.z);
       const heightAboveEntrance = position.y - center.y;
-      if (distanceXZ <= TUNNEL_TRIGGER_RADIUS && heightAboveEntrance <= TUNNEL_TRIGGER_HEIGHT_MARGIN) {
+      if (
+        distanceXZ <= TUNNEL_TRIGGER_RADIUS &&
+        heightAboveEntrance <= TUNNEL_TRIGGER_HEIGHT_MARGIN
+      ) {
         this.startTunnelTeleport(tunnelName);
         return;
       }
@@ -475,9 +474,24 @@ function collectFlashTargets(visual: THREE.Object3D): FlashTarget[] {
 }
 
 function normalizeName(name: string): string {
-  return name
-    .normalize("NFKC")
-    .replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g, "")
-    .replace(/^_+/, "")
-    .toLowerCase();
+  return stripInvisibleNameCharacters(name.normalize("NFKC")).replace(/^_+/, "").toLowerCase();
+}
+
+function stripInvisibleNameCharacters(name: string): string {
+  return Array.from(name, (character) => {
+    const code = character.codePointAt(0) ?? 0;
+    const isInvisible =
+      code <= 0x20 ||
+      (code >= 0x7f && code <= 0xa0) ||
+      code === 0x1680 ||
+      code === 0x180e ||
+      (code >= 0x2000 && code <= 0x200b) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x202f ||
+      code === 0x205f ||
+      code === 0x3000 ||
+      code === 0xfeff;
+    return isInvisible ? "" : character;
+  }).join("");
 }

@@ -67,6 +67,7 @@ const factories: ScreenFactoryMap = {
 };
 
 if (host) {
+  menuAudio.enable();
   menuAudio.startClickFeedback();
   applyDevBoot(gameStore);
 

@@ -5,6 +5,7 @@ import { dispatchDevLocalCommand } from "@core/devLocalSync";
 import type { GameMode, PlayerTag } from "@core/gameMachine.types";
 import { matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
+import { savePlayerSession } from "@services/playerSession";
 import { validatePseudo } from "./validation";
 import "./identification.css";
 
@@ -191,6 +192,8 @@ export class Identification {
       action: "PLAYERS_VALIDATED",
       payload: { pseudo: tags[0], mode: this.mode, players: tags },
     } as const;
+
+    savePlayerSession(this.mode, tags);
 
     if (!dispatchDevLocalCommand(command, gameStore)) {
       matchSync.dispatch(command);

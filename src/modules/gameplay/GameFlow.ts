@@ -54,6 +54,19 @@ export class GameFlow {
     this.detectDrain();
   }
 
+  reset(): void {
+    this.elapsed = 0;
+    this.score = 0;
+    this.combo = 0;
+    this.lives = 3;
+    this.isDraining = false;
+    this.isGameOver = false;
+    this.scoredCooldowns.clear();
+    this.ball.reset();
+    this.sync.emitLocal({ type: "score:update", score: this.score, combo: this.combo });
+    this.sync.emitLocal({ type: "ball:lost", livesRemaining: this.lives });
+  }
+
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
     if (!started || this.isGameOver) return;
 
