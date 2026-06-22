@@ -49,6 +49,13 @@ const LIGNE_NAME = "Ligne";
 const LIGNE_FLASH_DURATION = 1.4;
 const LIGNE_FLASH_HUE_CYCLES = 2;
 
+const TUNNEL_TRIGGER_RADIUS = 0.72;
+// Une rampe ("Rampe"/"Ramp_2") passe juste au-dessus de l'entrée du tunnel
+// "Tunel_b" : sans cette marge, la détection ne regardait que la distance XZ
+// et ignorait la hauteur, donc la balle se téléportait dès qu'elle était
+// au-dessus du tunnel, même en train de rouler sur la rampe par-dessus.
+const TUNNEL_TRIGGER_HEIGHT_MARGIN = 0.35;
+
 export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
   private readonly visuals = new Map<string, THREE.Object3D>();
@@ -207,7 +214,9 @@ export class TableInteractions {
     body.setLinvel(
       {
         x: velocity.x * scale,
-        y: Math.max(velocity.y, 0.15),
+        // Petit "saut" perceptible quand la balle prend la rampe, plutôt
+        // qu'un simple plancher de vitesse verticale quasi nul.
+        y: Math.max(velocity.y, 0.85),
         z: velocity.z * scale,
       },
       true,
@@ -362,7 +371,8 @@ export class TableInteractions {
       if (!center) continue;
 
       const distanceXZ = Math.hypot(position.x - center.x, position.z - center.z);
-      if (distanceXZ <= 0.72) {
+      const heightAboveEntrance = position.y - center.y;
+      if (distanceXZ <= TUNNEL_TRIGGER_RADIUS && heightAboveEntrance <= TUNNEL_TRIGGER_HEIGHT_MARGIN) {
         this.startTunnelTeleport(tunnelName);
         return;
       }
