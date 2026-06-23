@@ -1,14 +1,20 @@
 import { Button } from "@modules/ui";
+import { gameStore } from "@core/gameStore";
 import { matchSync } from "@services/matchSync";
+import { dispatchIntent } from "@core/keyboardDispatcher";
 import "./pause.css";
 
 /**
  * Overlay de pause monté pendant l'état `paused` de la SM.
  *
- * Les actions sont des **intentions** envoyées au backend via `cmd:resume` /
- * `cmd:abandon` sur le bus borne. L'écran ne bascule pas lui-même — il attend
- * que le backend rebroadcast `match:state` et que le follower applique la
- * transition (cf. `bindToGameStore`).
+ * Les actions sont des **intentions** routées via `dispatchIntent` (même
+ * mécanisme que `KeyboardDispatcher` et `GameOver`) : en prod/borne, ça part
+ * en `cmd:resume` / `cmd:abandon` sur le bus borne et l'écran attend que le
+ * backend rebroadcast `match:state` (cf. `bindToGameStore`). En dev local
+ * (`?sync=local`), `dispatchIntent` applique directement l'event sur la SM
+ * via `dispatchDevLocalCommand` — sans cette indirection, un appel direct à
+ * `matchSync.dispatch` (comme avant) reste bloqué en file d'attente tant
+ * qu'aucun backend n'est connecté, et les boutons semblent ne rien faire.
  *
  * Le raccourci clavier "ÉCHAP → PAUSE" en `playing` est routé par le
  * `KeyboardDispatcher` global, pas par ce composant.
@@ -70,10 +76,10 @@ export class Pause {
   }
 
   private requestResume(): void {
-    matchSync.dispatch({ type: "cmd:resume" });
+    dispatchIntent({ type: "RESUME" }, { sync: matchSync, store: gameStore });
   }
 
   private requestAbandon(): void {
-    matchSync.dispatch({ type: "cmd:abandon" });
+    dispatchIntent({ type: "ABANDON" }, { sync: matchSync, store: gameStore });
   }
 }
