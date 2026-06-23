@@ -470,13 +470,14 @@ export class TableInteractions {
     direction.normalize();
 
     const speed = Math.max(Math.hypot(teleport.entryVelocity.x, teleport.entryVelocity.z), 4.8);
-    // La sortie était poussée trop haut (destination.y + 0.22) et trop loin
-    // (0.92) du centre du tunnel : à pleine vitesse, la bille atterrissait
-    // déjà au-dessus de la hauteur de "wall_four" et le traversait sans
-    // jamais le toucher. On réduit la marge verticale et la distance pour
-    // qu'elle ressorte au niveau du sol et ait le temps d'entrer en
-    // collision normalement avec les obstacles qui suivent.
-    const exitPosition = destination.clone().addScaledVector(direction, 0.55);
+    // La marge verticale (destination.y + 0.05, au lieu de + 0.22) règle le
+    // passage à travers "wall_four". Mais réduire aussi la distance de
+    // sortie à 0.55 plaçait la bille encore À L'INTÉRIEUR du collider de
+    // "Tunel_c" (demi-diagonale ~0.96) : elle restait coincée à se
+    // dépénétrer contre son propre tunnel après plusieurs passages. On
+    // ressort donc plus loin (1.0, au-delà de cette demi-diagonale) tout en
+    // gardant la hauteur basse.
+    const exitPosition = destination.clone().addScaledVector(direction, 1.0);
     exitPosition.y = Math.max(body.translation().y, destination.y + 0.05);
 
     body.setTranslation({ x: exitPosition.x, y: exitPosition.y, z: exitPosition.z }, true);

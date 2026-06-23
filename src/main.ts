@@ -111,6 +111,43 @@ async function bootstrap() {
     bindGameplayInput(gameStore, gameplayControls);
   }
 
+  // 6ter. Les flippers tournent très vite (cf. `speed = 16` dans Flipper.update)
+  // et le contact avec la bille peut générer une forte composante verticale
+  // (la bille "saute" en arrière et se coince dans les Book_left/Book_right,
+  // ou sort du terrain). On ne touche à rien d'autre : tant que la bille
+  // touche un flipper, on plafonne uniquement sa vitesse verticale — la
+  // poussée horizontale du flip (le but du jeu) reste intacte.
+  const FLIPPER_CONTACT_MAX_UPWARD_SPEED = 1.1;
+  let leftFlipperContact = false;
+  let rightFlipperContact = false;
+
+  physics.onCollision((handle1, handle2, started) => {
+    const ballCollider = ball.getCollider();
+    if (!ballCollider) return;
+    const ballHandle = ballCollider.handle;
+
+    const other = handle1 === ballHandle ? handle2 : handle2 === ballHandle ? handle1 : null;
+    if (other === null) return;
+
+    if (other === leftFlipper.collider.handle) leftFlipperContact = started;
+    if (other === rightFlipper.collider.handle) rightFlipperContact = started;
+  });
+
+  sceneManager.onUpdate(() => {
+    if (!leftFlipperContact && !rightFlipperContact) return;
+
+    const body = ball.getBody();
+    if (!body) return;
+
+    const velocity = body.linvel();
+    if (velocity.y > FLIPPER_CONTACT_MAX_UPWARD_SPEED) {
+      body.setLinvel(
+        { x: velocity.x, y: FLIPPER_CONTACT_MAX_UPWARD_SPEED, z: velocity.z },
+        true,
+      );
+    }
+  });
+
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper, world)
     .then(({ bridges, tableRoot, colliders }) => {

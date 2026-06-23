@@ -61,11 +61,20 @@ const BOX_SIZE_OVERRIDES: Partial<Record<string, Partial<Record<"x" | "y" | "z",
   wall_two: { x: 0.42 },
 };
 const BOX_SIZE_EXPANSIONS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
-  // wall_one est fin sur l'axe X (~0.77 une fois mis à l'échelle) : lors
-  // d'une répulsion/éjection à grande vitesse, la bille pouvait le
-  // traverser. On épaissit légèrement le collider sur X en plus de
-  // l'allongement Z déjà présent, sans toucher au reste.
-  wall_one: { x: 0.35, z: 1.1 },
+  // wall_one est fin sur l'axe X (~0.77 une fois mis à l'échelle) et bas
+  // (sommet à ~1.43) : une répulsion/éjection à grande vitesse ou un "pop"
+  // vertical (slingshot, bumpers) suffisait à le traverser ou à sauter
+  // par-dessus, n'importe où le long de sa longueur. On épaissit sur X et
+  // on relève le sommet (Y), en plus de l'allongement Z déjà présent.
+  wall_one: { x: 0.35, y: 0.8, z: 1.1 },
+  // Les cubes sont des obstacles courts : les mêmes impulsions verticales
+  // (flippers/bumpers/slingshot) les faisaient sauter. Même correctif que
+  // "wall_one" : on relève seulement le sommet du collider.
+  cube_1: { y: 0.6 },
+  Cube_2: { y: 0.6 },
+  Cube_3: { y: 0.6 },
+  Cube_4: { y: 0.6 },
+  Cube_5: { y: 0.6 },
 };
 const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
   wall_one: { z: 0.45 },
