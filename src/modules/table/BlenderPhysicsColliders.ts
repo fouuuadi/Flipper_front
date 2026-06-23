@@ -723,6 +723,7 @@ function restitutionFor(name: string): number {
 function frictionFor(name: string): number {
   if (name === "Plane") return 0.55;
   if (name === "Rampe" || name === "Ramp_2") return 0.08;
+  if (name.startsWith("Rails_")) return 0.04;
   return 0.42;
 }
 

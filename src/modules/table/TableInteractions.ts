@@ -55,6 +55,9 @@ const TUNNEL_TRIGGER_RADIUS = 0.72;
 // et ignorait la hauteur, donc la balle se téléportait dès qu'elle était
 // au-dessus du tunnel, même en train de rouler sur la rampe par-dessus.
 const TUNNEL_TRIGGER_HEIGHT_MARGIN = 0.35;
+// Délai pendant lequel le fallback de proximité du tunnel est désactivé
+// après un contact avec une rampe (cf. lastRampContactAt plus bas).
+const RAMP_TUNNEL_GUARD_DURATION = 0.5;
 
 export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
@@ -71,6 +74,13 @@ export class TableInteractions {
   private previousShake = new THREE.Vector3();
   private tunnelTeleport: TunnelTeleport | null = null;
   private tunnelCooldownUntil = 0;
+  // Dernier instant où la bille a touché une rampe ("Rampe"/"Ramp_2"). La
+  // rampe passe juste à côté de l'entrée avant de "Tunel_c" : sans ce garde,
+  // la détection par proximité du tunnel (fallback) déclenchait la
+  // téléportation alors que la bille était encore sur la rampe, avant même
+  // l'impulsion de saut, ce qui annulait le saut et faisait entrer la bille
+  // par le mauvais côté (par-dessus/derrière au lieu de l'entrée frontale).
+  private lastRampContactAt = -Infinity;
 
   constructor(
     private readonly physics: RapierPhysicsAdapter,
@@ -118,6 +128,7 @@ export class TableInteractions {
     if (PLANET_BUMPERS.has(name)) {
       this.bumpFrom(name, 0.72, 0.06);
     } else if (RAMP_BOOSTS.has(name)) {
+      this.lastRampContactAt = this.elapsed;
       this.boostRamp(name);
     } else if (SPINNERS.has(name)) {
       this.spinMushroom(name);
@@ -126,6 +137,13 @@ export class TableInteractions {
       this.bumpFrom(name, 0.62, 0.05);
       this.startShake();
     } else if (name in TUNNEL_PAIRS) {
+      if (import.meta.env.DEV) {
+        console.debug("[Tunnel] collision détectée avec", name, {
+          tunnelTeleportEnCours: this.tunnelTeleport,
+          tunnelCooldownUntil: this.tunnelCooldownUntil,
+          elapsed: this.elapsed,
+        });
+      }
       this.startTunnelTeleport(name);
     } else if (name === LIGNE_NAME) {
       this.triggerLigneFlash();
@@ -361,6 +379,14 @@ export class TableInteractions {
 
     if (this.elapsed < this.tunnelCooldownUntil) return;
 
+    // La bille vient de toucher/quitter une rampe : "Tunel_c" est juste à
+    // côté de "Rampe"/"Ramp_2", donc le fallback par proximité la
+    // téléporterait avant même qu'elle ait pu sauter par-dessus l'entrée
+    // (saut annulé) et la ferait entrer par le dessus/l'arrière plutôt que
+    // par l'entrée frontale réelle (détectée via la vraie collision plus
+    // bas, dans handleCollision).
+    if (this.elapsed - this.lastRampContactAt < RAMP_TUNNEL_GUARD_DURATION) return;
+
     const position = body.translation();
     for (const tunnelName of Object.keys(TUNNEL_PAIRS)) {
       const center = this.colliders[tunnelName]?.center;
@@ -379,10 +405,31 @@ export class TableInteractions {
   }
 
   private startTunnelTeleport(from: string): void {
-    if (this.tunnelTeleport || this.elapsed < this.tunnelCooldownUntil) return;
+    if (this.tunnelTeleport || this.elapsed < this.tunnelCooldownUntil) {
+      if (import.meta.env.DEV) {
+        console.debug("[Tunnel] démarrage ignoré pour", from, {
+          raison: this.tunnelTeleport ? "téléportation déjà en cours" : "cooldown global actif",
+        });
+      }
+      return;
+    }
 
     const to = TUNNEL_PAIRS[from];
-    if (!to || !this.colliders[from] || !this.colliders[to]) return;
+    if (!to || !this.colliders[from] || !this.colliders[to]) {
+      if (import.meta.env.DEV) {
+        console.warn("[Tunnel] collider manquant, téléportation impossible", {
+          from,
+          to,
+          colliderFromExiste: !!this.colliders[from],
+          colliderToExiste: to ? !!this.colliders[to] : false,
+        });
+      }
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.debug("[Tunnel] téléportation démarrée :", from, "->", to);
+    }
 
     const velocity = this.ball.getBody()?.linvel();
     this.tunnelTeleport = {
@@ -402,8 +449,15 @@ export class TableInteractions {
     const body = this.ball.getBody();
     const destination = teleport ? this.colliders[teleport.to]?.center : null;
     if (!teleport || !body || !destination) {
+      if (import.meta.env.DEV && teleport) {
+        console.warn("[Tunnel] sortie annulée, destination introuvable pour", teleport.to);
+      }
       this.tunnelTeleport = null;
       return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.debug("[Tunnel] sortie par", teleport.to, "position cible :", destination);
     }
 
     const direction = new THREE.Vector3(teleport.entryVelocity.x, 0, teleport.entryVelocity.z);
@@ -416,8 +470,14 @@ export class TableInteractions {
     direction.normalize();
 
     const speed = Math.max(Math.hypot(teleport.entryVelocity.x, teleport.entryVelocity.z), 4.8);
-    const exitPosition = destination.clone().addScaledVector(direction, 0.92);
-    exitPosition.y = Math.max(body.translation().y, destination.y + 0.22);
+    // La sortie était poussée trop haut (destination.y + 0.22) et trop loin
+    // (0.92) du centre du tunnel : à pleine vitesse, la bille atterrissait
+    // déjà au-dessus de la hauteur de "wall_four" et le traversait sans
+    // jamais le toucher. On réduit la marge verticale et la distance pour
+    // qu'elle ressorte au niveau du sol et ait le temps d'entrer en
+    // collision normalement avec les obstacles qui suivent.
+    const exitPosition = destination.clone().addScaledVector(direction, 0.55);
+    exitPosition.y = Math.max(body.translation().y, destination.y + 0.05);
 
     body.setTranslation({ x: exitPosition.x, y: exitPosition.y, z: exitPosition.z }, true);
     body.setLinvel(
