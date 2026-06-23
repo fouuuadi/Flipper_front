@@ -69,6 +69,18 @@ export interface GameOverEvent {
   readonly finalScore: number;
 }
 
+/** État complet renvoyé par le backend après création ou reconnexion. */
+export interface SessionSnapshotEvent {
+  readonly type: "session:snapshot";
+  readonly sessionId: string;
+  readonly players: readonly string[];
+  readonly mode: "solo" | "1v1";
+  readonly status: MatchStatus;
+  readonly score: number;
+  readonly combo: number;
+  readonly lives: number;
+}
+
 /**
  * Entrées physiques de la borne relayées par le backend (boutons ESP32). En dev
  * elles sont remplacées par le clavier ; le playfield les consomme de la même
@@ -93,6 +105,7 @@ export type WsServerEvent =
   | ScoreUpdateEvent
   | BallLostEvent
   | GameOverEvent
+  | SessionSnapshotEvent
   | ControlFlipperEvent
   | ControlPlungerEvent;
 
@@ -107,6 +120,7 @@ export function isServerEvent(payload: unknown): payload is WsServerEvent {
     type === "score:update" ||
     type === "ball:lost" ||
     type === "game:over" ||
+    type === "session:snapshot" ||
     type === "control:flipper" ||
     type === "control:plunger"
   );
@@ -126,6 +140,15 @@ export interface ResumeCommand {
 
 export interface AbandonCommand {
   readonly type: "cmd:abandon";
+}
+
+/** Événement brut détecté par la physique ; le backend calcule le résultat. */
+export interface GameEventCommand {
+  readonly type: "game:event";
+  readonly eventId: string;
+  readonly event: "target_hit" | "ball_lost";
+  readonly occurredAt: number;
+  readonly targetId?: string;
 }
 
 /**
@@ -151,4 +174,9 @@ export interface IntentCommand {
 }
 
 /** Messages client → serveur : intentions de navigation + contrôles de match. */
-export type ClientCommand = IntentCommand | PauseCommand | ResumeCommand | AbandonCommand;
+export type ClientCommand =
+  | IntentCommand
+  | PauseCommand
+  | ResumeCommand
+  | AbandonCommand
+  | GameEventCommand;

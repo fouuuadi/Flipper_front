@@ -14,6 +14,8 @@ export type {
   ScoreUpdateEvent,
   BallLostEvent,
   GameOverEvent,
+  GameEventCommand,
+  SessionSnapshotEvent,
   WsServerEvent,
 } from "./protocol";
 export { isServerEvent } from "./protocol";

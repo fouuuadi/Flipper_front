@@ -140,18 +140,31 @@ async function bootstrap() {
       );
       sceneManager.onUpdate((deltaTime) => tableInteractions.update(deltaTime));
 
-      const gameFlow = new GameFlow(physics, ball, colliders, matchSync, () => {
-        gameStore.send({ type: "GAME_OVER" });
-      });
+      const gameFlow = new GameFlow(
+        physics,
+        ball,
+        colliders,
+        matchSync,
+        () => {
+          gameStore.send({ type: "GAME_OVER" });
+        },
+        isDevLocalSyncEnabled(),
+      );
       sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
       let previousState = gameStore.getState().value;
       gameStore.subscribe((snapshot) => {
-        if (previousState === "gameOver" && snapshot.value === "playing") {
+        const startsNewGame =
+          snapshot.value === "playing" &&
+          previousState !== "playing" &&
+          previousState !== "paused";
+        if (startsNewGame) {
           gameFlow.reset();
         }
         previousState = snapshot.value;
       });
-      matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
+      if (isDevLocalSyncEnabled()) {
+        matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
+      }
 
       if (import.meta.env.DEV) {
         void import("@modules/debug/TableDebugGui").then(({ createTableDebugGui }) =>

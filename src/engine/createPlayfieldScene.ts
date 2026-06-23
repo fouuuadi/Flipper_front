@@ -111,7 +111,7 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
 
   const ball = new Ball(physics, {
     id: "main-ball",
-    initialPosition: { x: -7.6, y: 4.92, z: -11.9 },
+    initialPosition: { x: -7.6, y: 4.92, z: -8.9 },
     radius: 0.35,
     mass: 0.22,
     friction: 0.04,

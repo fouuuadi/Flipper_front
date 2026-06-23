@@ -5,7 +5,7 @@ import { matchSync } from "@services/matchSync";
 import type { GameMode } from "@core/gameMachine.types";
 import { menuAudio } from "@services/menuAudio";
 import {
-  LocalStorageLeaderboardStore,
+  HttpLeaderboardStore,
   type LeaderboardEntry,
   type LeaderboardStore,
 } from "@services/leaderboardStore";
@@ -38,7 +38,7 @@ export class Leaderboard {
   private readonly store: LeaderboardStore;
   private mode: GameMode = "solo";
 
-  constructor(store: LeaderboardStore = new LocalStorageLeaderboardStore()) {
+  constructor(store: LeaderboardStore = new HttpLeaderboardStore()) {
     this.store = store;
 
     this.root = document.createElement("section");

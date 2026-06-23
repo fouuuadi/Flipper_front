@@ -31,27 +31,32 @@ class MockSocket {
 
 type Applied = { value: GameStateValue; patch?: Partial<GameContext> };
 
-function fakeStore(initial: MachineSnapshot["value"]): GameStore & {
+function fakeStore(
+  initial: MachineSnapshot["value"],
+  initialPlayers: GameContext["players"] = [],
+): GameStore & {
   __applied: Applied[];
 } {
   let value = initial;
+  let context: GameContext = {
+    mode: null,
+    players: initialPlayers,
+    currentBall: 1,
+    startedAt: null,
+    sessionId: null,
+    finalDurationMs: null,
+  };
   const applied: Applied[] = [];
   return {
     getState: () => ({
       value,
-      context: {
-        mode: null,
-        players: [],
-        currentBall: 1,
-        startedAt: null,
-        sessionId: null,
-        finalDurationMs: null,
-      },
+      context,
     }),
     send: () => {},
     applyServerState: (v, patch) => {
       applied.push({ value: v, patch });
       value = v;
+      if (patch) context = { ...context, ...patch };
     },
     subscribe: () => () => {},
     __applied: applied,
@@ -155,7 +160,7 @@ describe("bindMatchSyncToGameStore — events ignorés", () => {
     expect(store.__applied).toEqual([]);
   });
 
-  it("ignore countdown:tick / score:update / ball:lost", () => {
+  it("ignore countdown:tick et les données live sans joueur identifié", () => {
     const { sync, socket } = setupSync();
     const store = fakeStore("playing");
     bindMatchSyncToGameStore(sync, store);
@@ -163,6 +168,60 @@ describe("bindMatchSyncToGameStore — events ignorés", () => {
     socket.triggerMessage({ type: "score:update", score: 100, combo: 1 });
     socket.triggerMessage({ type: "ball:lost", livesRemaining: 2 });
     expect(store.__applied).toEqual([]);
+  });
+});
+
+describe("bindMatchSyncToGameStore — données de partie", () => {
+  it("synchronise le pseudo et l'état courant depuis le snapshot de session", () => {
+    const { sync, socket } = setupSync();
+    const store = fakeStore("playing");
+    bindMatchSyncToGameStore(sync, store);
+
+    socket.triggerMessage({
+      type: "session:snapshot",
+      sessionId: "sid-1",
+      players: ["ABC#HETIC"],
+      mode: "solo",
+      status: "playing",
+      score: 600,
+      combo: 2,
+      lives: 2,
+    });
+
+    expect(store.getState().context).toMatchObject({
+      sessionId: "sid-1",
+      mode: "solo",
+      players: [{ tag: "ABC#HETIC", score: 600, ballsRemaining: 2 }],
+    });
+  });
+
+  it("met à jour score et vies du joueur depuis les événements backend", () => {
+    const { sync, socket } = setupSync();
+    const store = fakeStore("playing", [{ tag: "ABC#HETIC", score: 0, ballsRemaining: 3 }]);
+    bindMatchSyncToGameStore(sync, store);
+
+    socket.triggerMessage({ type: "score:update", score: 1250, combo: 4 });
+    socket.triggerMessage({ type: "ball:lost", livesRemaining: 2 });
+
+    expect(store.getState().context.players[0]).toEqual({
+      tag: "ABC#HETIC",
+      score: 1250,
+      ballsRemaining: 2,
+    });
+  });
+
+  it("applique le score final au game over", () => {
+    const { sync, socket } = setupSync();
+    const store = fakeStore("playing", [{ tag: "ABC#HETIC", score: 900, ballsRemaining: 1 }]);
+    bindMatchSyncToGameStore(sync, store);
+
+    socket.triggerMessage({ type: "game:over", finalScore: 2400 });
+
+    expect(store.getState().context.players[0]).toEqual({
+      tag: "ABC#HETIC",
+      score: 2400,
+      ballsRemaining: 0,
+    });
   });
 });
 
