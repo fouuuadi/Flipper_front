@@ -61,7 +61,11 @@ const BOX_SIZE_OVERRIDES: Partial<Record<string, Partial<Record<"x" | "y" | "z",
   wall_two: { x: 0.42 },
 };
 const BOX_SIZE_EXPANSIONS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
-  wall_one: { z: 1.1 },
+  // wall_one est fin sur l'axe X (~0.77 une fois mis à l'échelle) : lors
+  // d'une répulsion/éjection à grande vitesse, la bille pouvait le
+  // traverser. On épaissit légèrement le collider sur X en plus de
+  // l'allongement Z déjà présent, sans toucher au reste.
+  wall_one: { x: 0.35, z: 1.1 },
 };
 const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
   wall_one: { z: 0.45 },
