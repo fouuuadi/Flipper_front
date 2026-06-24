@@ -114,7 +114,6 @@ export class Launcher {
     const body = this.ball.getBody();
     if (!body) return;
 
-    this.ball.allowTemporaryMaxLinearSpeed(18, 3);
     const velocity = body.linvel();
     body.setLinvel(
       {

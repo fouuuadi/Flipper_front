@@ -27,7 +27,6 @@ export class GameFlow {
   private lives = 3;
   private isDraining = false;
   private isGameOver = false;
-  private eventSequence = 0;
 
   constructor(
     private readonly physics: RapierPhysicsAdapter,
@@ -35,7 +34,6 @@ export class GameFlow {
     colliders: ColliderMap,
     private readonly sync: MatchSyncAdapter,
     private readonly onGameOver?: () => void,
-    private readonly localAuthority = true,
   ) {
     for (const [name, entry] of Object.entries(colliders)) {
       if (SCORE_BY_COLLIDER[name]) this.handleToName.set(entry.collider.handle, name);
@@ -45,10 +43,8 @@ export class GameFlow {
       this.handleCollision(handle1, handle2, started);
     });
 
-    if (this.localAuthority) {
-      this.sync.emitLocal({ type: "score:update", score: this.score, combo: this.combo });
-      this.sync.emitLocal({ type: "ball:lost", livesRemaining: this.lives });
-    }
+    this.sync.emitLocal({ type: "score:update", score: this.score, combo: this.combo });
+    this.sync.emitLocal({ type: "ball:lost", livesRemaining: this.lives });
   }
 
   update(deltaTime: number): void {
@@ -56,21 +52,6 @@ export class GameFlow {
 
     this.elapsed += deltaTime;
     this.detectDrain();
-  }
-
-  reset(): void {
-    this.elapsed = 0;
-    this.score = 0;
-    this.combo = 0;
-    this.lives = 3;
-    this.isDraining = false;
-    this.isGameOver = false;
-    this.scoredCooldowns.clear();
-    this.ball.reset();
-    if (this.localAuthority) {
-      this.sync.emitLocal({ type: "score:update", score: this.score, combo: this.combo });
-      this.sync.emitLocal({ type: "ball:lost", livesRemaining: this.lives });
-    }
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
@@ -84,17 +65,6 @@ export class GameFlow {
     if (handle1 === ballHandle) name = this.handleToName.get(handle2);
     if (handle2 === ballHandle) name = this.handleToName.get(handle1);
     if (!name || this.isCoolingDown(name)) return;
-
-    if (!this.localAuthority) {
-      this.sync.dispatch({
-        type: "game:event",
-        eventId: this.nextEventId(),
-        event: "target_hit",
-        targetId: name,
-        occurredAt: Date.now(),
-      });
-      return;
-    }
 
     const rule = SCORE_BY_COLLIDER[name];
     this.combo = Math.min(this.combo + 1, 9);
@@ -128,20 +98,6 @@ export class GameFlow {
     if (!isInDrainLane && !isOutOfTable && !isFallen) return;
 
     this.isDraining = true;
-    if (!this.localAuthority) {
-      this.sync.dispatch({
-        type: "game:event",
-        eventId: this.nextEventId(),
-        event: "ball_lost",
-        occurredAt: Date.now(),
-      });
-      window.setTimeout(() => {
-        this.ball.reset();
-        this.isDraining = false;
-      }, 700);
-      return;
-    }
-
     this.combo = 0;
     this.lives = Math.max(0, this.lives - 1);
     this.sync.emitLocal({ type: "ball:lost", livesRemaining: this.lives });
@@ -158,10 +114,5 @@ export class GameFlow {
       this.ball.reset();
       this.isDraining = false;
     }, 700);
-  }
-
-  private nextEventId(): string {
-    this.eventSequence += 1;
-    return `${Date.now().toString(36)}-${this.eventSequence.toString(36)}`;
   }
 }

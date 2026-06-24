@@ -91,14 +91,17 @@ const transitions: TransitionTable = {
   },
   gameOver: {
     REPLAY: (ctx) => ({
-      // Rejoue immédiatement avec les mêmes joueurs et la même session.
-      value: "playing",
+      // Rejoue avec les mêmes joueurs, scores et balles remis à zéro.
+      // La sessionId est reset : l'écran identification recréera une nouvelle
+      // session via POST /sessions. finalDurationMs reset aussi pour la
+      // nouvelle partie.
+      value: "identification",
       context: {
         mode: ctx.mode,
         players: ctx.players.map((p) => freshPlayer(p.tag)),
         currentBall: 1,
-        startedAt: Date.now(),
-        sessionId: ctx.sessionId,
+        startedAt: null,
+        sessionId: null,
         finalDurationMs: null,
       },
     }),

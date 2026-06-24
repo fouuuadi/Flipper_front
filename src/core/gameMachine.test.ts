@@ -161,7 +161,7 @@ describe("gameMachine — paused transitions", () => {
 });
 
 describe("gameMachine — gameOver transitions", () => {
-  it("gameOver + REPLAY → playing + same players, scores reset, session preserved", () => {
+  it("gameOver + REPLAY → identification + same players, scores reset, sessionId cleared", () => {
     const ended: MachineSnapshot = {
       value: "gameOver",
       context: {
@@ -178,14 +178,13 @@ describe("gameMachine — gameOver transitions", () => {
     };
     const next = transition(ended, { type: "REPLAY" });
 
-    expect(next?.value).toBe("playing");
+    expect(next?.value).toBe("identification");
     expect(next?.context.mode).toBe("1v1");
     expect(next?.context.players.map((p) => p.tag)).toEqual(["p1#0001", "p2#0002"]);
     expect(next?.context.players.every((p) => p.score === 0)).toBe(true);
     expect(next?.context.players.every((p) => p.ballsRemaining === 3)).toBe(true);
     expect(next?.context.currentBall).toBe(1);
-    expect(next?.context.sessionId).toBe("old-session");
-    expect(next?.context.startedAt).toBeGreaterThan(0);
+    expect(next?.context.sessionId).toBeNull();
   });
 
   it("gameOver + OPEN_LEADERBOARD → leaderboard", () => {

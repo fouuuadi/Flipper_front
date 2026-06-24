@@ -22,8 +22,6 @@ export class Ball {
   private readonly bodyId: BodyId;
   private readonly initialPosition: Vec3;
   private readonly maxLinearSpeed: number;
-  private temporaryMaxLinearSpeed: number | null = null;
-  private temporarySpeedLimitRemaining = 0;
 
   constructor(physics: RapierPhysicsAdapter, options: BallOptions = {}) {
     const radius = options.radius ?? 0.12;
@@ -67,12 +65,9 @@ export class Ball {
     scene.remove(this.mesh);
   }
 
-  updateFromPhysics(deltaTime = 0): void {
+  updateFromPhysics(): void {
     const body = this.physics.getBody(this.bodyId);
     if (!body) return;
-
-    this.temporarySpeedLimitRemaining = Math.max(0, this.temporarySpeedLimitRemaining - deltaTime);
-    if (this.temporarySpeedLimitRemaining === 0) this.temporaryMaxLinearSpeed = null;
 
     this.clampLinearVelocity(body);
 
@@ -86,10 +81,9 @@ export class Ball {
   private clampLinearVelocity(body: RAPIER.RigidBody): void {
     const velocity = body.linvel();
     const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2);
-    const speedLimit = this.temporaryMaxLinearSpeed ?? this.maxLinearSpeed;
-    if (speed <= speedLimit) return;
+    if (speed <= this.maxLinearSpeed) return;
 
-    const scale = speedLimit / speed;
+    const scale = this.maxLinearSpeed / speed;
     body.setLinvel(
       {
         x: velocity.x * scale,
@@ -106,12 +100,6 @@ export class Ball {
     if (!body) return;
 
     body.applyImpulse(impulse, true);
-  }
-
-  /** Autorise brièvement la vitesse élevée nécessaire à la sortie du lanceur. */
-  allowTemporaryMaxLinearSpeed(maxSpeed: number, duration: number): void {
-    this.temporaryMaxLinearSpeed = Math.max(this.maxLinearSpeed, maxSpeed);
-    this.temporarySpeedLimitRemaining = Math.max(0, duration);
   }
 
   /** Accès direct au rigid-body Rapier (ex. lecture de la vitesse pour le slingshot). */
@@ -131,8 +119,6 @@ export class Ball {
     body.setTranslation(this.initialPosition, true);
     body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-    this.temporaryMaxLinearSpeed = null;
-    this.temporarySpeedLimitRemaining = 0;
 
     this.updateFromPhysics();
   }

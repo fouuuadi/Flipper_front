@@ -48,9 +48,9 @@ export class Slingshot {
     this.collider = namedCollider.collider;
     this.center = namedCollider.center;
 
-    this.baseImpulse = options.baseImpulse ?? 0.4;
-    this.speedFactor = options.speedFactor ?? 0.1;
-    this.popImpulse = options.popImpulse ?? 0.04;
+    this.baseImpulse = options.baseImpulse ?? 0.55;
+    this.speedFactor = options.speedFactor ?? 0.22;
+    this.popImpulse = options.popImpulse ?? 0.06;
     this.cooldown = options.cooldown ?? 0.1;
 
     this.physics.onCollision((handle1, handle2, started) => {

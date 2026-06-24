@@ -6,7 +6,6 @@ import { dispatchIntent } from "@core/keyboardDispatcher";
 import { formatElapsedMs } from "@modules/matchTimer";
 import { LocalStorageLeaderboardStore, type LeaderboardStore } from "@services/leaderboardStore";
 import { pickWinner } from "./winner";
-import { readPlayerSession } from "@services/playerSession";
 import "./gameOver.css";
 
 /**
@@ -131,7 +130,7 @@ export class GameOver {
   }
 
   private renderSummary(snapshot: MachineSnapshot): void {
-    const { mode, players } = this.resolvePlayerContext(snapshot);
+    const { mode, players } = snapshot.context;
     this.summaryEl.innerHTML = "";
 
     if (mode === "1v1" && players.length >= 2) {
@@ -183,7 +182,7 @@ export class GameOver {
   }
 
   private async persist(snapshot: MachineSnapshot): Promise<void> {
-    const { mode, players } = this.resolvePlayerContext(snapshot);
+    const { mode, players } = snapshot.context;
     if (!mode || players.length === 0) {
       this.statusEl.textContent = "";
       return;
@@ -208,24 +207,5 @@ export class GameOver {
 
     this.statusEl.textContent = "Score sauvegardé";
     this.recordEl.textContent = "";
-  }
-
-  private resolvePlayerContext(
-    snapshot: MachineSnapshot,
-  ): Pick<MachineSnapshot["context"], "mode" | "players"> {
-    const current = snapshot.context;
-    const stored = readPlayerSession();
-    const needsSharedIdentity =
-      current.players.length === 0 || current.players.every((player) => player.tag === "DEV#0001");
-    if (!stored || !needsSharedIdentity) return current;
-
-    return {
-      mode: stored.mode,
-      players: stored.players.map((tag, index) => ({
-        tag,
-        score: current.players[index]?.score ?? 0,
-        ballsRemaining: current.players[index]?.ballsRemaining ?? 0,
-      })),
-    };
   }
 }

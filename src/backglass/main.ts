@@ -24,7 +24,8 @@ const host = document.querySelector<HTMLDivElement>("#app");
 // identification, boutique, settings, leaderboard) puis le HUD pendant la
 // partie. Le HUD utilise la même référence de factory pour playing/paused/
 // gameOver → grâce à la déduplication du ScreenRouter, BackglassApp reste monté
-// pendant toute la partie (ses overlays internes rendent pause / game over)
+// pendant toute la partie (ses overlays internes rendent pause / game over),
+// sans re-mount ni reconnexion.
 const backglassHud: ScreenFactory = (screenHost) => {
   const app = new BackglassApp(screenHost);
   app.start(matchSync);
@@ -136,7 +137,6 @@ const factories: ScreenFactoryMap = {
 };
 
 if (host) {
-  menuAudio.enable();
   menuAudio.startClickFeedback();
   applyDevBoot(gameStore);
 

@@ -1,66 +1,47 @@
-/**
- * DMD — habillage de la borne autour du canvas.
- * Le pixel art est rendu dans le <canvas> (voir DotMatrix) ; le CSS ne fait
- * que le cadre, les scanlines et le glow d'ambiance.
- */
-
 .dmd-scene {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
   background: var(--color-deep-space);
-  padding: clamp(var(--space-2), 3vw, var(--space-8));
+  padding: var(--space-8);
 }
 
 .dmd-scene .dmd-frame {
-  position: relative;
-  width: min(1200px, calc(100vw - 1rem));
-  height: min(900px, calc(100vh - 1rem));
-  padding: 0.7rem;
-  background: #050109;
+  width: min(900px, 92vw);
+  aspect-ratio: 4 / 1;
+  background: #060311;
   border: 6px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--space-3);
   box-shadow:
-    0 0 28px rgba(255, 71, 87, 0.22),
-    inset 0 0 30px rgba(0, 0, 0, 0.9);
-  overflow: hidden;
+    0 0 24px rgba(255, 71, 87, 0.25),
+    inset 0 0 24px rgba(0, 0, 0, 0.7);
+  padding: 0.6rem;
 }
 
-.dmd-scene .dmd-canvas {
-  display: block;
+.dmd-scene .dmd-screen {
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
-  border-radius: var(--space-2);
-}
-
-/* scanlines + vignette par-dessus le canvas */
-.dmd-scene .dmd-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0.7rem;
-  pointer-events: none;
-  border-radius: var(--space-2);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 9vw, 7rem);
+  letter-spacing: 0.16em;
+  color: var(--color-neon-orange);
+  text-shadow:
+    0 0 6px var(--color-neon-orange),
+    0 0 16px rgba(255, 165, 2, 0.6);
   background:
-    radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.5) 100%),
+    radial-gradient(circle at 50% 50%, rgba(255, 165, 2, 0.06) 0%, transparent 70%),
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.2) 0,
-      rgba(0, 0, 0, 0.2) 1px,
-      transparent 1px,
-      transparent 3px
+      rgba(0, 0, 0, 0.55) 0px,
+      rgba(0, 0, 0, 0.55) 2px,
+      transparent 2px,
+      transparent 4px
     );
-  mix-blend-mode: multiply;
-}
-
-@media (max-width: 520px), (max-height: 320px) {
-  .dmd-scene .dmd-frame {
-    padding: 0.35rem;
-    border-width: 3px;
-  }
-
-  .dmd-scene .dmd-frame::after {
-    inset: 0.35rem;
-  }
+  border-radius: var(--space-2);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  transition: color 80ms ease-out;
 }

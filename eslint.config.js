@@ -1,7 +1,6 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
-import globals from "globals";
 
 export default [
   {
@@ -22,12 +21,6 @@ export default [
       ],
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/consistent-type-imports": "error",
-    },
-  },
-  {
-    files: ["**/*.mjs"],
-    languageOptions: {
-      globals: globals.node,
     },
   },
 ];

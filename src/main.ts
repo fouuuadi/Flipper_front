@@ -12,15 +12,15 @@ import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/s
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
+import { bindScreenNav } from "@modules/screenNav";
 import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
+import { menuAudio } from "@services/menuAudio";
 
 import { Splash } from "@modules/splash";
 import { Pause } from "@modules/pause";
 import { GameOver } from "@modules/gameOver";
-import { Leaderboard } from "@modules/leaderboard";
-import { Menu } from "@modules/menu";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UI — rôle du PLAYFIELD : il reste sur le splash pendant TOUTE la navigation
@@ -39,17 +39,9 @@ const splashScreen: ScreenFactory = (host) => {
 
 const factories: ScreenFactoryMap = {
   splash: splashScreen,
-  menu: (host) => {
-    const menu = new Menu();
-    menu.mount(host);
-    return { stop: () => menu.unmount() };
-  },
+  menu: splashScreen,
   identification: splashScreen,
-  leaderboard: (host) => {
-    const leaderboard = new Leaderboard();
-    leaderboard.mount(host);
-    return { stop: () => leaderboard.unmount() };
-  },
+  leaderboard: splashScreen,
   cosmetics: splashScreen,
   settings: splashScreen,
   // playing : pas de factory → seule la 3D reste à l'écran.
@@ -80,6 +72,8 @@ const factories: ScreenFactoryMap = {
 };
 
 async function bootstrap() {
+  menuAudio.startClickFeedback();
+
   // 0. Bypass de dev (`?boot=playing`) : bascule la SM avant tout abonnement
   //    pour que MatchTimer et ScreenRouter reçoivent l'état cible dès leur
   //    subscribe initial. No-op sans le query param et en prod.
@@ -125,40 +119,6 @@ async function bootstrap() {
     bindGameplayInput(gameStore, gameplayControls);
   }
 
-  // 6ter. Les flippers tournent très vite (cf. `speed = 16` dans Flipper.update)
-  // et le contact avec la bille peut générer une forte composante verticale
-  // (la bille "saute" en arrière et se coince dans les Book_left/Book_right,
-  // ou sort du terrain). On ne touche à rien d'autre : tant que la bille
-  // touche un flipper, on plafonne uniquement sa vitesse verticale — la
-  // poussée horizontale du flip (le but du jeu) reste intacte.
-  const FLIPPER_CONTACT_MAX_UPWARD_SPEED = 1.1;
-  let leftFlipperContact = false;
-  let rightFlipperContact = false;
-
-  physics.onCollision((handle1, handle2, started) => {
-    const ballCollider = ball.getCollider();
-    if (!ballCollider) return;
-    const ballHandle = ballCollider.handle;
-
-    const other = handle1 === ballHandle ? handle2 : handle2 === ballHandle ? handle1 : null;
-    if (other === null) return;
-
-    if (other === leftFlipper.collider.handle) leftFlipperContact = started;
-    if (other === rightFlipper.collider.handle) rightFlipperContact = started;
-  });
-
-  sceneManager.onUpdate(() => {
-    if (!leftFlipperContact && !rightFlipperContact) return;
-
-    const body = ball.getBody();
-    if (!body) return;
-
-    const velocity = body.linvel();
-    if (velocity.y > FLIPPER_CONTACT_MAX_UPWARD_SPEED) {
-      body.setLinvel({ x: velocity.x, y: FLIPPER_CONTACT_MAX_UPWARD_SPEED, z: velocity.z }, true);
-    }
-  });
-
   // 7. Charger la table Blender et brancher les bridges flipper.
   loadBlenderTable(sceneManager.scene, leftFlipper, rightFlipper, world)
     .then(({ bridges, tableRoot, colliders }) => {
@@ -188,29 +148,11 @@ async function bootstrap() {
       );
       sceneManager.onUpdate((deltaTime) => tableInteractions.update(deltaTime));
 
-      const gameFlow = new GameFlow(
-        physics,
-        ball,
-        colliders,
-        matchSync,
-        () => {
-          gameStore.send({ type: "GAME_OVER" });
-        },
-        isDevLocalSyncEnabled(),
-      );
-      sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
-      let previousState = gameStore.getState().value;
-      gameStore.subscribe((snapshot) => {
-        const startsNewGame =
-          snapshot.value === "playing" && previousState !== "playing" && previousState !== "paused";
-        if (startsNewGame) {
-          gameFlow.reset();
-        }
-        previousState = snapshot.value;
+      const gameFlow = new GameFlow(physics, ball, colliders, matchSync, () => {
+        gameStore.send({ type: "GAME_OVER" });
       });
-      if (isDevLocalSyncEnabled()) {
-        matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
-      }
+      sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
+      matchSync.emitLocal({ type: "match:state", status: "playing", sessionId: "local-dev" });
 
       if (import.meta.env.DEV) {
         void import("@modules/debug/TableDebugGui").then(({ createTableDebugGui }) =>

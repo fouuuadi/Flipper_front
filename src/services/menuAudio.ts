@@ -8,36 +8,28 @@ const MUSIC_MUTED_KEY = "flipper.menu.musicMuted";
 type TrackKind = "splash" | "menu";
 
 class MenuAudioController {
-  private enabled = false;
   private audio: HTMLAudioElement | null = null;
   private current: TrackKind | null = null;
   private pending: { kind: TrackKind; src: string } | null = null;
   private unlockBound = false;
   private clickFeedbackBound = false;
 
-  enable(): void {
-    this.enabled = true;
-  }
-
   playSplash(): void {
-    if (!this.enabled) return;
     this.play("splash", SPLASH_TRACK);
   }
 
   playMenu(): void {
-    if (!this.enabled) return;
     this.play("menu", MENU_TRACK);
   }
 
   playClick(): void {
-    if (!this.enabled) return;
     const audio = new Audio(CLICK_TRACK);
     audio.volume = this.getSfxVolume() / 100;
     void audio.play().catch(() => {});
   }
 
   startClickFeedback(): void {
-    if (!this.enabled || this.clickFeedbackBound || typeof document === "undefined") return;
+    if (this.clickFeedbackBound || typeof document === "undefined") return;
     this.clickFeedbackBound = true;
 
     document.addEventListener(
