@@ -1,5 +1,5 @@
 import type { GameStore } from "@core/gameStore";
-import type { GameStateValue } from "@core/gameMachine.types";
+import type { GameStateValue, Player, PlayerTag } from "@core/gameMachine.types";
 import type { MatchSyncAdapter } from "./MatchSyncAdapter";
 import type { BorneNav, MatchStatus, WsServerEvent } from "./protocol";
 
@@ -12,9 +12,9 @@ import type { BorneNav, MatchStatus, WsServerEvent } from "./protocol";
  *   - `match:state` → affine la sous-phase de jeu (playing/paused/gameOver)
  *                     pendant `in_game`.
  *
- * Les autres events (`countdown:tick`, `score:update`, `ball:lost`,
- * `game:over`) sont laissés aux consommateurs spécialisés (overlay countdown,
- * HUD backglass, DMD) qui s'abonnent eux-mêmes via `onEvent`.
+ * Les données gameplay (`score:update`, `ball:lost`, `game:over`) sont aussi
+ * reflétées dans le contexte joueur du gameStore. Les consommateurs spécialisés
+ * (HUD backglass, DMD) restent abonnés directement pour leurs animations.
  *
  * Mapping centralisé ici → importé par les 3 apps via cette unique fonction,
  * donc aucune divergence possible entre écrans.
@@ -68,5 +68,51 @@ function handleEvent(event: WsServerEvent, store: GameStore): void {
     return;
   }
 
-  // countdown:tick / score:update / ball:lost / game:over → consommés ailleurs.
+  if (event.type === "session:snapshot") {
+    const players: Player[] = event.players.filter(isPlayerTag).map((tag, index) => ({
+      tag,
+      score: index === 0 ? event.score : 0,
+      ballsRemaining: event.lives,
+    }));
+    store.applyServerState(store.getState().value, {
+      sessionId: event.sessionId,
+      mode: event.mode,
+      players,
+      currentBall: Math.max(1, 4 - event.lives),
+    });
+    return;
+  }
+
+  if (event.type === "score:update") {
+    patchFirstPlayer(store, { score: event.score });
+    return;
+  }
+
+  if (event.type === "ball:lost") {
+    patchFirstPlayer(store, { ballsRemaining: event.livesRemaining });
+    return;
+  }
+
+  if (event.type === "game:over") {
+    patchFirstPlayer(store, { score: event.finalScore, ballsRemaining: 0 });
+    return;
+  }
+
+  // countdown:tick → consommé par les overlays dédiés.
+}
+
+function isPlayerTag(value: string): value is PlayerTag {
+  return value.includes("#");
+}
+
+function patchFirstPlayer(
+  store: GameStore,
+  patch: Partial<Pick<Player, "score" | "ballsRemaining">>,
+): void {
+  const snapshot = store.getState();
+  const first = snapshot.context.players[0];
+  if (!first) return;
+  store.applyServerState(snapshot.value, {
+    players: [{ ...first, ...patch }, ...snapshot.context.players.slice(1)],
+  });
 }

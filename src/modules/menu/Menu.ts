@@ -1,4 +1,5 @@
 import { dispatchIntent } from "@core/keyboardDispatcher";
+import { gameStore } from "@core/gameStore";
 import { matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
 import * as THREE from "three";
@@ -358,19 +359,19 @@ export class Menu {
     window.setTimeout(() => {
       switch (button.userData.action) {
         case "play":
-          dispatchIntent({ type: "START_GAME" }, { sync: matchSync });
+          dispatchIntent({ type: "START_GAME" }, { sync: matchSync, store: gameStore });
           return;
         case "leaderboard":
-          dispatchIntent({ type: "OPEN_LEADERBOARD" }, { sync: matchSync });
+          dispatchIntent({ type: "OPEN_LEADERBOARD" }, { sync: matchSync, store: gameStore });
           return;
         case "cosmetics":
-          dispatchIntent({ type: "OPEN_COSMETICS" }, { sync: matchSync });
+          dispatchIntent({ type: "OPEN_COSMETICS" }, { sync: matchSync, store: gameStore });
           return;
         case "settings":
-          dispatchIntent({ type: "OPEN_SETTINGS" }, { sync: matchSync });
+          dispatchIntent({ type: "OPEN_SETTINGS" }, { sync: matchSync, store: gameStore });
           return;
         case "quit":
-          dispatchIntent({ type: "BACK_TO_SPLASH" }, { sync: matchSync });
+          dispatchIntent({ type: "BACK_TO_SPLASH" }, { sync: matchSync, store: gameStore });
           return;
       }
     }, 80);

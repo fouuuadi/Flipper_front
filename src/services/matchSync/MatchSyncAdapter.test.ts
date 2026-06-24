@@ -252,6 +252,24 @@ describe("MatchSyncAdapter — dispatch (client → server)", () => {
     lastSocket?.triggerOpen();
     expect(lastSocket?.sent).toEqual([]);
   });
+
+  it("envoie un événement gameplay brut au backend", () => {
+    const sync = new MatchSyncAdapter({
+      baseWsUrl: "ws://t/ws",
+      socketFactory: factory,
+    });
+    sync.connectBorne("borne-1");
+    lastSocket?.triggerOpen();
+    const event = {
+      type: "game:event",
+      eventId: "evt-1",
+      event: "target_hit",
+      targetId: "Bump",
+      occurredAt: 123,
+    } as const;
+    sync.dispatch(event);
+    expect(lastSocket?.sent).toEqual([JSON.stringify(event)]);
+  });
 });
 
 describe("MatchSyncAdapter — reconnect", () => {
