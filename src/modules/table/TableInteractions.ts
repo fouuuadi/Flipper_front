@@ -26,6 +26,17 @@ interface TunnelTeleport {
   entryVelocity: THREE.Vector3;
 }
 
+interface FlashTarget {
+  material: THREE.Material & {
+    color?: THREE.Color;
+    emissive?: THREE.Color;
+    emissiveIntensity?: number;
+  };
+  baseColor: THREE.Color | null;
+  baseEmissive: THREE.Color | null;
+  baseEmissiveIntensity: number;
+}
+
 const PLANET_BUMPERS = new Set(["Planet_Glace", "Planet_Terre", "Planet_Volcan"]);
 const RAMP_BOOSTS = new Set(["Rampe", "Ramp_2"]);
 const SPINNERS = new Set(["Champignion_a", "Champignion_b"]);
@@ -34,18 +45,42 @@ const TUNNEL_PAIRS: Record<string, string> = {
   Tunel_c: "Tunel_b",
 };
 
+const LIGNE_NAME = "Ligne";
+const LIGNE_FLASH_DURATION = 1.4;
+const LIGNE_FLASH_HUE_CYCLES = 2;
+
+const TUNNEL_TRIGGER_RADIUS = 0.72;
+// Une rampe ("Rampe"/"Ramp_2") passe juste au-dessus de l'entrée du tunnel
+// "Tunel_b" : sans cette marge, la détection ne regardait que la distance XZ
+// et ignorait la hauteur, donc la balle se téléportait dès qu'elle était
+// au-dessus du tunnel, même en train de rouler sur la rampe par-dessus.
+const TUNNEL_TRIGGER_HEIGHT_MARGIN = 0.35;
+// Délai pendant lequel le fallback de proximité du tunnel est désactivé
+// après un contact avec une rampe (cf. lastRampContactAt plus bas).
+const RAMP_TUNNEL_GUARD_DURATION = 0.5;
+
 export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
   private readonly visuals = new Map<string, THREE.Object3D>();
   private readonly cooldowns = new Map<string, number>();
   private readonly spins: SpinAnimation[] = [];
   private readonly bursts: BurstEffect[] = [];
+  private readonly ligneFlashTargets: FlashTarget[];
+  private ligneFlashElapsed: number | null = null;
+  private readonly ligneFlashColor = new THREE.Color();
 
   private elapsed = 0;
   private shakeTime = 0;
   private previousShake = new THREE.Vector3();
   private tunnelTeleport: TunnelTeleport | null = null;
   private tunnelCooldownUntil = 0;
+  // Dernier instant où la bille a touché une rampe ("Rampe"/"Ramp_2"). La
+  // rampe passe juste à côté de l'entrée avant de "Tunel_c" : sans ce garde,
+  // la détection par proximité du tunnel (fallback) déclenchait la
+  // téléportation alors que la bille était encore sur la rampe, avant même
+  // l'impulsion de saut, ce qui annulait le saut et faisait entrer la bille
+  // par le mauvais côté (par-dessus/derrière au lieu de l'entrée frontale).
+  private lastRampContactAt = -Infinity;
 
   constructor(
     private readonly physics: RapierPhysicsAdapter,
@@ -61,6 +96,9 @@ export class TableInteractions {
       if (visual) this.visuals.set(name, visual);
     }
 
+    const ligneVisual = this.visuals.get(LIGNE_NAME);
+    this.ligneFlashTargets = ligneVisual ? collectFlashTargets(ligneVisual) : [];
+
     this.physics.onCollision((handle1, handle2, started) => {
       this.handleCollision(handle1, handle2, started);
     });
@@ -72,6 +110,7 @@ export class TableInteractions {
     this.updateBursts(deltaTime);
     this.updateShake(deltaTime);
     this.updateTunnelTeleport(deltaTime);
+    this.updateLigneFlash(deltaTime);
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
@@ -87,17 +126,71 @@ export class TableInteractions {
     if (!name || this.isCoolingDown(name)) return;
 
     if (PLANET_BUMPERS.has(name)) {
-      this.bumpFrom(name, 2.25, 0.18);
+      this.bumpFrom(name, 0.72, 0.06);
     } else if (RAMP_BOOSTS.has(name)) {
+      this.lastRampContactAt = this.elapsed;
       this.boostRamp(name);
     } else if (SPINNERS.has(name)) {
       this.spinMushroom(name);
       this.randomSpinnerKick();
     } else if (name === "Bump") {
-      this.bumpFrom(name, 2.2, 0.28);
+      this.bumpFrom(name, 0.62, 0.05);
       this.startShake();
     } else if (name in TUNNEL_PAIRS) {
+      if (import.meta.env.DEV) {
+        console.debug("[Tunnel] collision détectée avec", name, {
+          tunnelTeleportEnCours: this.tunnelTeleport,
+          tunnelCooldownUntil: this.tunnelCooldownUntil,
+          elapsed: this.elapsed,
+        });
+      }
       this.startTunnelTeleport(name);
+    } else if (name === LIGNE_NAME) {
+      this.triggerLigneFlash();
+    }
+  }
+
+  private triggerLigneFlash(): void {
+    if (this.ligneFlashTargets.length === 0) return;
+    this.ligneFlashElapsed = 0;
+  }
+
+  private updateLigneFlash(deltaTime: number): void {
+    if (this.ligneFlashElapsed === null) return;
+
+    this.ligneFlashElapsed += deltaTime;
+    const progress = Math.min(this.ligneFlashElapsed / LIGNE_FLASH_DURATION, 1);
+    // Enveloppe d'intensité : monte puis redescend une seule fois.
+    const pulse = Math.sin(progress * Math.PI);
+    // La teinte tourne sur plusieurs cycles pendant l'animation -> couleurs variées plutôt qu'une seule.
+    const hue = (progress * LIGNE_FLASH_HUE_CYCLES) % 1;
+    this.ligneFlashColor.setHSL(hue, 1, 0.55);
+
+    for (const target of this.ligneFlashTargets) {
+      if (target.material.color && target.baseColor) {
+        target.material.color.copy(target.baseColor).lerp(this.ligneFlashColor, pulse * 0.85);
+      }
+      if (target.material.emissive) {
+        target.material.emissive
+          .copy(target.baseEmissive ?? new THREE.Color(0x000000))
+          .lerp(this.ligneFlashColor, pulse);
+      }
+      if (target.material.emissiveIntensity !== undefined) {
+        target.material.emissiveIntensity = target.baseEmissiveIntensity + pulse * 1.6;
+      }
+    }
+
+    if (progress >= 1) {
+      for (const target of this.ligneFlashTargets) {
+        if (target.material.color && target.baseColor) target.material.color.copy(target.baseColor);
+        if (target.material.emissive) {
+          target.material.emissive.copy(target.baseEmissive ?? new THREE.Color(0x000000));
+        }
+        if (target.material.emissiveIntensity !== undefined) {
+          target.material.emissiveIntensity = target.baseEmissiveIntensity;
+        }
+      }
+      this.ligneFlashElapsed = null;
     }
   }
 
@@ -139,7 +232,9 @@ export class TableInteractions {
     body.setLinvel(
       {
         x: velocity.x * scale,
-        y: Math.max(velocity.y, 0.15),
+        // Petit "saut" perceptible quand la balle prend la rampe, plutôt
+        // qu'un simple plancher de vitesse verticale quasi nul.
+        y: Math.max(velocity.y, 0.85),
         z: velocity.z * scale,
       },
       true,
@@ -167,7 +262,7 @@ export class TableInteractions {
 
   private randomSpinnerKick(): void {
     const angle = Math.random() * Math.PI * 2;
-    const impulse = 1.2;
+    const impulse = 0.55;
     this.ball.applyImpulse({
       x: Math.cos(angle) * impulse,
       y: 0.16,
@@ -284,13 +379,25 @@ export class TableInteractions {
 
     if (this.elapsed < this.tunnelCooldownUntil) return;
 
+    // La bille vient de toucher/quitter une rampe : "Tunel_c" est juste à
+    // côté de "Rampe"/"Ramp_2", donc le fallback par proximité la
+    // téléporterait avant même qu'elle ait pu sauter par-dessus l'entrée
+    // (saut annulé) et la ferait entrer par le dessus/l'arrière plutôt que
+    // par l'entrée frontale réelle (détectée via la vraie collision plus
+    // bas, dans handleCollision).
+    if (this.elapsed - this.lastRampContactAt < RAMP_TUNNEL_GUARD_DURATION) return;
+
     const position = body.translation();
     for (const tunnelName of Object.keys(TUNNEL_PAIRS)) {
       const center = this.colliders[tunnelName]?.center;
       if (!center) continue;
 
       const distanceXZ = Math.hypot(position.x - center.x, position.z - center.z);
-      if (distanceXZ <= 0.72) {
+      const heightAboveEntrance = position.y - center.y;
+      if (
+        distanceXZ <= TUNNEL_TRIGGER_RADIUS &&
+        heightAboveEntrance <= TUNNEL_TRIGGER_HEIGHT_MARGIN
+      ) {
         this.startTunnelTeleport(tunnelName);
         return;
       }
@@ -298,10 +405,31 @@ export class TableInteractions {
   }
 
   private startTunnelTeleport(from: string): void {
-    if (this.tunnelTeleport || this.elapsed < this.tunnelCooldownUntil) return;
+    if (this.tunnelTeleport || this.elapsed < this.tunnelCooldownUntil) {
+      if (import.meta.env.DEV) {
+        console.debug("[Tunnel] démarrage ignoré pour", from, {
+          raison: this.tunnelTeleport ? "téléportation déjà en cours" : "cooldown global actif",
+        });
+      }
+      return;
+    }
 
     const to = TUNNEL_PAIRS[from];
-    if (!to || !this.colliders[from] || !this.colliders[to]) return;
+    if (!to || !this.colliders[from] || !this.colliders[to]) {
+      if (import.meta.env.DEV) {
+        console.warn("[Tunnel] collider manquant, téléportation impossible", {
+          from,
+          to,
+          colliderFromExiste: !!this.colliders[from],
+          colliderToExiste: to ? !!this.colliders[to] : false,
+        });
+      }
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.debug("[Tunnel] téléportation démarrée :", from, "->", to);
+    }
 
     const velocity = this.ball.getBody()?.linvel();
     this.tunnelTeleport = {
@@ -321,8 +449,15 @@ export class TableInteractions {
     const body = this.ball.getBody();
     const destination = teleport ? this.colliders[teleport.to]?.center : null;
     if (!teleport || !body || !destination) {
+      if (import.meta.env.DEV && teleport) {
+        console.warn("[Tunnel] sortie annulée, destination introuvable pour", teleport.to);
+      }
       this.tunnelTeleport = null;
       return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.debug("[Tunnel] sortie par", teleport.to, "position cible :", destination);
     }
 
     const direction = new THREE.Vector3(teleport.entryVelocity.x, 0, teleport.entryVelocity.z);
@@ -335,8 +470,15 @@ export class TableInteractions {
     direction.normalize();
 
     const speed = Math.max(Math.hypot(teleport.entryVelocity.x, teleport.entryVelocity.z), 4.8);
-    const exitPosition = destination.clone().addScaledVector(direction, 0.92);
-    exitPosition.y = Math.max(body.translation().y, destination.y + 0.22);
+    // La marge verticale (destination.y + 0.05, au lieu de + 0.22) règle le
+    // passage à travers "wall_four". Mais réduire aussi la distance de
+    // sortie à 0.55 plaçait la bille encore À L'INTÉRIEUR du collider de
+    // "Tunel_c" (demi-diagonale ~0.96) : elle restait coincée à se
+    // dépénétrer contre son propre tunnel après plusieurs passages. On
+    // ressort donc plus loin (1.0, au-delà de cette demi-diagonale) tout en
+    // gardant la hauteur basse.
+    const exitPosition = destination.clone().addScaledVector(direction, 1.0);
+    exitPosition.y = Math.max(body.translation().y, destination.y + 0.05);
 
     body.setTranslation({ x: exitPosition.x, y: exitPosition.y, z: exitPosition.z }, true);
     body.setLinvel(
@@ -365,13 +507,52 @@ export class TableInteractions {
   }
 }
 
+function collectFlashTargets(visual: THREE.Object3D): FlashTarget[] {
+  const targets: FlashTarget[] = [];
+
+  visual.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      const colorMaterial = material as THREE.Material & {
+        color?: THREE.Color;
+        emissive?: THREE.Color;
+        emissiveIntensity?: number;
+      };
+      if (!colorMaterial.color) continue;
+
+      targets.push({
+        material: colorMaterial,
+        baseColor: colorMaterial.color.clone(),
+        baseEmissive: colorMaterial.emissive ? colorMaterial.emissive.clone() : null,
+        baseEmissiveIntensity: colorMaterial.emissiveIntensity ?? 0,
+      });
+    }
+  });
+
+  return targets;
+}
+
 function normalizeName(name: string): string {
-  return name
-    .normalize("NFKC")
-    .replace(
-      /[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g,
-      "",
-    )
-    .replace(/^_+/, "")
-    .toLowerCase();
+  return stripInvisibleNameCharacters(name.normalize("NFKC")).replace(/^_+/, "").toLowerCase();
+}
+
+function stripInvisibleNameCharacters(name: string): string {
+  return Array.from(name, (character) => {
+    const code = character.codePointAt(0) ?? 0;
+    const isInvisible =
+      code <= 0x20 ||
+      (code >= 0x7f && code <= 0xa0) ||
+      code === 0x1680 ||
+      code === 0x180e ||
+      (code >= 0x2000 && code <= 0x200b) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x202f ||
+      code === 0x205f ||
+      code === 0x3000 ||
+      code === 0xfeff;
+    return isInvisible ? "" : character;
+  }).join("");
 }

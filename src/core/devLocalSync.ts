@@ -24,6 +24,9 @@ export function dispatchDevLocalCommand(command: ClientCommand, store: GameStore
     case "intent":
       dispatchLocalIntent(command.action, command.payload, store);
       return true;
+    case "game:event":
+      // Émis directement par GameFlow via MatchSyncAdapter en mode connecté.
+      return false;
   }
 }
 

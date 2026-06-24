@@ -149,12 +149,6 @@ export class MatchSyncAdapter {
       return;
     }
     if (!isServerEvent(parsed)) return;
-    // Diagnostic borne : trace toute entrée physique relayée par le backend
-    // (boutons ESP32). Si ce log apparaît, c'est que la chaîne ESP32 → broker →
-    // backend → WS fonctionne ; sinon le problème est en amont du front.
-    if (typeof parsed.type === "string" && parsed.type.startsWith("control:")) {
-      console.info("[borne-input] reçu du backend:", parsed);
-    }
     this.notify(parsed);
   }
 

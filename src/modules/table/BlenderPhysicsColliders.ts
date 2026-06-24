@@ -35,9 +35,25 @@ const MESH_COLLIDERS: Record<string, ColliderKind> = {
   "Object_2.002": "solid",
   Object_3: "solid",
   Object_4: "solid",
+  cube_1: "wall",
+  Cube_2: "wall",
+  Cube_3: "wall",
+  Cube_4: "wall",
+  Cube_5: "wall",
 };
 
-const BOX_COLLIDERS = new Set(["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"]);
+const BOX_COLLIDERS = new Set([
+  "wall_one",
+  "wall_two",
+  "wall_three",
+  "wall_four",
+  "wall_five",
+  "cube_1",
+  "Cube_2",
+  "Cube_3",
+  "Cube_4",
+  "Cube_5",
+]);
 const EXPECTED_BOX_WALLS = ["wall_one", "wall_two", "wall_three", "wall_four", "wall_five"];
 const TRIMESH_COLLIDERS = new Set(["Tunel_a", "Tunel_b", "Tunel_c"]);
 const MIN_BOX_SIZE = 0.12;
@@ -45,7 +61,20 @@ const BOX_SIZE_OVERRIDES: Partial<Record<string, Partial<Record<"x" | "y" | "z",
   wall_two: { x: 0.42 },
 };
 const BOX_SIZE_EXPANSIONS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
-  wall_one: { z: 1.1 },
+  // wall_one est fin sur l'axe X (~0.77 une fois mis à l'échelle) et bas
+  // (sommet à ~1.43) : une répulsion/éjection à grande vitesse ou un "pop"
+  // vertical (slingshot, bumpers) suffisait à le traverser ou à sauter
+  // par-dessus, n'importe où le long de sa longueur. On épaissit sur X et
+  // on relève le sommet (Y), en plus de l'allongement Z déjà présent.
+  wall_one: { x: 0.35, y: 0.8, z: 1.1 },
+  // Les cubes sont des obstacles courts : les mêmes impulsions verticales
+  // (flippers/bumpers/slingshot) les faisaient sauter. Même correctif que
+  // "wall_one" : on relève seulement le sommet du collider.
+  cube_1: { y: 0.6 },
+  Cube_2: { y: 0.6 },
+  Cube_3: { y: 0.6 },
+  Cube_4: { y: 0.6 },
+  Cube_5: { y: 0.6 },
 };
 const BOX_POSITION_OFFSETS: Partial<Record<string, Partial<Record<"x" | "y" | "z", number>>>> = {
   wall_one: { z: 0.45 },
@@ -71,6 +100,7 @@ const TRACKED_COLLIDERS = new Set([
   "Bump",
   "Tunel_b",
   "Tunel_c",
+  "Ligne",
 ]);
 
 export function createBlenderPhysicsColliders(
@@ -188,15 +218,28 @@ export function createBlenderPhysicsColliders(
 }
 
 function normalizeColliderName(name: string): string {
-  const compactName = name
-    .normalize("NFKC")
-    .replace(
-      /[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/g,
-      "",
-    )
-    .trim();
+  const compactName = stripInvisibleNameCharacters(name.normalize("NFKC")).trim();
 
   return compactName.replace(/^_+(wall_)/i, "$1");
+}
+
+function stripInvisibleNameCharacters(name: string): string {
+  return Array.from(name, (character) => {
+    const code = character.codePointAt(0) ?? 0;
+    const isInvisible =
+      code <= 0x20 ||
+      (code >= 0x7f && code <= 0xa0) ||
+      code === 0x1680 ||
+      code === 0x180e ||
+      (code >= 0x2000 && code <= 0x200b) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x202f ||
+      code === 0x205f ||
+      code === 0x3000 ||
+      code === 0xfeff;
+    return isInvisible ? "" : character;
+  }).join("");
 }
 
 function inferColliderKind(rawName: string, normalizedName: string): ColliderKind | undefined {
@@ -682,8 +725,9 @@ function makeDoubleSidedIndices(indices: Uint32Array): Uint32Array {
 }
 
 function restitutionFor(name: string): number {
-  if (name === "Bump" || name.startsWith("Champignion_")) return 0.9;
-  if (name.startsWith("Planet_")) return 0.2;
+  if (name === "Bump") return 0.28;
+  if (name.startsWith("Champignion_")) return 0.35;
+  if (name.startsWith("Planet_")) return 0.3;
   if (name === "Rampe" || name === "Ramp_2") return 0.0;
   if (name === "Plane") return 0.08;
   return 0.3;
@@ -692,6 +736,7 @@ function restitutionFor(name: string): number {
 function frictionFor(name: string): number {
   if (name === "Plane") return 0.55;
   if (name === "Rampe" || name === "Ramp_2") return 0.08;
+  if (name.startsWith("Rails_")) return 0.04;
   return 0.42;
 }
 

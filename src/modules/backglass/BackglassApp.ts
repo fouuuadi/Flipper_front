@@ -11,6 +11,7 @@ interface HudState {
   combo: number;
   lives: number;
   finalScore: number | null;
+  players: readonly string[];
 }
 
 const INITIAL_STATE: HudState = {
@@ -19,6 +20,7 @@ const INITIAL_STATE: HudState = {
   combo: 0,
   lives: DEFAULT_LIVES,
   finalScore: null,
+  players: [],
 };
 
 /**
@@ -119,6 +121,19 @@ export class BackglassApp {
   }
 
   private handleEvent(event: WsServerEvent): void {
+    if (event.type === "session:snapshot") {
+      this.syncTimerToStatus(event.status, this.state.status);
+      this.state = {
+        status: event.status,
+        score: event.score,
+        combo: event.combo,
+        lives: event.lives,
+        finalScore: event.status === "over" ? event.score : null,
+        players: event.players,
+      };
+      this.render();
+      return;
+    }
     if (event.type === "match:state") {
       this.syncTimerToStatus(event.status, this.state.status);
       this.state = {
@@ -198,6 +213,7 @@ export class BackglassApp {
   }
 
   private statusLabel(): string {
+    const names = this.state.players.join(" / ");
     switch (this.state.status) {
       case "waiting-session":
         return "Déconnecté";
@@ -206,9 +222,9 @@ export class BackglassApp {
       case "ready":
         return "Prêt";
       case "playing":
-        return "En partie";
+        return names ? `En partie · ${names}` : "En partie";
       case "paused":
-        return "Pause";
+        return names ? `Pause · ${names}` : "Pause";
       case "over":
         return "Terminé";
     }
