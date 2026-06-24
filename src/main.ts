@@ -141,10 +141,7 @@ async function bootstrap() {
 
     const velocity = body.linvel();
     if (velocity.y > FLIPPER_CONTACT_MAX_UPWARD_SPEED) {
-      body.setLinvel(
-        { x: velocity.x, y: FLIPPER_CONTACT_MAX_UPWARD_SPEED, z: velocity.z },
-        true,
-      );
+      body.setLinvel({ x: velocity.x, y: FLIPPER_CONTACT_MAX_UPWARD_SPEED, z: velocity.z }, true);
     }
   });
 
@@ -191,9 +188,7 @@ async function bootstrap() {
       let previousState = gameStore.getState().value;
       gameStore.subscribe((snapshot) => {
         const startsNewGame =
-          snapshot.value === "playing" &&
-          previousState !== "playing" &&
-          previousState !== "paused";
+          snapshot.value === "playing" && previousState !== "playing" && previousState !== "paused";
         if (startsNewGame) {
           gameFlow.reset();
         }
