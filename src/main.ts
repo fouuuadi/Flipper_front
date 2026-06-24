@@ -12,6 +12,7 @@ import { ScreenRouter, type ScreenFactory, type ScreenFactoryMap } from "@core/s
 import { KeyboardDispatcher } from "@core/keyboardDispatcher";
 import { KeybindingsHelp, KeybindingsHelpHint } from "@modules/ui";
 import { bindBorneGameplay, bindGameplayInput } from "@modules/gameplayInput";
+import { bindScreenNav } from "@modules/screenNav";
 import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";

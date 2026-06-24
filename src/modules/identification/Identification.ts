@@ -7,6 +7,8 @@ import { matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
 import { savePlayerSession } from "@services/playerSession";
 import { validatePseudo } from "./validation";
+import { PseudoRoulette } from "./PseudoRoulette";
+import { bindScreenNav } from "@modules/screenNav";
 import "./identification.css";
 
 interface PlayerSlot {
