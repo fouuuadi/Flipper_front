@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { GameFlow } from "./GameFlow";
 
-function setupConnectedFlow(position = { x: 0, y: 5, z: 0 }) {
+function setup(position = { x: 0, y: 5, z: 0 }) {
   let collision: ((a: number, b: number, started: boolean) => void) | undefined;
   const physics = {
     onCollision: vi.fn((handler) => {
@@ -13,45 +13,77 @@ function setupConnectedFlow(position = { x: 0, y: 5, z: 0 }) {
     getBody: vi.fn(() => ({ translation: () => position })),
     reset: vi.fn(),
   };
-  const sync = { dispatch: vi.fn(), emitLocal: vi.fn() };
-  const colliders = { Bump: { collider: { handle: 2 } } };
+  // Le playfield est l'autorité : il calcule et `publish` (diffusion locale +
+  // relais backend). On espionne `publish`.
+  const sync = { publish: vi.fn(), emitLocal: vi.fn(), dispatch: vi.fn() };
+  const colliders = {
+    Bump: { collider: { handle: 2 } },
+    Ligne: { collider: { handle: 3 } },
+  };
+  const onGameOver = vi.fn();
 
   const flow = new GameFlow(
     physics as never,
     ball as never,
     colliders as never,
     sync as never,
-    undefined,
-    false,
+    onGameOver,
   );
-  return { flow, collision: () => collision, sync, ball };
+  sync.publish.mockClear(); // on ignore les events de score/vies émis à l'init
+  return { flow, collision: () => collision, sync, ball, onGameOver };
 }
 
-describe("GameFlow connecté", () => {
-  it("envoie un target_hit brut sans calculer le score localement", () => {
-    const { collision, sync } = setupConnectedFlow();
+describe("GameFlow (playfield autoritaire)", () => {
+  it("compte les points et le combo quand la bille touche un bumper", () => {
+    const { collision, sync } = setup();
+
     collision()?.(1, 2, true);
 
-    expect(sync.emitLocal).not.toHaveBeenCalled();
-    expect(sync.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "game:event",
-        event: "target_hit",
-        targetId: "Bump",
-      }),
-    );
+    expect(sync.publish).toHaveBeenCalledWith({
+      type: "score:update",
+      score: 750,
+      combo: 1,
+      bonusType: "BUMP",
+    });
   });
 
-  it("envoie ball_lost puis replace la bille virtuelle", () => {
+  it("attribue des points à la cible Ligne (scoring auparavant manquant)", () => {
+    const { collision, sync } = setup();
+
+    collision()?.(1, 3, true);
+
+    expect(sync.publish).toHaveBeenCalledWith({
+      type: "score:update",
+      score: 300,
+      combo: 1,
+      bonusType: "LIGNE",
+    });
+  });
+
+  it("décrémente les vies puis replace la bille à la perte", () => {
     vi.useFakeTimers();
-    const { flow, sync, ball } = setupConnectedFlow({ x: 0, y: 1, z: 0 });
+    const { flow, sync, ball } = setup({ x: 0, y: 1, z: 0 });
+
     flow.update(0.016);
 
-    expect(sync.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "game:event", event: "ball_lost" }),
-    );
+    expect(sync.publish).toHaveBeenCalledWith({ type: "ball:lost", livesRemaining: 2 });
     vi.advanceTimersByTime(700);
     expect(ball.reset).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("déclenche le game over après épuisement des vies", () => {
+    vi.useFakeTimers();
+    const { flow, sync, onGameOver } = setup({ x: 0, y: 1, z: 0 });
+
+    flow.update(0.016); // 3 → 2
+    vi.advanceTimersByTime(700);
+    flow.update(0.016); // 2 → 1
+    vi.advanceTimersByTime(700);
+    flow.update(0.016); // 1 → 0 → game over
+
+    expect(sync.publish).toHaveBeenCalledWith({ type: "game:over", finalScore: 0 });
+    expect(onGameOver).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
 });

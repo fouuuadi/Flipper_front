@@ -189,16 +189,9 @@ async function bootstrap() {
       );
       sceneManager.onUpdate((deltaTime) => tableInteractions.update(deltaTime));
 
-      const gameFlow = new GameFlow(
-        physics,
-        ball,
-        colliders,
-        matchSync,
-        () => {
-          gameStore.send({ type: "GAME_OVER" });
-        },
-        isDevLocalSyncEnabled(),
-      );
+      const gameFlow = new GameFlow(physics, ball, colliders, matchSync, () => {
+        gameStore.send({ type: "GAME_OVER" });
+      });
       sceneManager.onUpdate((deltaTime) => gameFlow.update(deltaTime));
       let previousState = gameStore.getState().value;
       gameStore.subscribe((snapshot) => {

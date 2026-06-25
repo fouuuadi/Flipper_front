@@ -111,6 +111,20 @@ export class MatchSyncAdapter {
     this.devChannel?.postMessage(event);
   }
 
+  /**
+   * Diffuse un event de jeu produit par le playfield (autorité du score). En
+   * plus de la diffusion locale ({@link emitLocal}), si la connexion borne est
+   * ouverte on relaie l'event au backend, qui le rediffuse aux 3 écrans (DMD,
+   * backglass, playfield) — chacun étant un navigateur distinct, c'est le seul
+   * chemin qui les atteint sur la borne.
+   */
+  publish(event: WsServerEvent): void {
+    this.emitLocal(event);
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.dispatch({ type: "borne:relay", event });
+    }
+  }
+
   // ─── internals ────────────────────────────────────────────────────────
 
   private openSocket(): void {

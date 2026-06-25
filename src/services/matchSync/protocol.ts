@@ -152,13 +152,14 @@ export interface AbandonCommand {
   readonly type: "cmd:abandon";
 }
 
-/** Événement brut détecté par la physique ; le backend calcule le résultat. */
-export interface GameEventCommand {
-  readonly type: "game:event";
-  readonly eventId: string;
-  readonly event: "target_hit" | "ball_lost";
-  readonly occurredAt: number;
-  readonly targetId?: string;
+/**
+ * Le playfield est l'autorité du jeu (il simule la physique). Il pousse un
+ * event serveur déjà calculé (`score:update`, `ball:lost`, `game:over`…) que le
+ * backend se contente de rediffuser aux 3 écrans du bus borne.
+ */
+export interface RelayBorneEventCommand {
+  readonly type: "borne:relay";
+  readonly event: WsServerEvent;
 }
 
 /**
@@ -189,4 +190,4 @@ export type ClientCommand =
   | PauseCommand
   | ResumeCommand
   | AbandonCommand
-  | GameEventCommand;
+  | RelayBorneEventCommand;
