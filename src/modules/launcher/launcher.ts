@@ -118,17 +118,20 @@ export class Launcher {
     const body = this.ball.getBody();
     if (!body) return;
 
-    this.ball.allowTemporaryMaxLinearSpeed(18, 3);
+    // Puissance de lancement : assez pour sortir la bille du couloir vers le
+    // plateau, sans la faire fuser en l'air et taper le mur du fond. (À ajuster
+    // si la bille ne sort pas / saute encore.)
+    this.ball.allowTemporaryMaxLinearSpeed(13, 2);
     const velocity = body.linvel();
     body.setLinvel(
       {
         x: velocity.x * 0.35,
         y: Math.max(velocity.y, 0),
-        z: Math.max(velocity.z, 15),
+        z: Math.max(velocity.z, 9.5),
       },
       true,
     );
-    this.ball.applyImpulse({ x: 0, y: 0, z: 2.2 });
+    this.ball.applyImpulse({ x: 0, y: 0, z: 1 });
   }
 
   update(_deltaTime?: number) {
