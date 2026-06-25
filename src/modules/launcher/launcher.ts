@@ -105,6 +105,10 @@ export class Launcher {
     // n'applique aucune frappe : le plunger n'agit que sur une bille présente.
     if (!this.isBallInLaunchZone()) return;
 
+    // La bille attend gelée dans le couloir : on la réintègre à la simulation
+    // avant de la propulser (un corps gelé ignore vitesses et impulsions).
+    this.ball.unfreeze();
+
     // Courbe non-linéaire (quadratique) : un ressort réel restitue son
     // énergie de façon progressive puis de plus en plus franche, pas
     // linéairement avec le temps de compression.
