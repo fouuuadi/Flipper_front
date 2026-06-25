@@ -30,6 +30,11 @@ export class GameFlow {
   private lives = 3;
   private isDraining = false;
   private isGameOver = false;
+  // Le jeu ne marque des points / ne perd de bille que pendant une partie. Au
+  // boot et dans les menus, la bille au repos génère des micro-collisions et
+  // peut sortir du terrain : sans cette garde, ça scorerait et animerait le DMD
+  // hors partie. Activé par `setActive` quand la SM entre en `playing`.
+  private active = false;
 
   constructor(
     private readonly physics: RapierPhysicsAdapter,
@@ -45,9 +50,11 @@ export class GameFlow {
     this.physics.onCollision((handle1, handle2, started) => {
       this.handleCollision(handle1, handle2, started);
     });
+  }
 
-    this.sync.publish({ type: "score:update", score: this.score, combo: this.combo });
-    this.sync.publish({ type: "ball:lost", livesRemaining: this.lives });
+  /** Active/désactive le scoring et la détection de drain (true en `playing`). */
+  setActive(active: boolean): void {
+    this.active = active;
   }
 
   update(deltaTime: number): void {
@@ -66,12 +73,14 @@ export class GameFlow {
     this.isGameOver = false;
     this.scoredCooldowns.clear();
     this.ball.reset();
+    // Remet l'affichage du score à zéro en début de partie. Les vies sont
+    // réinitialisées par `match:state: playing` ; inutile d'émettre un
+    // `ball:lost` ici, qui déclencherait l'animation « BALL LOST » au lancement.
     this.sync.publish({ type: "score:update", score: this.score, combo: this.combo });
-    this.sync.publish({ type: "ball:lost", livesRemaining: this.lives });
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
-    if (!started || this.isGameOver) return;
+    if (!started || this.isGameOver || !this.active) return;
 
     const ballCollider = this.ball.getCollider();
     if (!ballCollider) return;
@@ -104,7 +113,7 @@ export class GameFlow {
 
   private detectDrain(): void {
     const body = this.ball.getBody();
-    if (!body || this.isDraining) return;
+    if (!body || this.isDraining || !this.active) return;
 
     const position = body.translation();
     const isInDrainLane = position.z < -12.25 && position.x > -5.4;
