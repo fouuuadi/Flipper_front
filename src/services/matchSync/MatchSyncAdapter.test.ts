@@ -269,9 +269,7 @@ describe("MatchSyncAdapter — dispatch (client → server)", () => {
     // Diffusé localement…
     expect(received).toEqual([scoreEvent]);
     // …et relayé au backend pour les autres écrans.
-    expect(lastSocket?.sent).toEqual([
-      JSON.stringify({ type: "borne:relay", event: scoreEvent }),
-    ]);
+    expect(lastSocket?.sent).toEqual([JSON.stringify({ type: "borne:relay", event: scoreEvent })]);
   });
 });
 
