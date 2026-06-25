@@ -29,7 +29,7 @@ function setup(position = { x: 0, y: 5, z: 0 }) {
     sync as never,
     onGameOver,
   );
-  sync.publish.mockClear(); // on ignore les events de score/vies émis à l'init
+  flow.setActive(true); // scoring/drain n'agissent qu'en partie
   return { flow, collision: () => collision, sync, ball, onGameOver };
 }
 
@@ -45,6 +45,15 @@ describe("GameFlow (playfield autoritaire)", () => {
       combo: 1,
       bonusType: "BUMP",
     });
+  });
+
+  it("ne marque aucun point hors partie (boot / menus)", () => {
+    const { flow, collision, sync } = setup();
+    flow.setActive(false);
+
+    collision()?.(1, 2, true);
+
+    expect(sync.publish).not.toHaveBeenCalled();
   });
 
   it("attribue des points à la cible Ligne (scoring auparavant manquant)", () => {
