@@ -31,6 +31,8 @@ export class GameOver {
   private readonly leaderboardButton: Button;
   private readonly menuButton: Button;
   private readonly localStore: LeaderboardStore;
+  // Curseur de navigation aux boutons : 0 = rejouer, 1 = leaderboard, 2 = menu.
+  private cursor = 0;
 
   constructor(localStore: LeaderboardStore = new LocalStorageLeaderboardStore()) {
     this.localStore = localStore;
@@ -119,6 +121,21 @@ export class GameOver {
     this.leaderboardButton.unmount();
     this.menuButton.unmount();
     this.root.remove();
+  }
+
+  /** Déplace le curseur entre Rejouer (0), Leaderboard (1) et Menu (2), avec bouclage. */
+  moveCursor(delta: number): void {
+    this.cursor = (((this.cursor + delta) % 3) + 3) % 3;
+    this.replayButton.setVariant(this.cursor === 0 ? "primary" : "ghost");
+    this.leaderboardButton.setVariant(this.cursor === 1 ? "primary" : "ghost");
+    this.menuButton.setVariant(this.cursor === 2 ? "primary" : "ghost");
+  }
+
+  /** Valide l'option sous le curseur. */
+  confirm(): void {
+    if (this.cursor === 0) this.leaveGameSession({ type: "REPLAY" });
+    else if (this.cursor === 1) this.leaveGameSession({ type: "OPEN_LEADERBOARD" });
+    else this.leaveGameSession({ type: "BACK_TO_MENU" });
   }
 
   /**

@@ -73,7 +73,22 @@ const factories: ScreenFactoryMap = {
   gameOver: (host) => {
     const go = new GameOver();
     go.mount(host);
-    return { stop: () => go.unmount() };
+    // Curseur aux boutons borne : gauche/droite choisissent, vert valide
+    // (Rejouer / Leaderboard / Menu).
+    const unbindNav = bindScreenNav(
+      {
+        left: () => go.moveCursor(-1),
+        right: () => go.moveCursor(1),
+        confirm: () => go.confirm(),
+      },
+      { sync: matchSync, keyboard: true },
+    );
+    return {
+      stop: () => {
+        unbindNav();
+        go.unmount();
+      },
+    };
   },
 };
 
