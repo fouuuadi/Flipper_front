@@ -253,22 +253,25 @@ describe("MatchSyncAdapter — dispatch (client → server)", () => {
     expect(lastSocket?.sent).toEqual([]);
   });
 
-  it("envoie un événement gameplay brut au backend", () => {
+  it("relaie au backend un event de jeu publié quand la borne est connectée", () => {
     const sync = new MatchSyncAdapter({
       baseWsUrl: "ws://t/ws",
       socketFactory: factory,
     });
+    const received: unknown[] = [];
+    sync.onEvent((e) => received.push(e));
     sync.connectBorne("borne-1");
     lastSocket?.triggerOpen();
-    const event = {
-      type: "game:event",
-      eventId: "evt-1",
-      event: "target_hit",
-      targetId: "Bump",
-      occurredAt: 123,
-    } as const;
-    sync.dispatch(event);
-    expect(lastSocket?.sent).toEqual([JSON.stringify(event)]);
+
+    const scoreEvent = { type: "score:update", score: 750, combo: 1 } as const;
+    sync.publish(scoreEvent);
+
+    // Diffusé localement…
+    expect(received).toEqual([scoreEvent]);
+    // …et relayé au backend pour les autres écrans.
+    expect(lastSocket?.sent).toEqual([
+      JSON.stringify({ type: "borne:relay", event: scoreEvent }),
+    ]);
   });
 });
 
