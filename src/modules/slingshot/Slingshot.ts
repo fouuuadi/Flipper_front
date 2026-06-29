@@ -127,7 +127,7 @@ export class Slingshot {
     pushDirection.normalize();
 
     const linvel = body.linvel();
-    const incomingSpeed = Math.sqrt(linvel.x ** 2 + linvel.y ** 2 + linvel.z ** 2);
+    const incomingSpeed = new THREE.Vector3(linvel.x, linvel.y, linvel.z).length();
 
     // Réponse "ressort" : une base fixe + un terme proportionnel à la vitesse
     // d'arrivée, pour que la bille reparte plus fort si elle arrive vite.

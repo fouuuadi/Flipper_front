@@ -85,7 +85,7 @@ export class Ball {
 
   private clampLinearVelocity(body: RAPIER.RigidBody): void {
     const velocity = body.linvel();
-    const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2);
+    const speed = new THREE.Vector3(velocity.x, velocity.y, velocity.z).length();
     const speedLimit = this.temporaryMaxLinearSpeed ?? this.maxLinearSpeed;
     if (speed <= speedLimit) return;
 
