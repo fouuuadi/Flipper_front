@@ -1,21 +1,17 @@
 import * as THREE from "three";
+import { gsap } from "gsap";
 import type { Ball } from "@modules/ball";
 import type { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import type { NamedPhysicsCollider } from "./BlenderPhysicsColliders";
 
 type ColliderMap = Record<string, NamedPhysicsCollider>;
 
-interface SpinAnimation {
-  object: THREE.Object3D;
-  initialRotation: THREE.Quaternion;
-  elapsed: number;
-  duration: number;
-}
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
-interface BurstEffect {
-  mesh: THREE.Mesh;
-  elapsed: number;
-  duration: number;
+interface SpinState {
+  tween: gsap.core.Tween;
+  initialRotation: THREE.Quaternion;
+  angle: { value: number };
 }
 
 interface TunnelTeleport {
@@ -63,10 +59,9 @@ export class TableInteractions {
   private readonly handleToName = new Map<number, string>();
   private readonly visuals = new Map<string, THREE.Object3D>();
   private readonly cooldowns = new Map<string, number>();
-  private readonly spins: SpinAnimation[] = [];
-  private readonly bursts: BurstEffect[] = [];
+  private readonly spinStates = new Map<THREE.Object3D, SpinState>();
   private readonly ligneFlashTargets: FlashTarget[];
-  private ligneFlashElapsed: number | null = null;
+  private ligneFlashTween: gsap.core.Tween | null = null;
   private readonly ligneFlashColor = new THREE.Color();
 
   private elapsed = 0;
@@ -106,11 +101,8 @@ export class TableInteractions {
 
   update(deltaTime: number): void {
     this.elapsed += deltaTime;
-    this.updateSpins(deltaTime);
-    this.updateBursts(deltaTime);
     this.updateShake(deltaTime);
     this.updateTunnelTeleport(deltaTime);
-    this.updateLigneFlash(deltaTime);
   }
 
   private handleCollision(handle1: number, handle2: number, started: boolean): void {
@@ -152,18 +144,28 @@ export class TableInteractions {
 
   private triggerLigneFlash(): void {
     if (this.ligneFlashTargets.length === 0) return;
-    this.ligneFlashElapsed = 0;
+
+    this.ligneFlashTween?.kill();
+    const state = { progress: 0 };
+    this.ligneFlashTween = gsap.to(state, {
+      progress: 1,
+      duration: LIGNE_FLASH_DURATION,
+      ease: "none",
+      onUpdate: () => {
+        // Enveloppe d'intensité : monte puis redescend une seule fois.
+        const pulse = Math.sin(state.progress * Math.PI);
+        // La teinte tourne sur plusieurs cycles pendant l'animation -> couleurs variées plutôt qu'une seule.
+        const hue = (state.progress * LIGNE_FLASH_HUE_CYCLES) % 1;
+        this.applyLigneFlash(pulse, hue);
+      },
+      onComplete: () => {
+        this.resetLigneFlash();
+        this.ligneFlashTween = null;
+      },
+    });
   }
 
-  private updateLigneFlash(deltaTime: number): void {
-    if (this.ligneFlashElapsed === null) return;
-
-    this.ligneFlashElapsed += deltaTime;
-    const progress = Math.min(this.ligneFlashElapsed / LIGNE_FLASH_DURATION, 1);
-    // Enveloppe d'intensité : monte puis redescend une seule fois.
-    const pulse = Math.sin(progress * Math.PI);
-    // La teinte tourne sur plusieurs cycles pendant l'animation -> couleurs variées plutôt qu'une seule.
-    const hue = (progress * LIGNE_FLASH_HUE_CYCLES) % 1;
+  private applyLigneFlash(pulse: number, hue: number): void {
     this.ligneFlashColor.setHSL(hue, 1, 0.55);
 
     for (const target of this.ligneFlashTargets) {
@@ -179,18 +181,17 @@ export class TableInteractions {
         target.material.emissiveIntensity = target.baseEmissiveIntensity + pulse * 1.6;
       }
     }
+  }
 
-    if (progress >= 1) {
-      for (const target of this.ligneFlashTargets) {
-        if (target.material.color && target.baseColor) target.material.color.copy(target.baseColor);
-        if (target.material.emissive) {
-          target.material.emissive.copy(target.baseEmissive ?? new THREE.Color(0x000000));
-        }
-        if (target.material.emissiveIntensity !== undefined) {
-          target.material.emissiveIntensity = target.baseEmissiveIntensity;
-        }
+  private resetLigneFlash(): void {
+    for (const target of this.ligneFlashTargets) {
+      if (target.material.color && target.baseColor) target.material.color.copy(target.baseColor);
+      if (target.material.emissive) {
+        target.material.emissive.copy(target.baseEmissive ?? new THREE.Color(0x000000));
       }
-      this.ligneFlashElapsed = null;
+      if (target.material.emissiveIntensity !== undefined) {
+        target.material.emissiveIntensity = target.baseEmissiveIntensity;
+      }
     }
   }
 
@@ -246,18 +247,28 @@ export class TableInteractions {
     const visual = this.visuals.get(name);
     if (!visual) return;
 
-    const existing = this.spins.find((spin) => spin.object === visual);
-    if (existing) {
-      existing.elapsed = 0;
-      return;
-    }
+    // Si un spin est déjà en cours sur ce visuel, on le relance depuis le
+    // même point de départ (même logique qu'un simple reset de "elapsed").
+    const existing = this.spinStates.get(visual);
+    const initialRotation = existing?.initialRotation ?? visual.quaternion.clone();
+    existing?.tween.kill();
 
-    this.spins.push({
-      object: visual,
-      initialRotation: visual.quaternion.clone(),
-      elapsed: 0,
+    const angle = { value: 0 };
+    const tween = gsap.to(angle, {
+      value: Math.PI * 2,
       duration: 0.38,
+      ease: "power3.out",
+      onUpdate: () => {
+        visual.quaternion
+          .copy(initialRotation)
+          .multiply(new THREE.Quaternion().setFromAxisAngle(Y_AXIS, angle.value));
+      },
+      onComplete: () => {
+        visual.quaternion.copy(initialRotation);
+        this.spinStates.delete(visual);
+      },
     });
+    this.spinStates.set(visual, { tween, initialRotation, angle });
   }
 
   private randomSpinnerKick(): void {
@@ -268,26 +279,6 @@ export class TableInteractions {
       y: 0.16,
       z: Math.sin(angle) * impulse,
     });
-  }
-
-  private updateSpins(deltaTime: number): void {
-    for (let i = this.spins.length - 1; i >= 0; i -= 1) {
-      const spin = this.spins[i];
-      spin.elapsed += deltaTime;
-
-      const progress = Math.min(spin.elapsed / spin.duration, 1);
-      const eased = 1 - (1 - progress) ** 3;
-      const spinRotation = new THREE.Quaternion().setFromAxisAngle(
-        new THREE.Vector3(0, 1, 0),
-        eased * Math.PI * 2,
-      );
-      spin.object.quaternion.copy(spin.initialRotation).multiply(spinRotation);
-
-      if (progress >= 1) {
-        spin.object.quaternion.copy(spin.initialRotation);
-        this.spins.splice(i, 1);
-      }
-    }
   }
 
   private createBoostBurst(center: THREE.Vector3): void {
@@ -305,25 +296,19 @@ export class TableInteractions {
     mesh.rotation.x = -Math.PI / 2;
     mesh.renderOrder = 1001;
     this.scene.add(mesh);
-    this.bursts.push({ mesh, elapsed: 0, duration: 0.28 });
-  }
 
-  private updateBursts(deltaTime: number): void {
-    for (let i = this.bursts.length - 1; i >= 0; i -= 1) {
-      const burst = this.bursts[i];
-      burst.elapsed += deltaTime;
-      const progress = Math.min(burst.elapsed / burst.duration, 1);
-      const material = burst.mesh.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.75 * (1 - progress);
-      burst.mesh.scale.setScalar(1 + progress * 1.8);
-
-      if (progress >= 1) {
-        this.scene.remove(burst.mesh);
-        burst.mesh.geometry.dispose();
+    const duration = 0.28;
+    gsap.to(mesh.scale, { x: 2.8, y: 2.8, z: 2.8, duration, ease: "none" });
+    gsap.to(material, {
+      opacity: 0,
+      duration,
+      ease: "none",
+      onComplete: () => {
+        this.scene.remove(mesh);
+        geometry.dispose();
         material.dispose();
-        this.bursts.splice(i, 1);
-      }
-    }
+      },
+    });
   }
 
   private startShake(): void {
