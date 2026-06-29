@@ -224,7 +224,7 @@ export class TableInteractions {
     if (!body) return;
 
     const velocity = body.linvel();
-    const horizontalSpeed = Math.sqrt(velocity.x ** 2 + velocity.z ** 2);
+    const horizontalSpeed = new THREE.Vector3(velocity.x, 0, velocity.z).length();
     if (horizontalSpeed < 0.35) return;
 
     const targetSpeed = Math.max(horizontalSpeed * 1.45, 4.2);

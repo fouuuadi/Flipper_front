@@ -1,3 +1,4 @@
+import { gsap } from "gsap";
 import type { MatchSyncAdapter, WsServerEvent } from "@services/matchSync";
 import { DotMatrix } from "./dotMatrix";
 import { textWidth } from "./font5x7";
@@ -9,6 +10,8 @@ type Scene = (m: DotMatrix, t: number) => void;
 
 const ATTRACT_TEXT = "* MARIO DELUXE PINBALL *  INSERT COIN  ";
 const MAX_LIVES = 3;
+const easeOutScore = gsap.parseEase("power3.out");
+const easeBackOut = gsap.parseEase("back.out(1.7)");
 
 /** Calcule une grille de dots qui conserve des pixels carrés, quel que soit l'écran. */
 export function getDmdGridDimensions(
@@ -114,7 +117,7 @@ function score(
   return (m, t) => {
     if (startT === null) startT = t;
     const p = Math.min((t - startT) / ROLL_MS, 1);
-    const eased = 1 - Math.pow(1 - p, 3); // ease-out
+    const eased = easeOutScore(p);
     const shown = Math.round(from + (value - from) * eased);
 
     const rolling = p < 1;
@@ -163,17 +166,12 @@ function ballLost(lives: number): Scene {
 function gameOver(finalScore: number): Scene {
   let startT: number | null = null;
   const GROW_MS = 600;
-  const easeBack = (x: number): number => {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-  };
   const text = "GAME OVER";
 
   return (m, t) => {
     if (startT === null) startT = t;
     const p = Math.min((t - startT) / GROW_MS, 1);
-    const eased = easeBack(p);
+    const eased = easeBackOut(p);
 
     if (p < 1) {
       const intScale = fitScale(m, text, Math.max(1, Math.round(0.4 + eased * 1.6)));

@@ -135,7 +135,7 @@ export class GameFlow {
         event: "ball_lost",
         occurredAt: Date.now(),
       });
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         this.ball.reset();
         this.isDraining = false;
       }, 700);
@@ -154,7 +154,7 @@ export class GameFlow {
       return;
     }
 
-    window.setTimeout(() => {
+    globalThis.setTimeout(() => {
       this.ball.reset();
       this.isDraining = false;
     }, 700);
