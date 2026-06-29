@@ -37,11 +37,7 @@ export function loadBlenderTable(
         gltf.scene.position.set(1, 3.5, -3);
         gltf.scene.scale.setScalar(3);
         scene.add(gltf.scene);
-        const colliders = createBlenderPhysicsColliders(
-          gltf.scene,
-          world,
-          import.meta.env.DEV ? scene : undefined,
-        );
+        const colliders = createBlenderPhysicsColliders(gltf.scene, world);
 
         const flipperLeftMesh = gltf.scene.getObjectByName("Flipper_left") ?? null;
         const flipperRightMesh = gltf.scene.getObjectByName("Flipper_right") ?? null;

@@ -124,10 +124,6 @@ export async function createPlayfieldScene(): Promise<PlayfieldScene> {
 
   const leftFlipper = new Flipper(world, "left");
   const rightFlipper = new Flipper(world, "right");
-  if (import.meta.env.DEV) {
-    leftFlipper.addDebugTo(sceneManager.scene);
-    rightFlipper.addDebugTo(sceneManager.scene);
-  }
   const tableBoundaries = new TableBoundaries(world);
   const launcher = new Launcher(ball);
 
