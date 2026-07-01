@@ -53,8 +53,7 @@ export class SceneManager {
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    this.lastFrameTime = performance.now() / 1000; // initialiser en secondes
-
+    this.lastFrameTime = performance.now() / 1000;
     const loop = (currentTime: number): void => {
       this.stats?.begin();
 

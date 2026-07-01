@@ -16,6 +16,8 @@ import { bindScreenNav } from "@modules/screenNav";
 import { GameFlow } from "@modules/gameplay/GameFlow";
 import { bindMatchTimerToStore } from "@modules/matchTimer";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
+// [Music] ici on gere la music : import du service audio gameplay
+import { gameAudio } from "@services/gameAudio";
 
 import { Splash } from "@modules/splash";
 import { Pause } from "@modules/pause";
@@ -84,6 +86,8 @@ async function bootstrap() {
   // 0. Bypass de dev (`?boot=playing`) : bascule la SM avant tout abonnement
   //    pour que MatchTimer et ScreenRouter reçoivent l'état cible dès leur
   //    subscribe initial. No-op sans le query param et en prod.
+  // [Music] ici on gere la music : activation du service audio au boot du playfield
+  gameAudio.enable();
   applyDevBoot(gameStore);
 
   // 1. Mode follower : le backend décide, le front applique. On branche le bus

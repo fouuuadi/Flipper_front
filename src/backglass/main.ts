@@ -9,6 +9,8 @@ import { bindScreenNav } from "@modules/screenNav";
 import { ControlsOverlay } from "@modules/controls";
 import { bindMatchSyncToGameStore, matchSync } from "@services/matchSync";
 import { menuAudio } from "@services/menuAudio";
+// [Music] ici on gere la music : import du service audio gameplay
+import { gameAudio } from "@services/gameAudio";
 
 import { BackglassApp } from "@modules/backglass";
 import { CosmeticsStore } from "@modules/cosmetics";
@@ -138,6 +140,8 @@ const factories: ScreenFactoryMap = {
 if (host) {
   menuAudio.enable();
   menuAudio.startClickFeedback();
+  // [Music] ici on gere la music : activation du service audio au boot du backglass
+  gameAudio.enable();
   applyDevBoot(gameStore);
 
   // Mode follower : on branche le bus borne sur la SM et on ouvre la connexion

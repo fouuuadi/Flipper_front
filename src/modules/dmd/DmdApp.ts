@@ -10,8 +10,8 @@ type Scene = (m: DotMatrix, t: number) => void;
 
 const ATTRACT_TEXT = "* MARIO DELUXE PINBALL *  INSERT COIN  ";
 const MAX_LIVES = 3;
-const easeOutScore = gsap.parseEase("power3.out");
-const easeBackOut = gsap.parseEase("back.out(1.7)");
+const easeOutScore = gsap.parseEase("power2.out");
+const easeBackOut = gsap.parseEase("back.out(1.70158)");
 
 /** Calcule une grille de dots qui conserve des pixels carrés, quel que soit l'écran. */
 export function getDmdGridDimensions(
