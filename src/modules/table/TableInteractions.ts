@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { gsap } from "gsap";
+// [Music] ici on gere la music : import du service audio pour les sons de gameplay
+import { gameAudio } from "@services/gameAudio";
 import type { Ball } from "@modules/ball";
 import type { RapierPhysicsAdapter } from "@physics/RapierPhysicsAdapter";
 import type { NamedPhysicsCollider } from "./BlenderPhysicsColliders";
@@ -119,6 +121,8 @@ export class TableInteractions {
 
     if (PLANET_BUMPERS.has(name)) {
       this.bumpFrom(name, 0.72, 0.06);
+      // [Music] ici on gere la music : son bumper sur les planètes
+      gameAudio.playBumper();
     } else if (RAMP_BOOSTS.has(name)) {
       this.lastRampContactAt = this.elapsed;
       this.boostRamp(name);
@@ -128,6 +132,8 @@ export class TableInteractions {
     } else if (name === "Bump") {
       this.bumpFrom(name, 0.62, 0.05);
       this.startShake();
+      // [Music] ici on gere la music : son bumper sur le bumper central
+      gameAudio.playBumper();
     } else if (name in TUNNEL_PAIRS) {
       if (import.meta.env.DEV) {
         console.debug("[Tunnel] collision détectée avec", name, {
@@ -257,7 +263,7 @@ export class TableInteractions {
     const tween = gsap.to(angle, {
       value: Math.PI * 2,
       duration: 0.38,
-      ease: "power3.out",
+      ease: "power2.out",
       onUpdate: () => {
         visual.quaternion
           .copy(initialRotation)
